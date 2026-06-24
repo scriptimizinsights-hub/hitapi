@@ -2,7 +2,7 @@
  * API Client — talks to Cloudflare Worker backend
  */
 
-const BASE = import.meta.env.VITE_API_URL ?? 'https://apiforge-worker.yadavsunil9699.workers.dev/api';
+const BASE = import.meta.env.VITE_API_URL ?? 'https://service.hitapi.dev/api';
 
 async function request(path, options = {}) {
   const url = path.startsWith('http') ? path : `${BASE}${path}`;
