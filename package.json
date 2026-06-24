@@ -1,0 +1,15 @@
+{
+  "name": "apiforge",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["worker", "frontend"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=worker\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=worker && npm run build --workspace=frontend",
+    "deploy": "npm run deploy --workspace=worker && npm run deploy --workspace=frontend",
+    "install:all": "npm install && npm install --workspace=worker && npm install --workspace=frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

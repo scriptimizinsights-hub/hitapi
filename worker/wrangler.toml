@@ -1,0 +1,45 @@
+name = "apiforge-worker"
+main = "src/index.js"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── D1 Database (replaceable via adapter) ───────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "scriptimiz-crm-db"
+database_id = "2a8cb91b-be93-4177-8fb7-122a11b29cf6"
+
+# ─── KV Namespace (cache layer) ──────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "CACHE"
+id = "d909c9c1d2d047d3958060e5a045d73e"
+
+# ─── Queue (async test execution) ────────────────────────────────────────────
+[[queues.producers]]
+queue = "apiforge-test-queue"
+binding = "apiforge_test_queue"
+
+[[queues.consumers]]
+queue = "apiforge-test-queue"
+max_batch_size = 10
+max_batch_timeout = 5
+
+# ─── R2 Bucket (report storage) ──────────────────────────────────────────────
+[[r2_buckets]]
+binding = "REPORTS"
+bucket_name = "apiforge-reports"
+
+# ─── AI binding ──────────────────────────────────────────────────────────────
+[ai]
+binding = "AI"
+
+# ─── Environment variables ───────────────────────────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+CORS_ORIGIN = "*"
+
+# ─── Local dev overrides ─────────────────────────────────────────────────────
+[env.development]
+[env.development.vars]
+ENVIRONMENT = "development"
+CORS_ORIGIN = "http://localhost:5173"
