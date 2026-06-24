@@ -75,3 +75,4 @@ coverage/
 .temp/
 tmp/package-lock.json
 package-lock.json
+package-lock.json
