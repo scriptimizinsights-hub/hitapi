@@ -74,3 +74,4 @@ coverage/
 *.zip
 .temp/
 tmp/package-lock.json
+package-lock.json
