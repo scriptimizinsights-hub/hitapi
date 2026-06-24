@@ -1,4 +1,4 @@
-name = "hitapi-worker"
+name = "apiforge-worker"
 main = "src/index.js"
 compatibility_date = "2024-10-22"
 compatibility_flags = ["nodejs_compat"]
@@ -7,17 +7,17 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "hitapi-db"
-database_id = "YOUR_D1_DATABASE_ID"
+database_id = "914c8f2f-58e5-4bbe-bd33-a37168aea3b8"
 
 # ─── KV Namespace (cache layer) ──────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "CACHE"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "8a637407d80a470cb24c2201ab3a6047"
 
 # ─── Queue (async test execution) ────────────────────────────────────────────
 [[queues.producers]]
 queue = "hitapi-test-queue"
-binding = "TEST_QUEUE"
+binding = "hitapi-test-queue"
 
 [[queues.consumers]]
 queue = "hitapi-test-queue"
@@ -27,7 +27,7 @@ max_batch_timeout = 5
 # ─── R2 Bucket (report storage) ──────────────────────────────────────────────
 [[r2_buckets]]
 binding = "REPORTS"
-bucket_name = "hitapi-reports"
+bucket_name = "apiforge-reports"
 
 # ─── AI binding ──────────────────────────────────────────────────────────────
 [ai]
@@ -38,8 +38,8 @@ binding = "AI"
 ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
 
-# ─── Local dev: override vars in .dev.vars (gitignored) ─────────────────────
-# Create worker/.dev.vars with:
-#   ENVIRONMENT=development
-#   CORS_ORIGIN=http://localhost:5173
-# Wrangler picks this up automatically for `wrangler dev`.
+# ─── Local dev overrides ─────────────────────────────────────────────────────
+[env.development]
+[env.development.vars]
+ENVIRONMENT = "development"
+CORS_ORIGIN = "http://localhost:5173"
