@@ -3,23 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name hitapi"
+    "dev": "wrangler dev --port 8787",
+    "build": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply apiforge-db",
+    "db:migrate:local": "wrangler d1 migrations apply apiforge-db --local"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.27.0",
-    "zustand": "^5.0.1",
-    "lucide-react": "^0.460.0",
-    "recharts": "^2.13.3",
-    "clsx": "^2.1.1"
+    "itty-router": "^4.0.27"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.3",
-    "vite": "^6.3.5",
-    "wrangler": "^3.78.7"
+    "wrangler": "^3.114.0",
+    "@cloudflare/workers-types": "^4.20241022.0"
   }
 }
