@@ -1,12 +1,12 @@
 {
-  "name": "apiforge-frontend",
+  "name": "hitapi-frontend",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name apiforge"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name hitapi"
   },
   "dependencies": {
     "clsx": "^2.1.1",

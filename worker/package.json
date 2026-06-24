@@ -6,20 +6,20 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name apiforge"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name hitapi"
   },
   "dependencies": {
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.27.0",
+    "zustand": "^5.0.1",
+    "lucide-react": "^0.460.0",
     "recharts": "^2.13.3",
-    "zustand": "^5.0.1"
+    "clsx": "^2.1.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.3",
     "vite": "^6.3.5",
-    "wrangler": "^4.104.0"
+    "wrangler": "^3.78.7"
   }
 }
