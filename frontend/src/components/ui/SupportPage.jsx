@@ -1,27 +1,27 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Github } from 'lucide-react';
+import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Github, Globe } from 'lucide-react';
 import { useState } from 'react';
 
 const COMPANY = 'Scriptimiz Insight LLP';
-const EMAIL = 'scriptimizinsights@gmail.com';
+const EMAIL = 'support@hitapi.dev';
 const ADDRESS = 'Gokul Nagar, Akurli Road, Kandivali East, Mumbai – 400101, Maharashtra, India';
 
 const FAQS = [
     {
-        q: 'How do I install the APIForge browser extension?',
+        q: 'How do I install the HitAPI browser extension?',
         a: 'Download the extension ZIP from our GitHub releases page. Unzip it, open chrome://extensions in Chrome, enable Developer Mode (top-right toggle), click "Load unpacked", and select the unzipped folder. The ⚡ icon will appear in your toolbar.'
     },
     {
         q: 'The extension says "Failed to fetch" — what do I do?',
-        a: 'This means the extension cannot reach your APIForge Worker. Check that: (1) your Worker URL is correct in the Setup tab, (2) your Worker is deployed and running (visit the Worker URL directly to confirm), and (3) CORS is set to "*" in your Worker\'s wrangler.toml.'
+        a: 'This means the extension cannot reach your HitAPI Worker. Check that: (1) your Worker URL is correct in the Setup tab, (2) your Worker is deployed and running (visit the Worker URL directly to confirm), and (3) CORS is set to "*" in your Worker\'s wrangler.toml.'
     },
     {
         q: 'Why does "Generate tests" say "AI timeout"?',
-        a: 'The AI model is taking too long on Cloudflare\'s free tier. APIForge automatically falls back to rule-based test generation in this case — you\'ll still get test cases. To get AI-generated cases, try generating for fewer endpoints at once using the "by tag" or "by method" filter.'
+        a: 'The AI model is taking too long on Cloudflare\'s free tier. HitAPI automatically falls back to rule-based test generation in this case — you\'ll still get test cases. To get AI-generated cases, try generating for fewer endpoints at once using the "by tag" or "by method" filter.'
     },
     {
         q: 'How does the login flow work?',
-        a: 'Set Auth type to "Login flow (auto token)" in Project Settings. Enter your login URL, the JSON body with credentials, and the dot-path to the token in the response (e.g. "data.token"). Before each test run, APIForge POSTs to your login endpoint, extracts the token, and injects it as Authorization: Bearer <token> into every test request.'
+        a: 'Set Auth type to "Login flow (auto token)" in Project Settings. Enter your login URL, the JSON body with credentials, and the dot-path to the token in the response (e.g. "data.token"). Before each test run, HitAPI POSTs to your login endpoint, extracts the token, and injects it as Authorization: Bearer <token> into every test request.'
     },
     {
         q: 'Can I test a local API running on localhost?',
@@ -29,7 +29,7 @@ const FAQS = [
     },
     {
         q: 'What Swagger / OpenAPI formats are supported?',
-        a: 'APIForge supports OpenAPI 3.0, OpenAPI 3.1, and Swagger 2.0 in JSON format. YAML support requires the js-yaml npm package to be added to the Worker.'
+        a: 'HitAPI supports OpenAPI 3.0, OpenAPI 3.1, and Swagger 2.0 in JSON format. YAML support requires the js-yaml npm package to be added to the Worker.'
     },
     {
         q: 'Where is my data stored?',
@@ -37,7 +37,7 @@ const FAQS = [
     },
     {
         q: 'How do I update the extension?',
-        a: 'Download the latest ZIP from GitHub releases, unzip it replacing the old folder, then go to chrome://extensions and click the refresh icon on the APIForge card. Your saved configuration is preserved in chrome.storage.local.'
+        a: 'Download the latest ZIP from GitHub releases, unzip it replacing the old folder, then go to chrome://extensions and click the refresh icon on the HitAPI card. Your saved configuration is preserved in chrome.storage.local.'
     },
 ];
 
@@ -84,7 +84,7 @@ export function SupportPage() {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚡</div>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>APIForge</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
                     </div>
                     <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <ArrowLeft size={13} /> Back
@@ -98,10 +98,10 @@ export function SupportPage() {
                 <div style={{ textAlign: 'center', marginBottom: 48 }}>
                     <div style={{ fontSize: 40, marginBottom: 16 }}>⚡</div>
                     <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 10 }}>
-                        APIForge Support
+                        HitAPI Support
                     </h1>
                     <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
-                        Get help with APIForge — AI-powered API testing built on Cloudflare. We're here to help you ship faster.
+                        Get help with HitAPI — AI-powered API testing built on Cloudflare. We're here to help you ship faster.
                     </p>
                 </div>
 
@@ -124,7 +124,7 @@ export function SupportPage() {
                             title: 'GitHub Issues',
                             desc: 'Report bugs or request features on our public repository.',
                             action: 'Open GitHub',
-                            href: 'https://github.com/sunilyadav/apiforge'
+                            href: 'https://github.com/sunilyadav/hitapi'
                         },
                         {
                             icon: Mail,
@@ -196,8 +196,91 @@ export function SupportPage() {
                     </div>
                 </div>
 
+
+                {/* ── Sponsored by Scriptimiz ── */}
+                <div style={{ marginBottom: 40 }}>
+                    <div style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid rgba(255,92,92,0.2)',
+                        borderRadius: 14, overflow: 'hidden'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            padding: '18px 24px 14px',
+                            background: 'rgba(255,92,92,0.05)',
+                            borderBottom: '1px solid rgba(255,92,92,0.1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                        }}>
+                            <div>
+                                <div style={{ fontSize: 10, color: '#ff5c5c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                                    Sponsored by
+                                </div>
+                                <div style={{ fontSize: 18, fontWeight: 600 }}>Scriptimiz Insight LLP</div>
+                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                                    Custom Software Solutions & Web Development · Mumbai, India
+                                </div>
+                            </div>
+                            <a href="https://scriptimiz.com" target="_blank" rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                Visit site <ExternalLink size={12} />
+                            </a>
+                        </div>
+
+                        {/* Services grid */}
+                        <div style={{ padding: '20px 24px' }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>
+                                Our services
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+                                {[
+                                    { title: 'Web Development', desc: 'Custom web apps with React, Spring Boot & Microservices' },
+                                    { title: 'Software Training', desc: 'Java, Spring Boot, Microservices — for individuals & teams' },
+                                    { title: 'Application Support', desc: 'Ongoing maintenance and support for enterprise apps' },
+                                    { title: 'IT Consulting', desc: 'Architecture, code reviews, and technology strategy' },
+                                    { title: 'B2B Software Products', desc: 'End-to-end product development for businesses' },
+                                    { title: 'E-Commerce Solutions', desc: 'Online stores, payment integration & fulfilment systems' },
+                                ].map(({ title, desc }) => (
+                                    <div key={title} style={{ padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                                        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{title}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Tech stack */}
+                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                                Expert in
+                            </div>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+                                {['Java', 'Spring Boot', 'Microservices', 'React', 'Node.js', 'MySQL', 'PostgreSQL', 'AWS', 'Docker', 'REST APIs'].map(tech => (
+                                    <span key={tech} style={{
+                                        fontSize: 11, padding: '3px 10px', borderRadius: 20,
+                                        background: 'rgba(255,92,92,0.08)', color: '#ff5c5c',
+                                        border: '1px solid rgba(255,92,92,0.2)', fontWeight: 500
+                                    }}>{tech}</span>
+                                ))}
+                            </div>
+
+                            {/* Contact row */}
+                            <div style={{ display: 'flex', gap: 20, padding: '14px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                                    <Mail size={13} color="var(--text-tertiary)" />
+                                    <a href="mailto:scriptimizinsights@gmail.com" style={{ color: '#ff5c5c' }}>scriptimizinsights@gmail.com</a>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
+                                    <MapPin size={13} color="var(--text-tertiary)" />
+                                    Gokul Nagar, Akurli Road, Kandivali East, Mumbai — 400101
+                                </div>
+                                <a href="https://scriptimiz.com" target="_blank" rel="noopener noreferrer"
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#ff5c5c' }}>
+                                    <Globe size={13} /> scriptimiz.com
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {/* Contact */}
-                <div className="card" style={{ padding: '28px', borderColor: 'rgba(130,100,255,0.25)', background: 'rgba(130,100,255,0.04)', marginBottom: 32 }}>
+                <div className="card" style={{ padding: '28px', borderColor: 'rgba(255,92,92,0.2)', background: 'rgba(255,92,92,0.04)', marginBottom: 32 }}>
                     <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 18 }}>Contact us</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                         <div>

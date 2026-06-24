@@ -1,4 +1,4 @@
-/* ─── APIForge Design System ─────────────────────────────────────────────── */
+/* ─── HitAPI Design System ─────────────────────────────────────────────── */
 /* Typography: Inter (UI) + JetBrains Mono (code/endpoints)                  */
 /* Palette: near-black surfaces, electric purple accent, semantic greens/reds */
 
@@ -17,9 +17,9 @@
   --border-focus: rgba(130, 100, 255, 0.6);
 
   /* Accent — electric purple */
-  --accent: #8264ff;
+  --accent: #ff5c5c;
   --accent-dim: rgba(130, 100, 255, 0.15);
-  --accent-hover: #9b7dff;
+  --accent-hover: #ff7b7b;
 
   /* Text */
   --text-primary: #f0eeff;

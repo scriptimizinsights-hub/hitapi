@@ -3,9 +3,9 @@ import { ArrowLeft, Shield, Lock, Eye, Database, Globe, Mail, MapPin } from 'luc
 
 const LAST_UPDATED = 'June 24, 2026';
 const COMPANY = 'Scriptimiz Insight LLP';
-const EMAIL = 'scriptimizinsights@gmail.com';
+const EMAIL = 'support@hitapi.dev';
 const ADDRESS = 'Gokul Nagar, Akurli Road, Kandivali East, Mumbai – 400101, Maharashtra, India';
-const PRODUCT = 'APIForge';
+const PRODUCT = 'HitAPI';
 
 function Section({ icon: Icon, color, title, children }) {
     return (
@@ -52,7 +52,7 @@ export function PrivacyPage() {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚡</div>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>APIForge</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
                     </div>
                     <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <ArrowLeft size={13} /> Back
@@ -72,20 +72,20 @@ export function PrivacyPage() {
                         <strong style={{ color: 'var(--text-primary)' }}>{PRODUCT}</strong> by {COMPANY} &nbsp;·&nbsp; Last updated: {LAST_UPDATED}
                     </p>
                     <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(35,209,139,0.08)', border: '1px solid rgba(35,209,139,0.2)', borderRadius: 8, fontSize: 13, color: 'var(--green)' }}>
-                        <strong>Short version:</strong> APIForge does not collect, sell, or share your personal data. Your API credentials stay on your device and are only sent to your own Cloudflare Worker.
+                        <strong>Short version:</strong> HitAPI does not collect, sell, or share your personal data. Your API credentials stay on your device and are only sent to your own Cloudflare Worker.
                     </div>
                 </div>
 
                 <Section icon={Eye} color="var(--accent)" title="1. What we collect">
-                    <p style={{ marginBottom: 10 }}>APIForge collects the minimum data necessary to provide the service:</p>
-                    <Li><strong>Configuration data</strong> — Swagger URLs, base URLs, and your APIForge Worker URL are stored locally in your browser using <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--accent)' }}>chrome.storage.local</code>. This data never leaves your browser except to communicate with your own configured Worker.</Li>
+                    <p style={{ marginBottom: 10 }}>HitAPI collects the minimum data necessary to provide the service:</p>
+                    <Li><strong>Configuration data</strong> — Swagger URLs, base URLs, and your HitAPI Worker URL are stored locally in your browser using <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--accent)' }}>chrome.storage.local</code>. This data never leaves your browser except to communicate with your own configured Worker.</Li>
                     <Li><strong>API credentials</strong> — Bearer tokens, API keys, and login credentials you enter are stored locally only and transmitted exclusively to your own Cloudflare Worker. We do not receive, store, or log these values.</Li>
                     <Li><strong>Usage data</strong> — We do not collect analytics, crash reports, or telemetry of any kind.</Li>
                     <Li><strong>No personal information</strong> — We do not collect names, email addresses, IP addresses, or any personally identifiable information through the extension.</Li>
                 </Section>
 
                 <Section icon={Globe} color="var(--blue)" title="2. How your data flows">
-                    <p style={{ marginBottom: 10 }}>When you use APIForge, data flows as follows:</p>
+                    <p style={{ marginBottom: 10 }}>When you use HitAPI, data flows as follows:</p>
                     <Li><strong>Extension → Your Cloudflare Worker</strong> — Test configurations and API credentials are sent to the Worker URL you provide. This is your own infrastructure — we have no access to it.</Li>
                     <Li><strong>Your Worker → Your API</strong> — The Worker makes HTTP requests to your API endpoints. Your API responses are returned to the extension. No data passes through Scriptimiz servers.</Li>
                     <Li><strong>Your Worker → Cloudflare Workers AI</strong> — Endpoint schemas (not credentials) are sent to Cloudflare's AI service to generate test cases. This is governed by Cloudflare's privacy policy.</Li>
@@ -100,9 +100,9 @@ export function PrivacyPage() {
                 </Section>
 
                 <Section icon={Lock} color="var(--green)" title="4. Third-party services">
-                    <p style={{ marginBottom: 10 }}>APIForge relies on the following third-party services, each with their own privacy policies:</p>
+                    <p style={{ marginBottom: 10 }}>HitAPI relies on the following third-party services, each with their own privacy policies:</p>
                     <Li><strong>Cloudflare Workers AI</strong> — Used for AI test generation. Data processed: API endpoint schemas only. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Cloudflare Privacy Policy</a></Li>
-                    <Li><strong>Cloudflare Pages</strong> — Hosts the APIForge web interface. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Cloudflare Privacy Policy</a></Li>
+                    <Li><strong>Cloudflare Pages</strong> — Hosts the HitAPI web interface. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Cloudflare Privacy Policy</a></Li>
                     <Li><strong>Google Chrome</strong> — The extension runs in Chrome and uses standard Chrome APIs. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Google Privacy Policy</a></Li>
                 </Section>
 
@@ -115,7 +115,7 @@ export function PrivacyPage() {
                 </Section>
 
                 <Section icon={Eye} color="var(--text-secondary)" title="6. Children's privacy">
-                    APIForge is a developer tool intended for professional use. It is not directed at children under 13 years of age and we do not knowingly collect information from children.
+                    HitAPI is a developer tool intended for professional use. It is not directed at children under 13 years of age and we do not knowingly collect information from children.
                 </Section>
 
                 <Section icon={Globe} color="var(--accent)" title="7. Changes to this policy">

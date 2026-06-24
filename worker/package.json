@@ -1,20 +1,18 @@
 {
-  "name": "apiforge-worker",
+  "name": "hitapi",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "worker",
+    "frontend"
+  ],
   "scripts": {
-    "dev": "wrangler dev --port 8787",
-    "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy",
-    "db:migrate": "wrangler d1 migrations apply apiforge-db",
-    "db:migrate:local": "wrangler d1 migrations apply apiforge-db --local"
-  },
-  "dependencies": {
-    "itty-router": "^4.0.27",
-    "vite": "8.0.16"
+    "dev": "concurrently \"npm run dev --workspace=worker\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=worker && npm run build --workspace=frontend",
+    "deploy": "npm run deploy --workspace=worker && npm run deploy --workspace=frontend",
+    "install:all": "npm install && npm install --workspace=worker && npm install --workspace=frontend"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241022.0",
-    "wrangler": "^4.103.0"
+    "concurrently": "^8.2.2"
   }
 }

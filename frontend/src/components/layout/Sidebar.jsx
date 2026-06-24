@@ -44,18 +44,18 @@ export function Sidebar({ onNewProject }) {
       overflowY: 'auto', zIndex: 50
     }}>
       {/* Logo */}
-      <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8,
-            background: 'linear-gradient(135deg, #8264ff, #5ca8ff)',
+            background: 'linear-gradient(135deg, #ff5c5c, #ff9b3c)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <Zap size={14} color="#fff" />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>APIForge</div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.04em' }}>AI API Testing</div>
+            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>HitAPI</div>
+            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', letterSpacing: '0.03em' }}>hitapi.dev · AI API Testing</div>
           </div>
         </div>
       </div>
@@ -89,16 +89,16 @@ export function Sidebar({ onNewProject }) {
                 style={{
                   width: '100%', textAlign: 'left', padding: '7px 8px',
                   borderRadius: 6,
-                  background: currentProject?.id === p.id ? 'var(--accent-dim)' : 'transparent',
-                  color: currentProject?.id === p.id ? 'var(--accent)' : 'var(--text-secondary)',
-                  border: currentProject?.id === p.id ? '1px solid rgba(130,100,255,0.2)' : '1px solid transparent',
+                  background: currentProject?.id === p.id ? 'rgba(255,92,92,0.1)' : 'transparent',
+                  color: currentProject?.id === p.id ? '#ff5c5c' : 'var(--text-secondary)',
+                  border: currentProject?.id === p.id ? '1px solid rgba(255,92,92,0.2)' : '1px solid transparent',
                   fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                   marginBottom: 2, transition: 'all 0.12s'
                 }}
               >
                 <div style={{
                   width: 6, height: 6, borderRadius: 2, flexShrink: 0,
-                  background: currentProject?.id === p.id ? 'var(--accent)' : 'var(--text-tertiary)'
+                  background: currentProject?.id === p.id ? '#ff5c5c' : 'var(--text-tertiary)'
                 }} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.name}
@@ -117,7 +117,7 @@ export function Sidebar({ onNewProject }) {
                 fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                 border: '1px dashed var(--border)', marginTop: 4, transition: 'all 0.12s'
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff5c5c'; e.currentTarget.style.color = '#ff5c5c'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}
             >
               <Plus size={12} /> New project
@@ -144,7 +144,7 @@ export function Sidebar({ onNewProject }) {
                   background: isActive ? 'var(--bg-card)' : 'transparent',
                   fontSize: 13, fontWeight: isActive ? 500 : 400,
                   textDecoration: 'none', marginBottom: 2,
-                  borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                  borderLeft: isActive ? '2px solid #ff5c5c' : '2px solid transparent',
                   transition: 'all 0.12s'
                 })}
               >
@@ -153,28 +153,56 @@ export function Sidebar({ onNewProject }) {
               </NavLink>
             </div>
           ))}
-
         </nav>
       )}
 
-      {/* Footer — user menu */}
+      {/* Footer */}
       <div style={{ padding: '12px', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
-        {/* CF services indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '0 2px' }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px var(--green)', flexShrink: 0 }} />
+
+        {/* Sponsored by */}
+        <div style={{
+          padding: '8px 10px', borderRadius: 8, marginBottom: 10,
+          background: 'rgba(255,92,92,0.05)', border: '1px solid rgba(255,92,92,0.15)'
+        }}>
+          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>
+            Sponsored by
+          </div>
+          <a
+            href="https://scriptimiz.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: 'none', display: 'block' }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#ff5c5c', lineHeight: 1.2 }}>
+              Scriptimiz Insight LLP
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
+              Software · Training · Consulting
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 1 }}>
+              Mumbai, India · scriptimiz.com
+            </div>
+          </a>
+        </div>
+
+        {/* CF services */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: '0 2px' }}>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Cloudflare · D1 · KV · R2 · AI</span>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+
+        {/* Links */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
           <button onClick={() => navigate('/privacy')} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseEnter={e => e.currentTarget.style.color = '#ff5c5c'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>Privacy</button>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>·</span>
           <button onClick={() => navigate('/support')} style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'none', cursor: 'pointer', padding: 0, transition: 'color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseEnter={e => e.currentTarget.style.color = '#ff5c5c'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>Support</button>
         </div>
 
-        {/* User button */}
+        {/* User menu */}
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setUserMenuOpen(o => !o)}
@@ -189,7 +217,7 @@ export function Sidebar({ onNewProject }) {
           >
             <div style={{
               width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #8264ff, #5ca8ff)',
+              background: 'linear-gradient(135deg, #ff5c5c, #ff9b3c)',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               <User size={13} color="#fff" />
@@ -204,14 +232,9 @@ export function Sidebar({ onNewProject }) {
               style={{ transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }} />
           </button>
 
-          {/* Dropdown menu */}
           {userMenuOpen && (
             <>
-              {/* Backdrop */}
-              <div
-                onClick={() => setUserMenuOpen(false)}
-                style={{ position: 'fixed', inset: 0, zIndex: 49 }}
-              />
+              <div onClick={() => setUserMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
               <div style={{
                 position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -220,14 +243,14 @@ export function Sidebar({ onNewProject }) {
                 animation: 'modalIn 0.15s ease'
               }}>
                 {[
-                  { icon: HelpCircle, label: 'How it works', action: () => navigate('/how-it-works'), color: 'var(--text-secondary)' },
-                  { icon: Settings, label: 'Settings', action: () => navigate('/settings'), color: 'var(--text-secondary)' },
-                ].map(({ icon: Icon, label, action, color }) => (
+                  { icon: HelpCircle, label: 'How it works', action: () => navigate('/how-it-works') },
+                  { icon: Settings, label: 'Settings', action: () => navigate(`/projects/${currentProject?.id}/settings`) },
+                ].map(({ icon: Icon, label, action }) => (
                   <button key={label}
                     onClick={() => { setUserMenuOpen(false); action(); }}
                     style={{
                       width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
-                      background: 'transparent', color, fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                      background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', textAlign: 'left',
                       borderBottom: '1px solid var(--border)', transition: 'background 0.1s'
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
