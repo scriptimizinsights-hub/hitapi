@@ -1,8 +1,11 @@
 {
-  "name": "apiforge",
+  "name": "hitapi",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["worker", "frontend"],
+  "workspaces": [
+    "worker",
+    "frontend"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=worker\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspace=worker && npm run build --workspace=frontend",
