@@ -48,7 +48,7 @@ export function Sidebar({ onNewProject }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 28, height: 28, borderRadius: 8,
-            background: 'linear-gradient(135deg, #ff5c5c, #ff9b3c)',
+            background: 'linear-gradient(135deg, #8264ff, #5ca8ff)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <Zap size={14} color="#fff" />
@@ -89,7 +89,7 @@ export function Sidebar({ onNewProject }) {
                 style={{
                   width: '100%', textAlign: 'left', padding: '7px 8px',
                   borderRadius: 6,
-                  background: currentProject?.id === p.id ? 'rgba(255,92,92,0.1)' : 'transparent',
+                  background: currentProject?.id === p.id ? 'var(--accent-dim)' : 'transparent',
                   color: currentProject?.id === p.id ? '#ff5c5c' : 'var(--text-secondary)',
                   border: currentProject?.id === p.id ? '1px solid rgba(255,92,92,0.2)' : '1px solid transparent',
                   fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
@@ -162,7 +162,7 @@ export function Sidebar({ onNewProject }) {
         {/* Sponsored by */}
         <div style={{
           padding: '8px 10px', borderRadius: 8, marginBottom: 10,
-          background: 'rgba(255,92,92,0.05)', border: '1px solid rgba(255,92,92,0.15)'
+          background: 'var(--accent-dim)', border: '1px solid rgba(130,100,255,0.2)'
         }}>
           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>
             Sponsored by
@@ -173,7 +173,7 @@ export function Sidebar({ onNewProject }) {
             rel="noopener noreferrer"
             style={{ textDecoration: 'none', display: 'block' }}
           >
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#ff5c5c', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', lineHeight: 1.2 }}>
               Scriptimiz Insight LLP
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>
@@ -217,7 +217,7 @@ export function Sidebar({ onNewProject }) {
           >
             <div style={{
               width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #ff5c5c, #ff9b3c)',
+              background: 'linear-gradient(135deg, #8264ff, #5ca8ff)',
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>
               <User size={13} color="#fff" />

@@ -17,9 +17,9 @@
   --border-focus: rgba(130, 100, 255, 0.6);
 
   /* Accent — electric purple */
-  --accent: #ff5c5c;
+  --accent: #8264ff;
   --accent-dim: rgba(130, 100, 255, 0.15);
-  --accent-hover: #ff7b7b;
+  --accent-hover: #9b7dff;
 
   /* Text */
   --text-primary: #f0eeff;
