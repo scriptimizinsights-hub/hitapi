@@ -213,7 +213,7 @@ export function ProjectSettings() {
                     <div>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Bearer token</label>
                         <input className="input" type="password" placeholder="eyJhbGciOiJIUzI1NiIs…"
-                            value={authConfig.token || ''} onChange={e => setAC('token', e.target.value)} />
+                            value={authConfig?.token || ''} onChange={e => setAC('token', e.target.value)} />
                     </div>
                 )}
 
@@ -221,7 +221,7 @@ export function ProjectSettings() {
                     <div className="grid-2">
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Username</label>
-                            <input className="input" value={authConfig.username || ''} onChange={e => setAC('username', e.target.value)} />
+                            <input className="input" value={authConfig?.username || ''} onChange={e => setAC('username', e.target.value)} />
                         </div>
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Password</label>
@@ -276,7 +276,7 @@ export function ProjectSettings() {
                                 Token path *
                                 <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>dot-path into the response JSON</span>
                             </label>
-                            <input className="input" placeholder="token  or  data.access_token  or  result.auth.token"
+                            <input className="input" placeholder="token  or  data.access_token  or  result.auth?.token"
                                 value={authConfig.token_path || ''} onChange={e => setAC('token_path', e.target.value)} />
                             <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                 {['token', 'access_token', 'data.token', 'data.access_token'].map(p => (
