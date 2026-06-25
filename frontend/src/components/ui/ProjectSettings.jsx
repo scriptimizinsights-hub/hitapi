@@ -86,18 +86,18 @@ export function ProjectSettings() {
         setTestingLogin(true);
         setLoginTestResult(null);
         try {
-            if (!authConfig.login_url) throw new Error('Login URL is required');
-            if (!authConfig.login_body) throw new Error('Login body is required');
+            if (!authConfig?.login_url) throw new Error('Login URL is required');
+            if (!authConfig?.login_body) throw new Error('Login body is required');
 
-            const body = typeof authConfig.login_body === 'string'
-                ? JSON.parse(authConfig.login_body)
-                : authConfig.login_body;
+            const body = typeof authConfig?.login_body === 'string'
+                ? JSON.parse(authConfig?.login_body)
+                : authConfig?.login_body;
 
             // Route through the Worker — avoids CORS since Worker has no origin restriction
             const result = await api.projects.testLogin(projectId, {
-                login_url: authConfig.login_url,
+                login_url: authConfig?.login_url,
                 login_body: body,
-                token_path: authConfig.token_path || 'token'
+                token_path: authConfig?.token_path || 'token'
             });
 
             if (result.success) {
@@ -215,7 +215,7 @@ export function ProjectSettings() {
                     <div>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Bearer token</label>
                         <input className="input" type="password" placeholder="eyJhbGciOiJIUzI1NiIs…"
-                            value={authConfig.token || ''} onChange={e => setAC('token', e.target.value)} />
+                            value={authConfig?.token || ''} onChange={e => setAC('token', e.target.value)} />
                     </div>
                 )}
 
@@ -223,7 +223,7 @@ export function ProjectSettings() {
                     <div className="grid-2">
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Username</label>
-                            <input className="input" value={authConfig.username || ''} onChange={e => setAC('username', e.target.value)} />
+                            <input className="input" value={authConfig?.username || ''} onChange={e => setAC('username', e.target.value)} />
                         </div>
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Password</label>
@@ -263,9 +263,9 @@ export function ProjectSettings() {
                             <textarea className="input" style={{ height: 72, resize: 'none', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
                                 placeholder={'{"email": "test@example.com", "password": "secret"}'}
                                 value={
-                                    typeof authConfig.login_body === 'object'
-                                        ? JSON.stringify(authConfig.login_body, null, 2)
-                                        : authConfig.login_body || ''
+                                    typeof authConfig?.login_body === 'object'
+                                        ? JSON.stringify(authConfig?.login_body, null, 2)
+                                        : authConfig?.login_body || ''
                                 }
                                 onChange={e => {
                                     try { setAC('login_body', JSON.parse(e.target.value)); }
@@ -285,9 +285,9 @@ export function ProjectSettings() {
                                     <button key={p} onClick={() => setAC('token_path', p)} style={{
                                         fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                                         fontFamily: 'JetBrains Mono, monospace',
-                                        background: authConfig.token_path === p ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
-                                        color: authConfig.token_path === p ? 'var(--accent)' : 'var(--text-tertiary)',
-                                        border: authConfig.token_path === p ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)'
+                                        background: authConfig?.token_path === p ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
+                                        color: authConfig?.token_path === p ? 'var(--accent)' : 'var(--text-tertiary)',
+                                        border: authConfig?.token_path === p ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)'
                                     }}>{p}</button>
                                 ))}
                             </div>
@@ -297,7 +297,7 @@ export function ProjectSettings() {
                         <div>
                             <button
                                 onClick={handleTestLogin}
-                                disabled={testingLogin || !authConfig.login_url}
+                                disabled={testingLogin || !authConfig?.login_url}
                                 className="btn btn-ghost"
                                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                             >
