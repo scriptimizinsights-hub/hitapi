@@ -12,18 +12,22 @@ function parseJSON(text) {
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(clean);
   } catch {
+    // Fix common model mistake: missing commas between array objects
+    // e.g. "}\n  {" → "},\n  {"
+    const fixed = text
+      .replace(/\}\s*\n\s*\{/g, '},\n  {')   // missing comma between objects
+      .replace(/\}\s*\{/g, '},{')             // no whitespace version
+      .trim();
+    try { return JSON.parse(fixed); } catch { }
+
     // Try to pull any JSON array out of the text
-    const match = text.match(/\[[\s\S]*?\]/s);
+    const match = fixed.match(/\[[\s\S]*?\]/s);
     if (match) {
-      try { return JSON.parse(match[0]); } catch { }
-    }
-    // Try JSON object
-    const objMatch = text.match(/\{[\s\S]*?\}/s);
-    if (objMatch) {
-      try {
-        const obj = JSON.parse(objMatch[0]);
-        return Array.isArray(obj) ? obj : [obj];
-      } catch { }
+      try { return JSON.parse(match[0]); } catch {
+        // Last resort: fix the extracted match too
+        const fixedMatch = match[0].replace(/\}\s*\n\s*\{/g, '},\n  {').replace(/\}\s*\{/g, '},{');
+        try { return JSON.parse(fixedMatch); } catch { }
+      }
     }
     console.error('Non-JSON from AI:', text.slice(0, 300));
     throw new Error('AI returned non-JSON');
@@ -57,50 +61,115 @@ async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
 export async function generateTestCases(ai, endpoint) {
   if (!ai) throw new Error('AI binding missing in wrangler.toml');
 
-  // Ultra-short prompt — fewer tokens = faster response
-  const bodyStr = endpoint.request_body
-    ? JSON.stringify(endpoint.request_body).slice(0, 200)
-    : 'none';
+  // Extract real field names from schema
+  const schema = endpoint.request_body;
+  const fields = schema?.properties ? Object.keys(schema.properties) : [];
+  const requiredFields = schema?.required || [];
 
-  const prompt = `Output ONLY a JSON array of 4 API test cases for: ${endpoint.method} ${endpoint.path}
-Body schema: ${bodyStr}
-
-Format (fill realistic values):
-[{"name":"str","type":"positive|negative|boundary|security","input_payload":{},"input_params":{},"expected_status":200,"ai_reasoning":"str"}]
-
-JSON array only, no text before or after.`;
-
-  console.log(`AI generating tests for ${endpoint.method} ${endpoint.path}`);
-  console.log('AI REQUEST >>>', prompt);
-
-  let response;
-  try {
-    response = await runAI(ai, prompt, 600, 18000);
-  } catch (err) {
-    console.error(`AI timeout/error for ${endpoint.path}:`, err.message);
-    // Return rule-based fallback instead of failing
-    return fallbackTestCases(endpoint);
+  // Build realistic example values based on field names
+  function exampleValue(fieldName, fieldSchema) {
+    const name = fieldName.toLowerCase();
+    if (fieldSchema?.example !== undefined) return fieldSchema.example;
+    if (fieldSchema?.enum) return fieldSchema.enum[0];
+    if (name.includes('email')) return 'test@example.com';
+    if (name.includes('password')) return 'Test@123456';
+    if (name.includes('name') && name.includes('user')) return 'Test User';
+    if (name.includes('firstname') || name === 'first_name') return 'John';
+    if (name.includes('lastname') || name === 'last_name') return 'Doe';
+    if (name.includes('name')) return 'Test Name';
+    if (name.includes('phone')) return '+919876543210';
+    if (name.includes('url')) return 'https://example.com';
+    if (name.includes('title')) return 'Test Title';
+    if (name.includes('description') || name.includes('desc')) return 'Test description';
+    if (name.includes('age')) return 25;
+    if (name.includes('count') || name.includes('qty') || name.includes('quantity')) return 1;
+    if (name.includes('price') || name.includes('amount')) return 100;
+    if (name.includes('date')) return '2024-01-01';
+    if (name.includes('id')) return '123';
+    if (name.includes('status')) return 'active';
+    if (name.includes('token')) return 'test-token-123';
+    if (fieldSchema?.type === 'boolean') return true;
+    if (fieldSchema?.type === 'integer' || fieldSchema?.type === 'number') return 1;
+    return 'test_value';
   }
 
-  const text = extractText(response);
-  console.log('AI RESPONSE >>>', text);
+  // Build valid payload from real schema
+  let validPayload = null;
+  let missingPayload = null;
+  let emptyPayload = null;
+  let injectionPayload = null;
 
-  if (!text || text.length < 10) {
-    console.warn('AI returned empty, using fallback');
-    return fallbackTestCases(endpoint);
-  }
+  if (fields.length > 0) {
+    // Valid: all fields with realistic values
+    validPayload = {};
+    fields.forEach(f => {
+      validPayload[f] = exampleValue(f, schema.properties[f]);
+    });
 
-  try {
-    const cases = parseJSON(text);
-    if (!Array.isArray(cases) || cases.length === 0) {
-      return fallbackTestCases(endpoint);
+    // Missing required: omit one required field
+    if (requiredFields.length > 0) {
+      missingPayload = { ...validPayload };
+      delete missingPayload[requiredFields[0]];
+    } else {
+      missingPayload = {};
     }
-    console.log(`Generated ${cases.length} cases for ${endpoint.path}`);
-    return cases;
-  } catch {
-    console.warn('Parse failed, using fallback for', endpoint.path);
-    return fallbackTestCases(endpoint);
+
+    // Empty values: all fields empty
+    emptyPayload = {};
+    fields.forEach(f => { emptyPayload[f] = ''; });
+
+    // SQL injection in first string field
+    injectionPayload = { ...validPayload };
+    const firstStrField = fields.find(f => schema.properties[f]?.type === 'string' || !schema.properties[f]?.type);
+    if (firstStrField) injectionPayload[firstStrField] = "'; DROP TABLE users; --";
   }
+
+  // Path param handling
+  const pathParams = (endpoint.parameters || []).filter(p => p.in === 'path');
+  const queryParams = (endpoint.parameters || []).filter(p => p.in === 'query');
+
+  const validParams = {};
+  pathParams.forEach(p => { validParams[p.name] = p.example || '1'; });
+  queryParams.forEach(p => { validParams[p.name] = p.example || p.default || 'test'; });
+
+  const method = endpoint.method;
+  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+
+  // Return rule-based test cases using real schema — no AI needed for this
+  return [
+    {
+      name: 'Valid request',
+      type: 'positive',
+      input_payload: hasBody ? validPayload : null,
+      input_params: Object.keys(validParams).length ? validParams : null,
+      expected_status: method === 'POST' ? 201 : 200,
+      ai_reasoning: `Happy path — valid inputs with realistic values should return ${method === 'POST' ? '201 Created' : '200 OK'}`
+    },
+    {
+      name: requiredFields.length > 0 ? `Missing required field: ${requiredFields[0]}` : 'Missing required field',
+      type: 'negative',
+      input_payload: hasBody ? missingPayload : null,
+      input_params: Object.keys(validParams).length ? validParams : null,
+      expected_status: method === 'GET' ? 404 : 400,
+      ai_reasoning: `Omitting required field "${requiredFields[0] || 'field'}" should return 400 Bad Request`
+    },
+    {
+      name: 'Empty / null values',
+      type: 'boundary',
+      input_payload: hasBody ? emptyPayload : null,
+      input_params: pathParams.length ? Object.fromEntries(pathParams.map(p => [p.name, ''])) : null,
+      expected_status: 400,
+      ai_reasoning: 'Edge case: empty string values should be rejected with 400'
+    },
+    {
+      name: 'SQL injection attempt',
+      type: 'security',
+      input_payload: hasBody ? injectionPayload : null,
+      input_params: Object.keys(validParams).length ? validParams : null,
+      expected_status: 400,
+      ai_reasoning: 'Security: SQL injection payload should be sanitized and rejected'
+    }
+  ];
 }
 
 /**
