@@ -50,6 +50,18 @@ export const api = {
     get: (id, execId) => request(`/projects/${id}/executions/${execId}`),
     saveSingleResult: (id, body) => request(`/projects/${id}/run-single`, { method: 'POST', body: JSON.stringify(body) })
   },
+  // Flows
+  flows: {
+    list: (id) => request(`/projects/${id}/flows`),
+    autoGenerate: (id) => request(`/projects/${id}/flows/auto-generate`, { method: 'POST', body: '{}' }),
+    get: (id, flowId) => request(`/projects/${id}/flows/${flowId}`),
+    create: (id, body) => request(`/projects/${id}/flows`, { method: 'POST', body: JSON.stringify(body) }),
+    update: (id, flowId, body) => request(`/projects/${id}/flows/${flowId}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id, flowId) => request(`/projects/${id}/flows/${flowId}`, { method: 'DELETE' }),
+    run: (id, flowId) => request(`/projects/${id}/flows/${flowId}/run`, { method: 'POST', body: '{}' }),
+    listRuns: (id, flowId) => request(`/projects/${id}/flows/${flowId}/runs`),
+    getRun: (id, flowId, runId) => request(`/projects/${id}/flows/${flowId}/runs/${runId}`)
+  },
   // Bugs
   bugs: {
     list: (id) => request(`/projects/${id}/bugs`),

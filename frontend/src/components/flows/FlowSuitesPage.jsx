@@ -1,0 +1,376 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useStore, api } from '../../store/index.js';
+import {
+    Play, Zap, ChevronDown, ChevronRight,
+    CheckCircle2, XCircle, AlertTriangle, Clock,
+    ArrowRight, Copy, Check, Trash2, RefreshCw,
+    GitBranch
+} from 'lucide-react';
+
+function safeJSON(str) {
+    if (!str) return null;
+    if (typeof str === 'object') return str;
+    try { return JSON.parse(str); } catch { return null; }
+}
+
+function CopyBtn({ text }) {
+    const [copied, setCopied] = useState(false);
+    return (
+        <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+            style={{
+                display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 4, fontSize: 10, cursor: 'pointer',
+                background: copied ? 'var(--green-bg)' : 'rgba(255,255,255,0.06)',
+                color: copied ? 'var(--green)' : 'var(--text-tertiary)',
+                border: `1px solid ${copied ? 'var(--green-border)' : 'var(--border)'}`
+            }}>
+            {copied ? <Check size={9} /> : <Copy size={9} />} {copied ? 'Copied' : 'Copy'}
+        </button>
+    );
+}
+
+function StatusIcon({ status }) {
+    if (status === 'passed') return <CheckCircle2 size={14} color="var(--green)" />;
+    if (status === 'failed') return <XCircle size={14} color="var(--red)" />;
+    if (status === 'skipped') return <AlertTriangle size={14} color="var(--amber)" />;
+    return <Clock size={14} color="var(--text-tertiary)" />;
+}
+
+function StepResult({ result }) {
+    const [expanded, setExpanded] = useState(false);
+    const body = safeJSON(result.actual_body);
+    const reqBody = safeJSON(result.request_body);
+    const reqHeaders = safeJSON(result.request_headers);
+    const extracted = safeJSON(result.extracted_vars);
+
+    return (
+        <>
+            <tr onClick={() => setExpanded(e => !e)} style={{ cursor: 'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                onMouseLeave={e => e.currentTarget.style.background = ''}>
+                <td style={{ width: 30, paddingLeft: 12 }}>
+                    {expanded ? <ChevronDown size={13} color="var(--accent)" /> : <ChevronRight size={13} color="var(--text-tertiary)" />}
+                </td>
+                <td style={{ width: 28 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>
+                        {result.step_order}
+                    </div>
+                </td>
+                <td style={{ width: 22 }}><StatusIcon status={result.status} /></td>
+                <td style={{ fontSize: 13 }}>{result.step_name}</td>
+                <td>{result.request_method && <span className={`method-badge method-${result.request_method}`}>{result.request_method}</span>}</td>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>
+                    {result.request_url ? result.request_url.replace(/^https?:\/\/[^/]+/, '') : '—'}
+                </td>
+                <td style={{
+                    fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600,
+                    color: !result.actual_status ? 'var(--text-tertiary)' : result.actual_status < 300 ? 'var(--green)' : result.actual_status < 400 ? 'var(--amber)' : 'var(--red)'
+                }}>
+                    {result.status === 'skipped' ? 'skipped' : (result.actual_status || '—')}
+                </td>
+                <td style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                    {result.response_time_ms ? `${result.response_time_ms}ms` : '—'}
+                </td>
+            </tr>
+
+            {expanded && (
+                <tr>
+                    <td colSpan={8} style={{ padding: 0, background: 'rgba(0,0,0,0.2)' }}>
+                        <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+
+                            {/* Request */}
+                            <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Request sent</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {result.request_url && (
+                                        <div style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--blue)', wordBreak: 'break-all' }}>
+                                            {result.request_url}
+                                        </div>
+                                    )}
+                                    {reqHeaders && (
+                                        <div>
+                                            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Headers</div>
+                                            <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                                {JSON.stringify(reqHeaders, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
+                                    {reqBody && (
+                                        <div>
+                                            <div style={{ fontSize: 9, color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
+                                            <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 100, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                                {JSON.stringify(reqBody, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Response */}
+                            <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Response</div>
+                                {result.status === 'skipped' ? (
+                                    <div style={{ padding: '10px', background: 'var(--amber-bg)', borderRadius: 6, fontSize: 11, color: 'var(--amber)' }}>
+                                        ⚠ Skipped — previous step failed
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <div style={{ padding: '6px 10px', background: result.status === 'passed' ? 'rgba(35,209,139,0.08)' : 'rgba(255,92,92,0.08)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', border: `1px solid ${result.status === 'passed' ? 'rgba(35,209,139,0.2)' : 'rgba(255,92,92,0.2)'}` }}>
+                                            <span style={{ fontSize: 11, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
+                                                {result.status === 'passed' ? '✓ Passed' : `✗ ${result.failure_reason || 'Failed'}`}
+                                            </span>
+                                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: result.actual_status < 300 ? 'var(--green)' : 'var(--red)' }}>
+                                                {result.actual_status}
+                                            </span>
+                                        </div>
+                                        {body && (
+                                            <div>
+                                                <div style={{ fontSize: 9, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
+                                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 120, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                                    {JSON.stringify(body, null, 2)}
+                                                </pre>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Extracted context */}
+                            <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Context extracted</div>
+                                {extracted && Object.entries(extracted).filter(([k]) => !k.startsWith('__')).length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {Object.entries(extracted).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
+                                            <div key={k} style={{ padding: '6px 10px', background: 'var(--accent-dim)', borderRadius: 6, borderLeft: '2px solid var(--accent)' }}>
+                                                <div style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, marginBottom: 2 }}>{'{{' + k + '}}'} → injected into all next steps</div>
+                                                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                                                    {String(v).slice(0, 60)}{String(v).length > 60 ? '…' : ''}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No variables extracted</div>
+                                )}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+}
+
+function SuiteCard({ suite, projectId, onDelete }) {
+    const [running, setRunning] = useState(false);
+    const [lastRun, setLastRun] = useState(null);
+    const [expanded, setExpanded] = useState(false);
+    const { addToast } = useStore();
+
+    async function handleRun(e) {
+        e.stopPropagation();
+        setRunning(true);
+        setExpanded(true);
+        setLastRun(null);
+        try {
+            const result = await api.flows.run(projectId, suite.id);
+            setLastRun(result);
+            const { passed, failed, total } = result.summary;
+            addToast(`Suite: ${passed}/${total} passed`, failed > 0 ? 'error' : 'success');
+        } catch (err) {
+            addToast(err.message, 'error');
+        } finally {
+            setRunning(false);
+        }
+    }
+
+    const passRate = lastRun?.summary?.pass_rate ?? 0;
+
+    return (
+        <div className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
+            <div onClick={() => setExpanded(e => !e)} style={{ padding: '16px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <GitBranch size={16} color="var(--accent)" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{suite.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{suite.description}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                    {lastRun && (
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)' }}>
+                                {passRate}%
+                            </div>
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{lastRun.summary.passed}/{lastRun.summary.total} passed</div>
+                        </div>
+                    )}
+                    <button onClick={handleRun} disabled={running} className="btn btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                        {running ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Running…</> : <><Play size={11} fill="currentColor" /> Run</>}
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); onDelete(suite.id); }}
+                        style={{ padding: '6px 8px', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <Trash2 size={12} />
+                    </button>
+                    {expanded ? <ChevronDown size={14} color="var(--text-tertiary)" /> : <ChevronRight size={14} color="var(--text-tertiary)" />}
+                </div>
+            </div>
+
+            {expanded && (
+                <div style={{ borderTop: '1px solid var(--border)' }}>
+                    {running && (
+                        <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <div className="spinner" style={{ width: 28, height: 28, margin: '0 auto 12px' }} />
+                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Executing steps in sequence…</div>
+                        </div>
+                    )}
+
+                    {lastRun && !running && (
+                        <>
+                            {/* Summary */}
+                            <div style={{ padding: '10px 18px', background: 'rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>✓ {lastRun.summary.passed} passed</span>
+                                {lastRun.summary.failed > 0 && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>✗ {lastRun.summary.failed} failed</span>}
+                                <div style={{ flex: 1, minWidth: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${passRate}%`, background: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)', transition: 'width .4s' }} />
+                                </div>
+                                {/* Context vars */}
+                                {lastRun.context && Object.entries(lastRun.context).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
+                                    <span key={k} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: 'JetBrains Mono, monospace' }}>
+                                        {`{{${k}}}`} ✓
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* Step results */}
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: 30 }} />
+                                        <th style={{ width: 28 }}>#</th>
+                                        <th style={{ width: 22 }} />
+                                        <th>Step</th>
+                                        <th style={{ width: 70 }}>Method</th>
+                                        <th>Path</th>
+                                        <th style={{ width: 60 }}>HTTP</th>
+                                        <th style={{ width: 70 }}>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(lastRun.results || []).map((r, i) => <StepResult key={i} result={r} />)}
+                                </tbody>
+                            </table>
+                        </>
+                    )}
+
+                    {!lastRun && !running && (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>
+                            Click <strong style={{ color: 'var(--accent)' }}>Run</strong> to execute all steps in sequence
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+export function FlowSuitesPage() {
+    const { projectId } = useParams();
+    const { addToast } = useStore();
+    const [suites, setSuites] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
+
+    useEffect(() => { loadSuites(); }, [projectId]);
+
+    async function loadSuites() {
+        setLoading(true);
+        try {
+            const data = await api.flows.list(projectId);
+            setSuites(Array.isArray(data) ? data : []);
+        } catch (err) { addToast(err.message, 'error'); }
+        finally { setLoading(false); }
+    }
+
+    async function autoGenerate() {
+        setGenerating(true);
+        try {
+            const { suite, steps } = await api.flows.autoGenerate(projectId);
+            addToast(`✓ Created "${suite.name}" with ${steps.length} steps`, 'success');
+            await loadSuites();
+        } catch (err) { addToast(err.message, 'error'); }
+        finally { setGenerating(false); }
+    }
+
+    async function deleteSuite(suiteId) {
+        try {
+            await api.flows.delete(projectId, suiteId);
+            setSuites(s => s.filter(x => x.id !== suiteId));
+            addToast('Suite deleted', 'success');
+        } catch (err) { addToast(err.message, 'error'); }
+    }
+
+    return (
+        <div className="page">
+            <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                    <h1 className="page-title">Flow Suites</h1>
+                    <p className="page-subtitle">Sequential flows — sign up → login → test authenticated endpoints in order</p>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-ghost" onClick={loadSuites} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <RefreshCw size={13} /> Refresh
+                    </button>
+                    <button className="btn btn-primary" onClick={autoGenerate} disabled={generating}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {generating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Generating…</> : <><Zap size={13} /> Auto-generate suite</>}
+                    </button>
+                </div>
+            </div>
+
+            {/* How it works */}
+            <div style={{ padding: '14px 18px', background: 'var(--accent-dim)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 10, marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <GitBranch size={15} color="var(--accent)" />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>How flow suites work</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 10 }}>
+                    Steps run in sequence. Values extracted from each response (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)', fontSize: 11 }}>{'{{token}}'}</code>) are automatically injected into all following steps as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>Authorization: Bearer {'{{token}}'}</code>.
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {[
+                        { label: 'Step 1', text: 'Sign up', color: 'var(--green)', bg: 'var(--green-bg)' },
+                        { label: '→', text: 'extract {{userId}}', color: 'var(--text-tertiary)', bg: 'transparent' },
+                        { label: 'Step 2', text: 'Login', color: 'var(--accent)', bg: 'var(--accent-dim)' },
+                        { label: '→', text: 'extract {{token}}', color: 'var(--text-tertiary)', bg: 'transparent' },
+                        { label: 'Step 3+', text: 'Auth endpoints', color: 'var(--amber)', bg: 'var(--amber-bg)' },
+                        { label: '→', text: 'Bearer {{token}} injected', color: 'var(--text-tertiary)', bg: 'transparent' },
+                    ].map(({ label, text, color, bg }, i) => (
+                        <span key={i} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 5, background: bg, color, fontWeight: bg !== 'transparent' ? 600 : 400 }}>
+                            {label} {text}
+                        </span>
+                    ))}
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="empty-state"><div className="spinner" style={{ width: 28, height: 28 }} /></div>
+            ) : suites.length === 0 ? (
+                <div className="card">
+                    <div className="empty-state">
+                        <GitBranch size={32} color="var(--text-tertiary)" />
+                        <h3>No flow suites yet</h3>
+                        <p>Click <strong>Auto-generate suite</strong> to create a signup → login → auth endpoints flow from your Swagger spec.</p>
+                        <button className="btn btn-primary" onClick={autoGenerate} disabled={generating}
+                            style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Zap size={14} /> Auto-generate suite
+                        </button>
+                    </div>
+                </div>
+            ) : suites.map(suite => (
+                <SuiteCard key={suite.id} suite={suite} projectId={projectId} onDelete={deleteSuite} />
+            ))}
+        </div>
+    );
+}

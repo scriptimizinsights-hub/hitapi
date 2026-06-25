@@ -11,6 +11,7 @@ import { LoginFlowDiagram } from './components/ui/LoginFlowDiagram.jsx';
 import { ProjectSettings } from './components/ui/ProjectSettings.jsx';
 import { PrivacyPage } from './components/ui/PrivacyPage.jsx';
 import { SupportPage } from './components/ui/SupportPage.jsx';
+import { FlowSuitesPage } from './components/flows/FlowSuitesPage.jsx';
 import { useStore } from './store/index.js';
 import './styles/global.css';
 
@@ -200,6 +201,7 @@ function ProjectRoutes() {
       <Route path="flow" element={<FlowDiagram />} />
       <Route path="login-flow" element={<LoginFlowDiagram />} />
       <Route path="settings" element={<ProjectSettings />} />
+      <Route path="flows" element={<FlowSuitesPage />} />
       <Route path="*" element={<Navigate to="dashboard" />} />
     </Routes>
   );

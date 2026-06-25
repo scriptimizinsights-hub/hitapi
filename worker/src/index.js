@@ -16,7 +16,11 @@ import {
   listReports, downloadReport,
   handleQueue,
   healthCheck,
-  testLoginProxy
+  testLoginProxy,
+  // Flow suites
+  listFlowSuites, createFlowSuite, getFlowSuite, updateFlowSuite, deleteFlowSuite,
+  runFlowSuiteRoute, listFlowRuns, getFlowRun,
+  autoGenerateFlowSuite
 } from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -26,6 +30,17 @@ function router(method, path, handler) {
 }
 
 const ROUTES = [
+  // Flow Suites
+  router('GET', '/api/projects/:id/flows', listFlowSuites),
+  router('POST', '/api/projects/:id/flows', createFlowSuite),
+  router('POST', '/api/projects/:id/flows/auto-generate', autoGenerateFlowSuite),
+  router('GET', '/api/projects/:id/flows/:flowId', getFlowSuite),
+  router('PUT', '/api/projects/:id/flows/:flowId', updateFlowSuite),
+  router('DELETE', '/api/projects/:id/flows/:flowId', deleteFlowSuite),
+  router('POST', '/api/projects/:id/flows/:flowId/run', runFlowSuiteRoute),
+  router('GET', '/api/projects/:id/flows/:flowId/runs', listFlowRuns),
+  router('GET', '/api/projects/:id/flows/:flowId/runs/:runId', getFlowRun),
+
   // Health
   router('GET', '/health', healthCheck),
 

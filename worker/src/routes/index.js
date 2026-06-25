@@ -497,6 +497,339 @@ export async function testLoginProxy(request, env, { params }) {
   }
 }
 
+// ─── Flow Suites ─────────────────────────────────────────────────────────────
+
+export async function listFlowSuites(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const suites = await db.all(
+    `SELECT fs.*, COUNT(fst.id) as step_count
+     FROM flow_suites fs
+     LEFT JOIN flow_steps fst ON fst.suite_id = fs.id
+     WHERE fs.project_id = ? GROUP BY fs.id ORDER BY fs.created_at DESC`,
+    [params.id]
+  );
+  return json(success(suites));
+}
+
+export async function createFlowSuite(request, env, { params }) {
+  const body = await parseBody(request);
+  if (!body?.name) return error('name is required');
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const id = db.uuid();
+  await db.run(
+    `INSERT INTO flow_suites (id, project_id, name, description) VALUES (?, ?, ?, ?)`,
+    [id, params.id, body.name, body.description || '']
+  );
+  // Insert steps if provided
+  if (body.steps?.length) {
+    for (const step of body.steps) {
+      const sid = db.uuid();
+      await db.run(
+        `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, url_override, input_payload, input_headers, input_params, expected_status, extract_vars, skip_if_failed)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sid, id, step.step_order, step.name, step.endpoint_id || null, step.method || null,
+          step.url_override || null,
+          step.input_payload ? JSON.stringify(step.input_payload) : null,
+          step.input_headers ? JSON.stringify(step.input_headers) : null,
+          step.input_params ? JSON.stringify(step.input_params) : null,
+          step.expected_status || null,
+          step.extract_vars ? JSON.stringify(step.extract_vars) : null,
+          step.skip_if_failed ? 1 : 0]
+      );
+    }
+  }
+  const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [id]);
+  return json(success(suite), 201);
+}
+
+export async function getFlowSuite(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
+  if (!suite) return error('Suite not found', 404);
+  const steps = await db.all(
+    `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.summary
+     FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+     WHERE fs.suite_id = ? ORDER BY fs.step_order`,
+    [params.flowId]
+  );
+  return json(success({ suite, steps }));
+}
+
+export async function updateFlowSuite(request, env, { params }) {
+  const body = await parseBody(request);
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  if (body.name || body.description !== undefined) {
+    await db.run(
+      `UPDATE flow_suites SET name = COALESCE(?, name), description = COALESCE(?, description), updated_at = unixepoch() WHERE id = ?`,
+      [body.name || null, body.description ?? null, params.flowId]
+    );
+  }
+  // Replace steps if provided
+  if (body.steps) {
+    await db.run(`DELETE FROM flow_steps WHERE suite_id = ?`, [params.flowId]);
+    for (const step of body.steps) {
+      const sid = db.uuid();
+      await db.run(
+        `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, url_override, input_payload, input_headers, input_params, expected_status, extract_vars, skip_if_failed)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sid, params.flowId, step.step_order, step.name, step.endpoint_id || null, step.method || null,
+          step.url_override || null,
+          step.input_payload ? JSON.stringify(step.input_payload) : null,
+          step.input_headers ? JSON.stringify(step.input_headers) : null,
+          step.input_params ? JSON.stringify(step.input_params) : null,
+          step.expected_status || null,
+          step.extract_vars ? JSON.stringify(step.extract_vars) : null,
+          step.skip_if_failed ? 1 : 0]
+      );
+    }
+  }
+  const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [params.flowId]);
+  return json(success(suite));
+}
+
+export async function deleteFlowSuite(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  await db.run(`DELETE FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
+  return json(success({ deleted: true }));
+}
+
+export async function runFlowSuiteRoute(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const { DatabaseAdapter: DA, ProjectRepo } = await import('../db/adapter.js');
+  const { runFlowSuite } = await import('../services/flow.js');
+
+  const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
+  if (!suite) return error('Suite not found', 404);
+
+  const steps = await db.all(
+    `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method
+     FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+     WHERE fs.suite_id = ? ORDER BY fs.step_order`,
+    [params.flowId]
+  );
+  if (!steps.length) return error('Suite has no steps');
+
+  const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
+  if (!project) return error('Project not found', 404);
+
+  // Create run record
+  const runId = db.uuid();
+  await db.run(
+    `INSERT INTO flow_runs (id, suite_id, project_id, status, total_steps) VALUES (?, ?, ?, 'running', ?)`,
+    [runId, params.flowId, params.id, steps.length]
+  );
+
+  // Execute the suite
+  const { results, context, summary } = await runFlowSuite(suite, steps, project);
+
+  // Save step results
+  for (const r of results) {
+    const rid = db.uuid();
+    await db.run(
+      `INSERT INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
+        r.request_url ?? null, r.request_method ?? null,
+        r.request_headers ? JSON.stringify(r.request_headers) : null,
+        r.request_body ? JSON.stringify(r.request_body) : null,
+        r.actual_body ? JSON.stringify(r.actual_body) : null,
+        r.actual_headers ? JSON.stringify(r.actual_headers) : null,
+        r.response_time_ms ?? null, r.failure_reason ?? null,
+        r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+    );
+  }
+
+  // Update run record
+  await db.run(
+    `UPDATE flow_runs SET status = ?, passed = ?, failed = ?, context = ?, finished_at = unixepoch() WHERE id = ?`,
+    [summary.failed === 0 ? 'done' : 'failed', summary.passed, summary.failed,
+    JSON.stringify(context), runId]
+  );
+
+  return json(success({ run_id: runId, summary, results, context }));
+}
+
+export async function listFlowRuns(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const runs = await db.all(
+    `SELECT * FROM flow_runs WHERE suite_id = ? ORDER BY started_at DESC LIMIT 20`,
+    [params.flowId]
+  );
+  return json(success(runs));
+}
+
+export async function getFlowRun(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const run = await db.first(`SELECT * FROM flow_runs WHERE id = ?`, [params.runId]);
+  if (!run) return error('Run not found', 404);
+  const stepResults = await db.all(
+    `SELECT * FROM flow_step_results WHERE run_id = ? ORDER BY step_order`,
+    [params.runId]
+  );
+  return json(success({ run, stepResults }));
+}
+
+// ─── Auto-generate a flow suite from project endpoints ───────────────────────
+export async function autoGenerateFlowSuite(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+
+  // Get all endpoints for this project
+  const endpoints = await db.all(
+    `SELECT * FROM endpoints WHERE project_id = ? ORDER BY path, method`,
+    [params.id]
+  );
+
+  if (!endpoints.length) return error('No endpoints found. Import Swagger first.');
+
+  // Find signup endpoint
+  const signupEp = endpoints.find(e =>
+    (e.path.toLowerCase().includes('signup') || e.path.toLowerCase().includes('register')) &&
+    e.method === 'POST'
+  );
+
+  // Find login endpoint
+  const loginEp = endpoints.find(e =>
+    (e.path.toLowerCase().includes('login') || e.path.toLowerCase().includes('signin') || e.path.toLowerCase().includes('token')) &&
+    e.method === 'POST'
+  );
+
+  // Find secured endpoints (have security field set)
+  const securedEndpoints = endpoints.filter(e => {
+    if (!e.security) return false;
+    try {
+      const sec = JSON.parse(e.security);
+      return Array.isArray(sec) && sec.length > 0;
+    } catch { return false; }
+  }).filter(e => e.id !== loginEp?.id && e.id !== signupEp?.id);
+
+  const steps = [];
+  let order = 1;
+
+  // Step 1: Signup (if found)
+  if (signupEp) {
+    const schema = signupEp.request_body ? JSON.parse(signupEp.request_body) : null;
+    const fields = schema?.properties ? Object.keys(schema.properties) : ['email', 'password', 'name'];
+    const payload = {};
+    fields.forEach(f => {
+      const n = f.toLowerCase();
+      if (n.includes('email')) payload[f] = 'test@example.com';
+      else if (n.includes('password')) payload[f] = 'Test@123456';
+      else if (n.includes('name')) payload[f] = 'Test User';
+      else payload[f] = 'test_value';
+    });
+
+    steps.push({
+      step_order: order++,
+      name: 'Sign up',
+      endpoint_id: signupEp.id,
+      method: 'POST',
+      input_payload: payload,
+      expected_status: 201,
+      extract_vars: [{ var: 'userId', path: 'data.id' }, { var: 'userId', path: 'id' }],
+      skip_if_failed: 0
+    });
+  }
+
+  // Step 2: Login (required)
+  if (loginEp) {
+    const schema = loginEp.request_body ? JSON.parse(loginEp.request_body) : null;
+    const fields = schema?.properties ? Object.keys(schema.properties) : ['email', 'password'];
+    const payload = {};
+    fields.forEach(f => {
+      const n = f.toLowerCase();
+      if (n.includes('email')) payload[f] = 'test@example.com';
+      else if (n.includes('password') || n.includes('pass')) payload[f] = 'Test@123456';
+      else if (n.includes('username') || n.includes('user')) payload[f] = 'testuser';
+      else payload[f] = 'test_value';
+    });
+
+    steps.push({
+      step_order: order++,
+      name: 'Login',
+      endpoint_id: loginEp.id,
+      method: 'POST',
+      input_payload: payload,
+      expected_status: 200,
+      // Extract token — try multiple common paths
+      extract_vars: [
+        { var: 'token', path: 'token' },
+        { var: 'token', path: 'data.token' },
+        { var: 'token', path: 'access_token' },
+        { var: 'token', path: 'data.access_token' },
+        { var: 'token', path: 'result.token' }
+      ],
+      skip_if_failed: 0
+    });
+  }
+
+  // Step 3+: Secured endpoints (up to 10)
+  for (const ep of securedEndpoints.slice(0, 10)) {
+    const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
+    const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
+    let payload = null;
+    if (hasBody && schema?.properties) {
+      payload = {};
+      Object.keys(schema.properties).forEach(f => {
+        const n = f.toLowerCase();
+        if (n.includes('id')) payload[f] = '{{userId}}';
+        else if (n.includes('title') || n.includes('name')) payload[f] = 'Test Item';
+        else if (n.includes('desc')) payload[f] = 'Test description';
+        else payload[f] = 'test_value';
+      });
+    }
+
+    // Extract path params from URL template
+    const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
+    const inputParams = pathParams.length
+      ? Object.fromEntries(pathParams.map(p => [p, p.toLowerCase().includes('id') ? '{{userId}}' : '1']))
+      : null;
+
+    steps.push({
+      step_order: order++,
+      name: `${ep.method} ${ep.path}`,
+      endpoint_id: ep.id,
+      method: ep.method,
+      input_payload: payload,
+      input_params: inputParams,
+      expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
+      extract_vars: [],
+      skip_if_failed: 1  // Skip auth-required steps if login failed
+    });
+  }
+
+  if (!steps.length) return error('Could not auto-generate steps. No login or signup endpoint found.');
+
+  // Create the suite
+  const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
+  const suiteId = db.uuid();
+  await db.run(
+    `INSERT INTO flow_suites (id, project_id, name, description) VALUES (?, ?, ?, ?)`,
+    [suiteId, params.id, `${project?.name || 'API'} — Full Auth Flow`, `Auto-generated: signup → login → ${securedEndpoints.length} secured endpoints`]
+  );
+
+  for (const step of steps) {
+    const sid = db.uuid();
+    await db.run(
+      `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, input_payload, input_params, expected_status, extract_vars, skip_if_failed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [sid, suiteId, step.step_order, step.name, step.endpoint_id || null, step.method,
+        step.input_payload ? JSON.stringify(step.input_payload) : null,
+        step.input_params ? JSON.stringify(step.input_params) : null,
+        step.expected_status || null,
+        step.extract_vars?.length ? JSON.stringify(step.extract_vars) : null,
+        step.skip_if_failed ? 1 : 0]
+    );
+  }
+
+  const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
+  const createdSteps = await db.all(
+    `SELECT fs.*, e.path as endpoint_path FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id WHERE fs.suite_id = ? ORDER BY fs.step_order`,
+    [suiteId]
+  );
+
+  return json(success({ suite, steps: createdSteps }), 201);
+}
+
 // ─── Health ──────────────────────────────────────────────────────────────────
 
 export async function healthCheck(request, env) {

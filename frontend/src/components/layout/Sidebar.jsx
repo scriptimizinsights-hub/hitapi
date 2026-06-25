@@ -2,7 +2,7 @@ import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
-  HelpCircle, LogOut, User, Lock
+  HelpCircle, LogOut, User, Lock, GitBranch
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
@@ -15,7 +15,8 @@ const NAV = [
   { to: 'bugs', icon: Bug, label: 'Bugs' },
   { to: 'reports', icon: BarChart3, label: 'Reports' },
   { to: 'monitors', icon: Bell, label: 'Monitors' },
-  { to: 'settings', icon: Settings, label: 'Settings', dividerBefore: true },
+  { to: 'flows', icon: GitBranch, label: 'Flow Suites', dividerBefore: true },
+  { to: 'settings', icon: Settings, label: 'Settings' },
   { to: 'flow', icon: HelpCircle, label: 'How it works' },
   { to: 'login-flow', icon: Lock, label: 'Login flow' },
 ];
