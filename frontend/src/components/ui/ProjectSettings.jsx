@@ -55,10 +55,12 @@ export function ProjectSettings() {
 
     function setField(key, val) {
         setForm(f => ({ ...f, [key]: val }));
+        // Reset auth config when switching auth type to avoid stale null values
+        if (key === 'auth_type') setAuthConfig({});
     }
 
     function setAC(key, val) {
-        setAuthConfig(c => ({ ...c, [key]: val }));
+        setAuthConfig(c => ({ ...(c || {}), [key]: val }));
     }
 
     async function handleSave() {
@@ -213,7 +215,7 @@ export function ProjectSettings() {
                     <div>
                         <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Bearer token</label>
                         <input className="input" type="password" placeholder="eyJhbGciOiJIUzI1NiIs…"
-                            value={authConfig?.token || ''} onChange={e => setAC('token', e.target.value)} />
+                            value={authConfig.token || ''} onChange={e => setAC('token', e.target.value)} />
                     </div>
                 )}
 
@@ -221,11 +223,11 @@ export function ProjectSettings() {
                     <div className="grid-2">
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Username</label>
-                            <input className="input" value={authConfig?.username || ''} onChange={e => setAC('username', e.target.value)} />
+                            <input className="input" value={authConfig.username || ''} onChange={e => setAC('username', e.target.value)} />
                         </div>
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Password</label>
-                            <input className="input" type="password" value={authConfig.password || ''} onChange={e => setAC('password', e.target.value)} />
+                            <input className="input" type="password" value={authConfig?.password || ''} onChange={e => setAC('password', e.target.value)} />
                         </div>
                     </div>
                 )}
@@ -234,11 +236,11 @@ export function ProjectSettings() {
                     <div className="grid-2">
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Header name</label>
-                            <input className="input" placeholder="X-API-Key" value={authConfig.header || ''} onChange={e => setAC('header', e.target.value)} />
+                            <input className="input" placeholder="X-API-Key" value={authConfig?.header || ''} onChange={e => setAC('header', e.target.value)} />
                         </div>
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>API key</label>
-                            <input className="input" type="password" value={authConfig.key || ''} onChange={e => setAC('key', e.target.value)} />
+                            <input className="input" type="password" value={authConfig?.key || ''} onChange={e => setAC('key', e.target.value)} />
                         </div>
                     </div>
                 )}
@@ -251,7 +253,7 @@ export function ProjectSettings() {
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login URL *</label>
                             <input className="input" placeholder="https://api.example.com/auth/login"
-                                value={authConfig.login_url || ''} onChange={e => setAC('login_url', e.target.value)} />
+                                value={authConfig?.login_url || ''} onChange={e => setAC('login_url', e.target.value)} />
                         </div>
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
@@ -276,8 +278,8 @@ export function ProjectSettings() {
                                 Token path *
                                 <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>dot-path into the response JSON</span>
                             </label>
-                            <input className="input" placeholder="token  or  data.access_token  or  result.auth?.token"
-                                value={authConfig.token_path || ''} onChange={e => setAC('token_path', e.target.value)} />
+                            <input className="input" placeholder="token  or  data.access_token  or  result.auth.token"
+                                value={authConfig?.token_path || ''} onChange={e => setAC('token_path', e.target.value)} />
                             <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                 {['token', 'access_token', 'data.token', 'data.access_token'].map(p => (
                                     <button key={p} onClick={() => setAC('token_path', p)} style={{
