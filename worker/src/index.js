@@ -35,6 +35,7 @@ const ROUTES = [
   router('GET', '/api/projects/:id', getProject),
   router('PUT', '/api/projects/:id', updateProject),
   router('DELETE', '/api/projects/:id', deleteProject),
+  router('POST', '/api/projects/:id/import', importSwagger),
 
   // Test login (proxied through Worker to avoid browser CORS)
   router('POST', '/api/projects/:id/test-login', testLoginProxy),
