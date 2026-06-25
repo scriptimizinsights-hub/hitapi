@@ -502,7 +502,7 @@ export function TestsPage() {
     const url = `${currentProject.base_url}${path}${qsStr ? '?' + qsStr : ''}`;
     const headers = { 'Content-Type': 'application/json' };
     if (currentProject.auth_type === 'bearer' && authConfig?.token)
-      headers['Authorization'] = `Bearer ${authConfig.token}`;
+      headers['Authorization'] = `Bearer ${authConfig?.token}`;
     if (currentProject.auth_type === 'apikey' && authConfig?.key)
       headers[authConfig.header || 'X-API-Key'] = authConfig.key;
 
