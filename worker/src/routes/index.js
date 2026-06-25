@@ -359,12 +359,14 @@ export async function runSingleResult(request, env, { params }) {
 
   return json(success({ execution_id: executionId, status: body.status }));
 }
-const r = repos(env);
-const execution = await r.executions.get(params.execId);
-if (!execution) return error('Execution not found', 404);
-const results = await r.executions.getResults(params.execId);
-return json(success({ execution, results }));
 
+export async function getExecution(request, env, { params }) {
+  const r = repos(env);
+  const execution = await r.executions.get(params.execId);
+  if (!execution) return error('Execution not found', 404);
+  const results = await r.executions.getResults(params.execId);
+  return json(success({ execution, results }));
+}
 
 export async function listExecutions(request, env, { params }) {
   const r = repos(env);
