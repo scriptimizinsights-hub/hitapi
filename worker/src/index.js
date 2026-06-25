@@ -1,5 +1,5 @@
 /**
- * APIForge — Cloudflare Worker Entry Point
+ * HitAPI — Cloudflare Worker Entry Point
  * Deployable on Cloudflare Workers OR any platform with the Web Fetch API
  * (Node.js with @cloudflare/workers-types, Deno, Bun, etc.)
  */
@@ -10,7 +10,7 @@ import {
   importSwagger,
   listEndpoints, getEndpointStats,
   generateTests, listTestCases,
-  runExecution, getExecution, listExecutions,
+  runExecution, runSingleResult, getExecution, listExecutions,
   listBugs, dismissBug,
   detectApiWorkflows,
   listReports, downloadReport,
@@ -35,10 +35,12 @@ const ROUTES = [
   router('GET', '/api/projects/:id', getProject),
   router('PUT', '/api/projects/:id', updateProject),
   router('DELETE', '/api/projects/:id', deleteProject),
-  router('POST', '/api/projects/:id/import', importSwagger),
 
   // Test login (proxied through Worker to avoid browser CORS)
   router('POST', '/api/projects/:id/test-login', testLoginProxy),
+
+  // Swagger Import
+  router('POST', '/api/projects/:id/import', importSwagger),
 
   // Endpoints
   router('GET', '/api/projects/:id/endpoints', listEndpoints),
@@ -50,6 +52,7 @@ const ROUTES = [
 
   // Executions
   router('POST', '/api/projects/:id/run', runExecution),
+  router('POST', '/api/projects/:id/run-single', runSingleResult),
   router('GET', '/api/projects/:id/executions', listExecutions),
   router('GET', '/api/projects/:id/executions/:execId', getExecution),
 

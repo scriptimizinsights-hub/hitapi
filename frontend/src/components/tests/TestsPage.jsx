@@ -519,25 +519,32 @@ export function TestsPage() {
       const actual_body = await response.json().catch(() => null);
       const passed = !tc.expected_status || actual_status === tc.expected_status;
 
-      setResults(prev => ({
-        ...prev,
-        [testCaseId]: {
+      const result = {
+        test_case_id: testCaseId,
+        status: passed ? 'passed' : 'failed',
+        actual_status, actual_body, actual_headers,
+        response_time_ms: Date.now() - start,
+        failure_reason: passed ? null : `Expected ${tc.expected_status}, got ${actual_status}`
+      };
+
+      setResults(prev => ({ ...prev, [testCaseId]: result }));
+
+      // Save result to DB via Worker so it persists
+      try {
+        await api.executions.saveSingleResult(projectId, {
           test_case_id: testCaseId,
-          status: passed ? 'passed' : 'failed',
-          actual_status, actual_body, actual_headers,
-          response_time_ms: Date.now() - start,
-          failure_reason: passed ? null : `Expected ${tc.expected_status}, got ${actual_status}`
-        }
-      }));
+          endpoint_id: tc.endpoint_id,
+          ...result
+        });
+      } catch { /* non-critical — result still shown in UI */ }
+
     } catch (err) {
-      setResults(prev => ({
-        ...prev,
-        [testCaseId]: {
-          test_case_id: testCaseId, status: 'error',
-          actual_status: null, actual_body: null, actual_headers: {},
-          response_time_ms: Date.now() - start, failure_reason: err.message
-        }
-      }));
+      const result = {
+        test_case_id: testCaseId, status: 'error',
+        actual_status: null, actual_body: null, actual_headers: {},
+        response_time_ms: Date.now() - start, failure_reason: err.message
+      };
+      setResults(prev => ({ ...prev, [testCaseId]: result }));
     }
   }
 

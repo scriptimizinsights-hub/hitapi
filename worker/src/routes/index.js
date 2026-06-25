@@ -303,13 +303,68 @@ export async function runExecutionInline(executionId, projectId, env, r) {
   }));
 }
 
-export async function getExecution(request, env, { params }) {
+// ─── Save single test result (from browser direct run) ───────────────────────
+
+export async function runSingleResult(request, env, { params }) {
+  const body = await parseBody(request);
+  if (!body?.test_case_id) return error('test_case_id required');
+
   const r = repos(env);
-  const execution = await r.executions.get(params.execId);
-  if (!execution) return error('Execution not found', 404);
-  const results = await r.executions.getResults(params.execId);
-  return json(success({ execution, results }));
+
+  // Create a mini execution record for this single run
+  const executionId = await r.executions.create(params.id, 'single');
+
+  // Save the result
+  await r.executions.saveResult(executionId, {
+    test_case_id: body.test_case_id,
+    endpoint_id: body.endpoint_id,
+    status: body.status,
+    actual_status: body.actual_status,
+    actual_body: body.actual_body,
+    actual_headers: body.actual_headers,
+    response_time_ms: body.response_time_ms,
+    failure_reason: body.failure_reason,
+    ai_analysis: null
+  });
+
+  // Update execution summary
+  const passed = body.status === 'passed' ? 1 : 0;
+  await r.executions.complete(executionId, {
+    total: 1, passed, failed: 1 - passed
+  });
+
+  // Auto-detect bug if failed
+  if (body.status !== 'passed' && env.AI) {
+    try {
+      const testCase = await r.testCases.get(body.test_case_id);
+      const endpoint = testCase ? await r.endpoints.get(testCase.endpoint_id) : null;
+      if (testCase && endpoint) {
+        const { analyzeBug } = await import('../services/ai.js');
+        const analysis = await analyzeBug(env.AI, { endpoint, testCase, result: body });
+        if (analysis) {
+          await r.bugs.create({
+            project_id: params.id,
+            execution_id: executionId,
+            endpoint_id: body.endpoint_id,
+            severity: analysis.severity || 'medium',
+            title: analysis.title || `${endpoint.method} ${endpoint.path} failed`,
+            description: analysis.description || body.failure_reason,
+            root_cause: analysis.root_cause || '',
+            suggested_fix: analysis.suggested_fix || ''
+          });
+        }
+      }
+    } catch { /* non-critical */ }
+  }
+
+  return json(success({ execution_id: executionId, status: body.status }));
 }
+const r = repos(env);
+const execution = await r.executions.get(params.execId);
+if (!execution) return error('Execution not found', 404);
+const results = await r.executions.getResults(params.execId);
+return json(success({ execution, results }));
+
 
 export async function listExecutions(request, env, { params }) {
   const r = repos(env);

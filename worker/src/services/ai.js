@@ -148,9 +148,16 @@ export async function generateTestCases(ai, endpoint) {
       missingPayload = {};
     }
 
-    // Empty values: all fields empty
+    // Empty/invalid values: use invalid formats not just empty strings
     emptyPayload = {};
-    fields.forEach(f => { emptyPayload[f] = ''; });
+    fields.forEach(f => {
+      const name = f.toLowerCase();
+      if (name.includes('email')) emptyPayload[f] = 'notanemail';
+      else if (name.includes('password')) emptyPayload[f] = '123'; // too short
+      else if (name.includes('phone')) emptyPayload[f] = 'abc';
+      else if (name.includes('url')) emptyPayload[f] = 'not-a-url';
+      else emptyPayload[f] = '';
+    });
 
     // SQL injection in first string field
     injectionPayload = { ...validPayload };

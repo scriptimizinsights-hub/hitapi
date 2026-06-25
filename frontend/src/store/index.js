@@ -47,7 +47,8 @@ export const api = {
   executions: {
     run: (id, body) => request(`/projects/${id}/run`, { method: 'POST', body: JSON.stringify(body) }),
     list: (id) => request(`/projects/${id}/executions`),
-    get: (id, execId) => request(`/projects/${id}/executions/${execId}`)
+    get: (id, execId) => request(`/projects/${id}/executions/${execId}`),
+    saveSingleResult: (id, body) => request(`/projects/${id}/run-single`, { method: 'POST', body: JSON.stringify(body) })
   },
   // Bugs
   bugs: {
