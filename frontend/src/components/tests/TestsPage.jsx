@@ -461,7 +461,8 @@ export function TestsPage() {
   const counts = testCases.reduce((acc, tc) => { acc[tc.type] = (acc[tc.type] || 0) + 1; return acc; }, {});
 
   const authConfig = currentProject?.auth_config
-    ? safeJSON(currentProject.auth_config) : {};
+    ? (() => { try { return JSON.parse(currentProject.auth_config); } catch { return {}; } })()
+    : {};
 
   // Run ALL — via Worker, stores per-test results
   async function handleRunAll() {
@@ -482,6 +483,7 @@ export function TestsPage() {
 
   // Run SINGLE — fires direct from browser for instant feedback
   async function handleRunSingle(testCaseId) {
+    if (!currentProject) { addToast('Project not loaded yet', 'error'); return; }
     const tc = testCases.find(t => t.id === testCaseId);
     const ep = endpointMap[tc?.endpoint_id];
     if (!tc || !ep || !currentProject) return;

@@ -29,6 +29,7 @@ export function ProjectSettings() {
         const p = currentProject?.id === projectId
             ? currentProject
             : projects.find(x => x.id === projectId);
+
         if (p) {
             setForm({
                 name: p.name || '',
@@ -43,6 +44,12 @@ export function ProjectSettings() {
             } catch {
                 setAuthConfig({});
             }
+        } else {
+            // Load from API if not in store (e.g. direct URL navigation)
+            api.projects.get(projectId).then(proj => {
+                if (!proj) return;
+                setCurrentProject(proj);
+            }).catch(() => { });
         }
     }, [currentProject, projects, projectId]);
 
@@ -239,7 +246,7 @@ export function ProjectSettings() {
                 {form.auth_type === 'login_flow' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div style={{ padding: '10px 14px', background: 'rgba(130,100,255,0.06)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                            🔐 APIForge will POST to your login URL before running tests, extract the token from the response, and inject it as <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>Authorization: Bearer &lt;token&gt;</code> into every test request automatically.
+                            🔐 HitAPI will POST to your login URL before running tests, extract the token from the response, and inject it as <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>Authorization: Bearer &lt;token&gt;</code> into every test request automatically.
                         </div>
                         <div>
                             <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login URL *</label>
