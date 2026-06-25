@@ -201,6 +201,31 @@ export class TestCaseRepo {
       [projectId]
     );
   }
+
+  async deleteByEndpoint(endpointId) {
+    // Delete test cases first, then suites
+    await this.db.run(
+      `DELETE FROM test_cases WHERE endpoint_id = ?`,
+      [endpointId]
+    );
+    await this.db.run(
+      `DELETE FROM test_suites WHERE endpoint_id = ?`,
+      [endpointId]
+    );
+  }
+
+  async deleteByProject(projectId) {
+    await this.db.run(
+      `DELETE FROM test_cases WHERE endpoint_id IN (
+         SELECT id FROM endpoints WHERE project_id = ?
+       )`,
+      [projectId]
+    );
+    await this.db.run(
+      `DELETE FROM test_suites WHERE project_id = ?`,
+      [projectId]
+    );
+  }
 }
 
 export class ExecutionRepo {

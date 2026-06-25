@@ -167,6 +167,9 @@ export async function generateTests(request, env, { params }) {
       const cases = await generateTestCases(env.AI, ep);
       if (!cases?.length) continue;
 
+      // Delete existing test cases for this endpoint before inserting new ones
+      await r.testCases.deleteByEndpoint(endpoint.id);
+
       const suiteId = await r.testCases.createSuite(
         params.id, endpoint.id,
         `AI Suite — ${endpoint.method} ${endpoint.path}`

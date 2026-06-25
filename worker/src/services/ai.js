@@ -63,8 +63,42 @@ export async function generateTestCases(ai, endpoint) {
 
   // Extract real field names from schema
   const schema = endpoint.request_body;
-  const fields = schema?.properties ? Object.keys(schema.properties) : [];
-  const requiredFields = schema?.required || [];
+  let fields = schema?.properties ? Object.keys(schema.properties) : [];
+  let requiredFields = schema?.required || [];
+
+  console.log(`[TestGen] ${endpoint.method} ${endpoint.path} — schema fields: [${fields.join(', ')}]`);
+  console.log(`[TestGen] request_body:`, JSON.stringify(schema)?.slice(0, 300));
+
+  // If schema has no properties, infer fields from path name
+  if (fields.length === 0 && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
+    const path = endpoint.path.toLowerCase();
+    if (path.includes('login') || path.includes('signin')) {
+      fields = ['email', 'password'];
+      requiredFields = ['email', 'password'];
+    } else if (path.includes('signup') || path.includes('register')) {
+      fields = ['email', 'password', 'name'];
+      requiredFields = ['email', 'password', 'name'];
+    } else if (path.includes('user')) {
+      fields = ['email', 'name', 'role'];
+      requiredFields = ['email', 'name'];
+    } else if (path.includes('project')) {
+      fields = ['name', 'description'];
+      requiredFields = ['name'];
+    } else if (path.includes('task')) {
+      fields = ['title', 'description', 'status'];
+      requiredFields = ['title'];
+    } else if (path.includes('auth')) {
+      fields = ['email', 'password'];
+      requiredFields = ['email', 'password'];
+    } else {
+      fields = ['name', 'description'];
+      requiredFields = ['name'];
+    }
+    console.log(`[TestGen] No schema — inferred fields from path: [${fields.join(', ')}]`);
+  }
+
+  // Use schema properties for types if available, otherwise guess from field name
+  const schemaProps = schema?.properties || {};
 
   // Build realistic example values based on field names
   function exampleValue(fieldName, fieldSchema) {
@@ -103,7 +137,7 @@ export async function generateTestCases(ai, endpoint) {
     // Valid: all fields with realistic values
     validPayload = {};
     fields.forEach(f => {
-      validPayload[f] = exampleValue(f, schema.properties[f]);
+      validPayload[f] = exampleValue(f, schemaProps[f] || {});
     });
 
     // Missing required: omit one required field
@@ -120,7 +154,7 @@ export async function generateTestCases(ai, endpoint) {
 
     // SQL injection in first string field
     injectionPayload = { ...validPayload };
-    const firstStrField = fields.find(f => schema.properties[f]?.type === 'string' || !schema.properties[f]?.type);
+    const firstStrField = fields.find(f => !schemaProps[f]?.type || schemaProps[f]?.type === 'string');
     if (firstStrField) injectionPayload[firstStrField] = "'; DROP TABLE users; --";
   }
 
