@@ -1,5 +1,5 @@
 /**
- * API Routes — all endpoints for the APIForge worker
+ * API Routes — all endpoints for the HitAPI worker
  */
 
 import { DatabaseAdapter, ProjectRepo, EndpointRepo, TestCaseRepo, ExecutionRepo, BugRepo } from '../db/adapter.js';
@@ -292,6 +292,7 @@ export async function runExecutionInline(executionId, projectId, env, r) {
       endpoint_id: r.endpoint_id,
       status: r.status,
       actual_status: r.actual_status,
+      actual_headers: r.actual_headers,
       response_time_ms: r.response_time_ms,
       failure_reason: r.failure_reason,
       actual_body: r.actual_body
