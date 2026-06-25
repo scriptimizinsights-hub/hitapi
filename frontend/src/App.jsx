@@ -65,7 +65,7 @@ function Landing({ onNewProject }) {
         }}>
           <span style={{ fontSize: 24 }}>⚡</span>
         </div>
-        <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 10 }}>APIForge</h1>
+        <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 10 }}>HitAPI</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.7 }}>
           AI-powered API testing on Cloudflare. Import your Swagger spec, generate tests automatically, run them, and detect bugs instantly.
         </p>
@@ -162,14 +162,31 @@ export default function App() {
 
 function ProjectRoutes() {
   const { projectId } = useParams();
-  const { projects, setCurrentProject, currentProject } = useStore();
+  const { projects, setCurrentProject, currentProject, loadProjects } = useStore();
 
   useEffect(() => {
-    if (projectId && projects.length && (!currentProject || currentProject.id !== projectId)) {
+    // If project not in store, load all projects first
+    if (!projects.length) {
+      loadProjects();
+      return;
+    }
+    if (projectId && (!currentProject || currentProject.id !== projectId)) {
       const p = projects.find(x => x.id === projectId);
       if (p) setCurrentProject(p);
     }
   }, [projectId, projects]);
+
+  // While loading, show spinner instead of crashing
+  if (!currentProject) {
+    return (
+      <div className="page">
+        <div className="empty-state">
+          <div className="spinner" style={{ width: 28, height: 28 }} />
+          <p>Loading project…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
