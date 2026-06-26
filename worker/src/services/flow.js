@@ -179,6 +179,27 @@ export async function runFlowSuite(suite, steps, project) {
     let passed = 0, failed = 0;
 
     for (const step of steps.sort((a, b) => a.step_order - b.step_order)) {
+        // Force skip if user selected this step to skip
+        if (step._force_skip) {
+            results.push({
+                step_id: step.id,
+                step_order: step.step_order,
+                step_name: step.name,
+                status: 'skipped',
+                failure_reason: 'Manually skipped for this run',
+                extracted_vars: {},
+                actual_status: null,
+                actual_body: null,
+                actual_headers: {},
+                response_time_ms: 0,
+                request_url: null,
+                request_method: null,
+                request_headers: null,
+                request_body: null
+            });
+            continue;
+        }
+
         // Check if previous step failed and this step should be skipped
         const prevFailed = results.length > 0 && results[results.length - 1].status !== 'passed';
         if (prevFailed && step.skip_if_failed) {

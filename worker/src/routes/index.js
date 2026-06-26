@@ -595,24 +595,33 @@ export async function deleteFlowSuite(request, env, { params }) {
 
 export async function runFlowSuiteRoute(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
-  const { DatabaseAdapter: DA, ProjectRepo } = await import('../db/adapter.js');
   const { runFlowSuite } = await import('../services/flow.js');
+
+  const body = await parseBody(request).catch(() => ({}));
+  const skipStepIds = body?.skip_step_ids || [];
 
   const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
   if (!suite) return error('Suite not found', 404);
 
-  const steps = await db.all(
+  const allSteps = await db.all(
     `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method
      FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
      WHERE fs.suite_id = ? ORDER BY fs.step_order`,
     [params.flowId]
   );
-  if (!steps.length) return error('Suite has no steps');
+  if (!allSteps.length) return error('Suite has no steps');
+
+  // Mark steps as skipped if in skipStepIds
+  const steps = allSteps.map(s => ({
+    ...s,
+    _force_skip: skipStepIds.includes(s.id)
+  }));
 
   const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
   if (!project) return error('Project not found', 404);
 
-  // Create run record
+  // Create run record — count only non-skipped steps
+  const activeSteps = steps.filter(s => !s._force_skip);
   const runId = db.uuid();
   await db.run(
     `INSERT INTO flow_runs (id, suite_id, project_id, status, total_steps) VALUES (?, ?, ?, 'running', ?)`,

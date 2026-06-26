@@ -58,7 +58,7 @@ export const api = {
     create: (id, body) => request(`/projects/${id}/flows`, { method: 'POST', body: JSON.stringify(body) }),
     update: (id, flowId, body) => request(`/projects/${id}/flows/${flowId}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id, flowId) => request(`/projects/${id}/flows/${flowId}`, { method: 'DELETE' }),
-    run: (id, flowId) => request(`/projects/${id}/flows/${flowId}/run`, { method: 'POST', body: '{}' }),
+    run: (id, flowId, body) => request(`/projects/${id}/flows/${flowId}/run`, { method: 'POST', body: JSON.stringify(body || {}) }),
     listRuns: (id, flowId) => request(`/projects/${id}/flows/${flowId}/runs`),
     getRun: (id, flowId, runId) => request(`/projects/${id}/flows/${flowId}/runs/${runId}`)
   },

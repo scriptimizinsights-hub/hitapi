@@ -262,16 +262,31 @@ function SuiteCard({ suite, projectId, onDelete }) {
         } catch { /* no previous runs */ }
     }
 
+    const [skipStepIds, setSkipStepIds] = useState(new Set());
+    const [showSkipPanel, setShowSkipPanel] = useState(false);
+
+    function toggleSkip(stepId) {
+        setSkipStepIds(prev => {
+            const next = new Set(prev);
+            next.has(stepId) ? next.delete(stepId) : next.add(stepId);
+            return next;
+        });
+    }
+
     async function handleRun(e) {
         e.stopPropagation();
         setRunning(true);
         setExpanded(true);
         setActiveTab('results');
+        setShowSkipPanel(false);
         setLastRun(null);
         if (!steps) await loadSteps();
         try {
-            const result = await api.flows.run(projectId, suite.id);
+            const result = await api.flows.run(projectId, suite.id, {
+                skip_step_ids: [...skipStepIds]
+            });
             setLastRun(result);
+            await loadLastRun();
             const { passed, failed, total } = result.summary;
             addToast(`Suite: ${passed}/${total} passed`, failed > 0 ? 'error' : 'success');
         } catch (err) {
@@ -306,6 +321,19 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
                         {running ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Running…</> : <><Play size={11} fill="currentColor" /> Run</>}
                     </button>
+                    {/* Skip steps button */}
+                    {lastRun?.results?.length > 0 && (
+                        <button onClick={e => { e.stopPropagation(); setShowSkipPanel(s => !s); if (!steps) loadSteps(); }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+                                borderRadius: 6, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                                background: skipStepIds.size > 0 ? 'var(--amber-bg)' : 'var(--bg-card)',
+                                color: skipStepIds.size > 0 ? 'var(--amber)' : 'var(--text-secondary)',
+                                border: `1px solid ${skipStepIds.size > 0 ? 'rgba(255,181,71,0.3)' : 'var(--border)'}`,
+                            }}>
+                            {skipStepIds.size > 0 ? `⊘ ${skipStepIds.size} skipped` : '⊘ Skip steps'}
+                        </button>
+                    )}
                     <button onClick={e => { e.stopPropagation(); onDelete(suite.id); }}
                         style={{ padding: '6px 8px', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                         <Trash2 size={12} />
@@ -313,6 +341,82 @@ function SuiteCard({ suite, projectId, onDelete }) {
                     {expanded ? <ChevronDown size={14} color="var(--text-tertiary)" /> : <ChevronRight size={14} color="var(--text-tertiary)" />}
                 </div>
             </div>
+
+            {showSkipPanel && (
+                <div onClick={e => e.stopPropagation()} style={{ borderTop: '1px solid var(--border)', padding: '14px 18px', background: 'rgba(255,181,71,0.04)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>⊘ Select steps to skip in next run</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => {
+                                const failedIds = new Set((lastRun?.results || [])
+                                    .filter(r => r.status === 'failed' || r.status === 'error')
+                                    .map(r => r.step_id).filter(Boolean));
+                                setSkipStepIds(failedIds);
+                            }} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
+                                Select all failed
+                            </button>
+                            <button onClick={() => setSkipStepIds(new Set())}
+                                style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                                Clear all
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(steps || lastRun?.results || []).map((step, i) => {
+                            const stepId = step.step_id || step.id;
+                            const stepName = step.step_name || step.name;
+                            const order = step.step_order || (i + 1);
+                            const lastResult = lastRun?.results?.find(r => r.step_id === stepId || r.step_order === order);
+                            const status = lastResult?.status;
+                            const isChecked = skipStepIds.has(stepId);
+
+                            return (
+                                <div key={stepId || i} onClick={() => stepId && toggleSkip(stepId)} style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                                    borderRadius: 7, cursor: 'pointer',
+                                    background: isChecked ? 'rgba(255,181,71,0.08)' : 'rgba(255,255,255,0.02)',
+                                    border: `1px solid ${isChecked ? 'rgba(255,181,71,0.3)' : 'var(--border)'}`,
+                                    transition: 'all 0.12s'
+                                }}>
+                                    <div style={{
+                                        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                        border: `2px solid ${isChecked ? 'var(--amber)' : 'var(--border)'}`,
+                                        background: isChecked ? 'var(--amber)' : 'transparent',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        {isChecked && <span style={{ fontSize: 9, color: '#000', fontWeight: 800 }}>✓</span>}
+                                    </div>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>
+                                        {order}
+                                    </div>
+                                    <div style={{ flex: 1, fontSize: 12 }}>{stepName}</div>
+                                    {status && (
+                                        <span style={{
+                                            fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                                            background: status === 'passed' ? 'var(--green-bg)' : status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)',
+                                            color: status === 'passed' ? 'var(--green)' : status === 'failed' ? 'var(--red)' : 'var(--amber)'
+                                        }}>
+                                            {status === 'passed' ? '✓ Passed' : status === 'failed' ? '✗ Failed' : status === 'error' ? '⚠ Error' : '— Skipped'}
+                                        </span>
+                                    )}
+                                    {lastResult?.actual_status && (
+                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: lastResult.actual_status < 300 ? 'var(--green)' : 'var(--red)' }}>
+                                            {lastResult.actual_status}
+                                        </span>
+                                    )}
+                                    {isChecked && <span style={{ fontSize: 10, color: 'var(--amber)', fontStyle: 'italic', flexShrink: 0 }}>will skip</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                        {skipStepIds.size > 0
+                            ? `${skipStepIds.size} step${skipStepIds.size > 1 ? 's' : ''} will be skipped · click Run to execute`
+                            : 'Click steps above to mark them for skipping'}
+                    </div>
+                </div>
+            )}
 
             {expanded && (
                 <div style={{ borderTop: '1px solid var(--border)' }}>
