@@ -37,15 +37,19 @@ function buildHeaders(step, context, project) {
     if (context.__token) {
         base['Authorization'] = `Bearer ${context.__token}`;
     } else if (project.auth_type === 'bearer') {
-        const ac = project.auth_config ? JSON.parse(project.auth_config) : {};
-        if (ac.token) base['Authorization'] = `Bearer ${ac.token}`;
+        const ac = project.auth_config
+            ? (typeof project.auth_config === 'string' ? JSON.parse(project.auth_config) : project.auth_config)
+            : {};
+        if (ac?.token) base['Authorization'] = `Bearer ${ac.token}`;
     }
 
     // Step-level header overrides
     if (step.input_headers) {
-        const stepHeaders = resolveDeep(step.input_headers, context);
-        const parsed = typeof stepHeaders === 'string' ? JSON.parse(stepHeaders) : stepHeaders;
-        Object.assign(base, parsed);
+        try {
+            const stepHeaders = resolveDeep(step.input_headers, context);
+            const parsed = typeof stepHeaders === 'string' ? JSON.parse(stepHeaders) : stepHeaders;
+            if (parsed && typeof parsed === 'object') Object.assign(base, parsed);
+        } catch { /* ignore bad headers */ }
     }
 
     return base;
