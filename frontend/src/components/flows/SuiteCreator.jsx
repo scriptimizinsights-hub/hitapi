@@ -5,6 +5,10 @@ import {
     Wand2, PenLine, Search, ArrowRight, GitBranch,
     Lock, Globe, Cpu, ChevronDown
 } from 'lucide-react';
+import { useAuthDetector } from './hooks/useAuthDetector.js';
+import { useEndpointGroups } from './hooks/useEndpointGroups.js';
+import { StepAuthConfig } from './wizard/StepAuthConfig.jsx';
+import { StepCrudGroups } from './wizard/StepCrudGroups.jsx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function safeJSON(str) {
@@ -144,9 +148,9 @@ function EndpointPicker({ endpoints, value, onChange, placeholder = 'Select endp
 // ══════════════════════════════════════════════════════════════════════════════
 function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const [step, setStep] = useState(1);
-    const TOTAL = 5;
+    const TOTAL = 7; // Extended from 5 to 7
 
-    // Wizard state
+    // Existing wizard state (unchanged)
     const [signupId, setSignupId] = useState(null);
     const [loginId, setLoginId] = useState(null);
     const [tokenPath, setTokenPath] = useState('token');
@@ -155,6 +159,12 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const [suiteName, setSuiteName] = useState('');
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState('');
+
+    // NEW: auth detection hook
+    const { annotated, toggleAuth, authCount, publicCount } = useAuthDetector(endpoints);
+
+    // NEW: CRUD groups hook — uses annotated endpoints so auth overrides flow through
+    const { groups, getGroupConfig, toggleGroup, setIdPath, buildCrudSteps } = useEndpointGroups(annotated);
 
     // Auto-detect on mount
     useEffect(() => {
@@ -180,6 +190,16 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const signupEp = endpoints.find(e => e.id === signupId);
     const loginEp = endpoints.find(e => e.id === loginId);
     const otherEps = endpoints.filter(e => e.id !== signupId && e.id !== loginId);
+
+    const STEP_LABELS = [
+        'Pick signup endpoint',
+        'Pick login endpoint',
+        'Token extraction',
+        'Select endpoints',
+        'Auth configuration',   // NEW step 5
+        'CRUD groups',          // NEW step 6
+        'Review & create',      // was step 5
+    ];
 
     function toggleEndpoint(id) {
         setSelected(prev => {
@@ -252,7 +272,15 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 });
             }
 
-            const result = await api.flows.create(projectId, { name: suiteName, description: `Wizard: ${steps.length} steps`, steps });
+            // Add CRUD group steps (new — from wizard step 6)
+            const crudSteps = buildCrudSteps(order);
+            crudSteps.forEach(s => { s.step_order = order++; steps.push(s); });
+
+            const result = await api.flows.create(projectId, {
+                name: suiteName || 'Full Auth Flow',
+                description: `Wizard: ${steps.length} steps · ${groups.filter(g => getGroupConfig(g.basePath).included).length} CRUD groups`,
+                steps
+            });
             onCreated(result);
         } catch (err) { setError(err.message); }
         finally { setCreating(false); }
@@ -305,7 +333,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     ))}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>
-                    {['Pick signup endpoint', 'Pick login endpoint', 'Token extraction', 'Select endpoints', 'Review & create'][step - 1]}
+                    {STEP_LABELS[step - 1]}
                 </div>
             </div>
 
@@ -441,6 +469,24 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 )}
 
                 {step === 5 && (
+                    <StepAuthConfig
+                        annotated={annotated}
+                        toggleAuth={toggleAuth}
+                        authCount={authCount}
+                        publicCount={publicCount}
+                    />
+                )}
+
+                {step === 6 && (
+                    <StepCrudGroups
+                        groups={groups}
+                        getGroupConfig={getGroupConfig}
+                        toggleGroup={toggleGroup}
+                        setIdPath={setIdPath}
+                    />
+                )}
+
+                {step === 7 && (
                     <div>
                         <div style={{ marginBottom: 16 }}>
                             <Label>Suite name</Label>
@@ -451,7 +497,13 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             {[
                                 signupEp && { icon: '1', label: 'Sign up', path: signupEp.path, color: 'var(--green)' },
                                 loginEp && { icon: '2', label: 'Login', path: loginEp.path, color: 'var(--accent)' },
-                                selected.size > 0 && { icon: '3+', label: `${selected.size} endpoint${selected.size > 1 ? 's' : ''} to test`, path: 'with Bearer {{token}}', color: 'var(--amber)' }
+                                selected.size > 0 && { icon: '3+', label: `${selected.size} individual endpoint${selected.size > 1 ? 's' : ''}`, path: 'with Bearer {{token}}', color: 'var(--amber)' },
+                                groups.filter(g => getGroupConfig(g.basePath).included).length > 0 && {
+                                    icon: '⟳',
+                                    label: `${groups.filter(g => getGroupConfig(g.basePath).included).length} CRUD group${groups.filter(g => getGroupConfig(g.basePath).included).length > 1 ? 's' : ''}`,
+                                    path: groups.filter(g => getGroupConfig(g.basePath).included).map(g => g.contextVar).join(', '),
+                                    color: 'var(--blue)'
+                                }
                             ].filter(Boolean).map((item, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid var(--border)' }}>
                                     <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${item.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: item.color, flexShrink: 0 }}>{item.icon}</div>
@@ -479,8 +531,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     <ChevronLeft size={14} /> {step > 1 ? 'Back' : 'Cancel'}
                 </button>
                 {step < TOTAL ? (
-                    <button onClick={() => setStep(s => s + 1)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500 }}>
+                    <button onClick={() => setStep(s => s + 1)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500 }}>
                         Next <ChevronRight size={14} />
                     </button>
                 ) : (
