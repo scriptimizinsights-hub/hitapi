@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../store/index.js';
 import {
     X, ChevronRight, ChevronLeft, Check, Plus, Trash2,
     Wand2, PenLine, Search, ArrowRight, GitBranch,
@@ -40,16 +39,28 @@ function Textarea({ value, onChange, placeholder, rows = 4 }) {
 function EndpointPicker({ endpoints, value, onChange, placeholder = 'Select endpoint…' }) {
     const [search, setSearch] = useState('');
     const [open, setOpen] = useState(false);
+    const ref = useState(() => ({ current: null }))[0];
     const selected = endpoints.find(e => e.id === value);
     const filtered = endpoints.filter(e =>
-        `${e.method} ${e.path}`.toLowerCase().includes(search.toLowerCase())
+        `${e.method} ${e.path} ${e.summary || ''}`.toLowerCase().includes(search.toLowerCase())
     );
 
+    // Close on outside click
+    useEffect(() => {
+        if (!open) return;
+        function handleClick(e) {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [open]);
+
     return (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} ref={el => ref.current = el}>
             <button onClick={() => setOpen(o => !o)} style={{
                 width: '100%', padding: '8px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                background: 'var(--bg-input)', border: '1px solid var(--border)', color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                background: 'var(--bg-input)', border: '1px solid var(--border)',
+                color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13
             }}>
                 <span>
@@ -62,37 +73,56 @@ function EndpointPicker({ endpoints, value, onChange, placeholder = 'Select endp
 
             {open && (
                 <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
                     background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)', marginTop: 4, maxHeight: 260, overflow: 'hidden',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)', marginTop: 4, maxHeight: 280, overflow: 'hidden',
                     display: 'flex', flexDirection: 'column'
                 }}>
-                    <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '5px 8px' }}>
+                    {/* Search — stopPropagation prevents dropdown closing */}
+                    <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}
+                        onMouseDown={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.25)', borderRadius: 6, padding: '6px 10px' }}>
                             <Search size={12} color="var(--text-tertiary)" />
-                            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search endpoints…"
-                                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', flex: 1 }} />
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search by method, path or name…"
+                                onMouseDown={e => e.stopPropagation()}
+                                onClick={e => e.stopPropagation()}
+                                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', flex: 1 }}
+                            />
+                            {search && (
+                                <button onClick={e => { e.stopPropagation(); setSearch(''); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, lineHeight: 1 }}>
+                                    ×
+                                </button>
+                            )}
                         </div>
                     </div>
+
                     <div style={{ overflow: 'auto', flex: 1 }}>
                         <div onClick={() => { onChange(null); setOpen(false); setSearch(''); }}
-                            style={{
-                                padding: '8px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)',
-                                borderBottom: '1px solid rgba(255,255,255,0.04)'
-                            }}>
+                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             — None / Skip this step
                         </div>
-                        {filtered.map(ep => (
+                        {filtered.length === 0 ? (
+                            <div style={{ padding: '16px 12px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                                No endpoints match "{search}"
+                            </div>
+                        ) : filtered.map(ep => (
                             <div key={ep.id} onClick={() => { onChange(ep.id); setOpen(false); setSearch(''); }}
                                 style={{
                                     padding: '8px 12px', cursor: 'pointer', fontSize: 12,
                                     display: 'flex', alignItems: 'center', gap: 8,
                                     background: value === ep.id ? 'var(--accent-dim)' : 'transparent',
                                     borderBottom: '1px solid rgba(255,255,255,0.03)'
-                                }}>
+                                }}
+                                onMouseEnter={e => { if (value !== ep.id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                                onMouseLeave={e => { if (value !== ep.id) e.currentTarget.style.background = ''; }}>
                                 <span className={`method-badge method-${ep.method}`} style={{ fontSize: 9, flexShrink: 0 }}>{ep.method}</span>
-                                <span style={{ color: value === ep.id ? 'var(--accent)' : 'var(--text-secondary)' }}>{ep.path}</span>
-                                {ep.summary && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{ep.summary.slice(0, 30)}</span>}
+                                <span style={{ color: value === ep.id ? 'var(--accent)' : 'var(--text-secondary)', flex: 1 }}>{ep.path}</span>
+                                {ep.summary && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ep.summary}</span>}
                             </div>
                         ))}
                     </div>
