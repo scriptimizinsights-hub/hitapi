@@ -5,8 +5,9 @@ import {
     Play, Zap, ChevronDown, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock,
     ArrowRight, Copy, Check, Trash2, RefreshCw,
-    GitBranch
+    GitBranch, Plus, Wand2, PenLine
 } from 'lucide-react';
+import { SuiteCreator } from './SuiteCreator.jsx';
 
 function safeJSON(str) {
     if (!str) return null;
@@ -500,6 +501,7 @@ export function FlowSuitesPage() {
     const [suites, setSuites] = useState([]);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
+    const [showCreator, setShowCreator] = useState(false);
 
     useEffect(() => { loadSuites(); }, [projectId]);
 
@@ -541,9 +543,13 @@ export function FlowSuitesPage() {
                     <button className="btn btn-ghost" onClick={loadSuites} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <RefreshCw size={13} /> Refresh
                     </button>
-                    <button className="btn btn-primary" onClick={autoGenerate} disabled={generating}
+                    <button className="btn btn-ghost" onClick={autoGenerate} disabled={generating}
                         style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        {generating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Generating…</> : <><Zap size={13} /> Auto-generate suite</>}
+                        {generating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Generating…</> : <><Zap size={13} /> Auto-generate</>}
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setShowCreator(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Plus size={13} /> Create suite
                     </button>
                 </div>
             </div>
@@ -590,6 +596,18 @@ export function FlowSuitesPage() {
             ) : suites.map(suite => (
                 <SuiteCard key={suite.id} suite={suite} projectId={projectId} onDelete={deleteSuite} />
             ))}
+
+            {showCreator && (
+                <SuiteCreator
+                    projectId={projectId}
+                    onCreated={suite => {
+                        setShowCreator(false);
+                        addToast(`✓ Suite "${suite.name}" created`, 'success');
+                        loadSuites();
+                    }}
+                    onClose={() => setShowCreator(false)}
+                />
+            )}
         </div>
     );
 }
