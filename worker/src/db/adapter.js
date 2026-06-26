@@ -110,23 +110,61 @@ export class EndpointRepo {
   }
 
   async upsertMany(projectId, endpoints) {
-    const n = v => (v === undefined ? null : v); // D1 rejects undefined, needs null
-    const stmts = endpoints.map(ep => ({
-      sql: `INSERT INTO endpoints (id, project_id, path, method, summary, description, parameters, request_body, responses, tags, security)
+    const n = v => (v === undefined ? null : v);
+
+    const stmts = endpoints.map(ep => {
+      console.log("=================================");
+      console.log("Path:", ep.path);
+      console.log("Method:", ep.method);
+      console.log("Request Body:", ep.requestBody);
+      console.log("Request Body (JSON):", JSON.stringify(ep.requestBody, null, 2));
+      console.log("=================================");
+
+      return {
+        sql: `INSERT INTO endpoints (
+              id, project_id, path, method, summary, description,
+              parameters, request_body, responses, tags, security
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO NOTHING`,
-      params: [
-        this.db.uuid(), projectId, ep.path, ep.method.toUpperCase(),
-        n(ep.summary), n(ep.description),
-        JSON.stringify(ep.parameters || []),
-        JSON.stringify(ep.requestBody || null),
-        JSON.stringify(ep.responses || {}),
-        JSON.stringify(ep.tags || []),
-        JSON.stringify(ep.security || [])
-      ]
-    }));
+        params: [
+          this.db.uuid(),
+          projectId,
+          ep.path,
+          ep.method.toUpperCase(),
+          n(ep.summary),
+          n(ep.description),
+          JSON.stringify(ep.parameters || []),
+          JSON.stringify(ep.requestBody || null),
+          JSON.stringify(ep.responses || {}),
+          JSON.stringify(ep.tags || []),
+          JSON.stringify(ep.security || [])
+        ]
+      };
+    });
+
     return this.db.batch(stmts);
   }
+
+  // async upsertMany(projectId, endpoints) {
+  //   const n = v => (v === undefined ? null : v); // D1 rejects undefined, needs null
+  //   const stmts = endpoints.map(ep => (
+  //     {
+  //     sql: `INSERT INTO endpoints (id, project_id, path, method, summary, description, parameters, request_body, responses, tags, security)
+  //           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  //           ON CONFLICT(id) DO NOTHING`,
+  //     params: [
+  //       this.db.uuid(), projectId, ep.path, ep.method.toUpperCase(),
+  //       n(ep.summary), n(ep.description),
+  //       JSON.stringify(ep.parameters || []),
+  //       JSON.stringify(ep.requestBody || null),
+  //       JSON.stringify(ep.responses || {}),
+  //       JSON.stringify(ep.tags || []),
+  //       JSON.stringify(ep.security || [])
+  //     ]
+  //   }));
+  //   return this.db.batch(stmts);
+  // }
 
   async stats(projectId) {
     return this.db.first(
