@@ -186,6 +186,7 @@ export async function runFlowSuite(suite, steps, project) {
                 step_order: step.step_order,
                 step_name: step.name,
                 status: 'skipped',
+                _manually_skipped: true,
                 failure_reason: 'Manually skipped for this run',
                 extracted_vars: {},
                 actual_status: null,
@@ -201,7 +202,9 @@ export async function runFlowSuite(suite, steps, project) {
         }
 
         // Check if previous step failed and this step should be skipped
-        const prevFailed = results.length > 0 && results[results.length - 1].status !== 'passed';
+        // Note: manually skipped steps don't count as failures for cascade
+        const lastResult = results.length > 0 ? results[results.length - 1] : null;
+        const prevFailed = lastResult && lastResult.status === 'failed' && !lastResult._manually_skipped;
         if (prevFailed && step.skip_if_failed) {
             results.push({
                 step_id: step.id,
