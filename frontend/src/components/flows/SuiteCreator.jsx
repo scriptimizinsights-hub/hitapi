@@ -107,9 +107,15 @@ function EndpointPicker({ endpoints, value, onChange, placeholder = 'Select endp
                             style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             — None / Skip this step
                         </div>
-                        {filtered.length === 0 ? (
-                            <div style={{ padding: '16px 12px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
-                                No endpoints match "{search}"
+                        {endpoints.length === 0 ? (
+                            <div style={{ padding: '20px 12px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
+                                No endpoints imported yet.<br />
+                                <span style={{ color: 'var(--accent)' }}>Import a Swagger spec first</span>
+                            </div>
+                        ) : filtered.length === 0 ? (
+                            <div style={{ padding: '16px 12px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
+                                No results for "<strong>{search}</strong>"<br />
+                                <span style={{ fontSize: 11 }}>Try searching by method (GET, POST) or path keyword</span>
                             </div>
                         ) : filtered.map(ep => (
                             <div key={ep.id} onClick={() => { onChange(ep.id); setOpen(false); setSearch(''); }}
@@ -610,6 +616,11 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Suite name</div>
                 <Input value={suiteName} onChange={setSuiteName} placeholder="e.g. Admin API Flow" />
+                <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(130,100,255,0.06)', borderRadius: 8, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                    <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Add steps in order. Values extracted from one step (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{'{{token}}'}</code>) are automatically injected into all following steps.
+                    <br />
+                    <span style={{ color: 'var(--text-tertiary)' }}>Tip: Add Login first → extract token → use in all later steps.</span>
+                </div>
             </div>
 
             {/* Steps */}
@@ -685,52 +696,70 @@ function StepEditor({ step, index, total, endpoints, onUpdate, onPickEndpoint, o
                 <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                     {/* Name */}
                     <div>
-                        <Label>Step name</Label>
-                        <Input value={step.name} onChange={v => onUpdate('name', v)} placeholder={`Step ${index + 1}`} />
+                        <Label hint="Give this step a clear name">Step name</Label>
+                        <Input value={step.name} onChange={v => onUpdate('name', v)} placeholder="e.g. Login, Create user, Get profile" />
                     </div>
 
                     {/* Endpoint picker */}
                     <div>
-                        <Label>Endpoint</Label>
+                        <Label hint="Pick from your imported Swagger endpoints">Endpoint</Label>
                         <EndpointPicker endpoints={endpoints} value={step.endpoint_id} onChange={onPickEndpoint} />
+                        {!step.endpoint_id && (
+                            <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span>💡</span> Search by method (e.g. <code style={{ fontFamily: 'JetBrains Mono, monospace' }}>POST</code>) or path keyword (e.g. <code style={{ fontFamily: 'JetBrains Mono, monospace' }}>login</code>)
+                            </div>
+                        )}
                     </div>
 
                     {/* Method + Expected status */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                         <div>
-                            <Label>Method</Label>
-                            <select className="input" value={step.method} onChange={e => onUpdate('method', e.target.value)}
-                                style={{ width: '100%' }}>
+                            <Label hint="HTTP method">Method</Label>
+                            <select className="input" value={step.method} onChange={e => onUpdate('method', e.target.value)} style={{ width: '100%' }}>
                                 {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => <option key={m}>{m}</option>)}
                             </select>
                         </div>
                         <div>
-                            <Label>Expected status</Label>
+                            <Label hint="What HTTP status means success?">Expected status</Label>
                             <Input value={step.expected_status} onChange={v => onUpdate('expected_status', v)} placeholder="200" />
+                            <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-tertiary)' }}>200 = OK · 201 = Created · 204 = Deleted</div>
                         </div>
                     </div>
 
                     {/* Request body */}
                     {['POST', 'PUT', 'PATCH'].includes(step.method) && (
                         <div>
-                            <Label hint="JSON — supports {{token}}, {{userId}} placeholders">Request body</Label>
+                            <Label hint="Use {{token}} or {{userId}} to inject values from previous steps">Request body (JSON)</Label>
                             <Textarea value={step.input_payload} onChange={v => onUpdate('input_payload', v)}
-                                placeholder={'{\n  "email": "test@example.com"\n}'} rows={5} />
+                                placeholder={'{\n  "email": "test@example.com",\n  "password": "Test@123456"\n}'} rows={5} />
+                            {step.input_payload === '{}' && (
+                                <div style={{ marginTop: 5, fontSize: 11, color: 'var(--amber)', display: 'flex', gap: 4 }}>
+                                    ⚠ Empty body — your API may return 400. Fill in the required fields.
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* Path params */}
                     <div>
-                        <Label hint="JSON — e.g. {&quot;id&quot;: &quot;{{userId}}&quot;}">Path / query params</Label>
+                        <Label hint="For URLs like /users/{id} — use {{userId}} to inject from a previous step">Path / query params (JSON)</Label>
                         <Textarea value={step.input_params} onChange={v => onUpdate('input_params', v)}
                             placeholder={'{\n  "id": "{{userId}}"\n}'} rows={2} />
+                        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                            e.g. if URL is <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>/users/{'{id}'}</code> → set <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>{'"id": "{{userId}}"'}</code>
+                        </div>
                     </div>
 
                     {/* Extract vars */}
                     <div>
-                        <Label hint="varName=response.path, e.g. token=data.token, userId=data.id">Extract from response</Label>
+                        <Label hint="Save values from this response for use in later steps">Extract from response</Label>
                         <Input value={step.extract_vars} onChange={v => onUpdate('extract_vars', v)}
                             placeholder="token=data.token, userId=data.id" />
+                        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+                            Format: <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>variableName=response.path</code>
+                            <br />
+                            e.g. <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>token=data.token</code> saves as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>{'{{token}}'}</code> · <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>userId=data.id</code> saves as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>{'{{userId}}'}</code>
+                        </div>
                     </div>
 
                     {/* Skip if failed */}
@@ -742,7 +771,10 @@ function StepEditor({ step, index, total, endpoints, onUpdate, onPickEndpoint, o
                         }}>
                             <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: step.skip_if_failed ? 16 : 2, transition: 'left 0.2s' }} />
                         </div>
-                        Skip next steps if this step fails
+                        <div>
+                            Skip next steps if this step fails
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Useful for auth steps — if login fails, skip all API tests</div>
+                        </div>
                     </label>
                 </div>
             )}
@@ -754,13 +786,17 @@ function StepEditor({ step, index, total, endpoints, onUpdate, onPickEndpoint, o
 // MAIN EXPORT — Suite Creator Modal
 // ══════════════════════════════════════════════════════════════════════════════
 export function SuiteCreator({ projectId, onCreated, onClose }) {
-    const [mode, setMode] = useState(null); // null | 'wizard' | 'manual'
+    const [mode, setMode] = useState(null);
     const [endpoints, setEndpoints] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         api.endpoints.list(projectId)
-            .then(data => setEndpoints(Array.isArray(data) ? data : []))
+            .then(data => {
+                // API returns {endpoints: [], stats: {}} or plain array
+                const list = Array.isArray(data) ? data : (data?.endpoints || data?.data || []);
+                setEndpoints(list);
+            })
             .catch(() => { })
             .finally(() => setLoading(false));
     }, [projectId]);
