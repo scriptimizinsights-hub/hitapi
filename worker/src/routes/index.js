@@ -863,15 +863,31 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
     let payload = null;
-    if (hasBody && schema?.properties) {
-      payload = {};
-      Object.keys(schema.properties).forEach(f => {
-        const n = f.toLowerCase();
-        if (n.includes('id')) payload[f] = '{{userId}}';
-        else if (n.includes('title') || n.includes('name')) payload[f] = 'Test Item';
-        else if (n.includes('desc')) payload[f] = 'Test description';
-        else payload[f] = 'test_value';
-      });
+
+    if (hasBody) {
+      // Priority 1: use swagger example directly
+      if (schema?._example) {
+        payload = schema._example;
+      }
+      // Priority 2: build from properties
+      else if (schema?.properties) {
+        payload = {};
+        Object.keys(schema.properties).forEach(f => {
+          const n = f.toLowerCase();
+          if (n.includes('email')) payload[f] = 'test@example.com';
+          else if (n.includes('password')) payload[f] = 'Test@123456';
+          else if (n === 'username' || n.includes('username')) payload[f] = 'testuser';
+          else if (n.includes('id')) payload[f] = '{{userId}}';
+          else if (n.includes('title') || n.includes('name')) payload[f] = 'Test Item';
+          else if (n.includes('desc')) payload[f] = 'Test description';
+          else if (n.includes('status')) payload[f] = 'active';
+          else payload[f] = 'test_value';
+        });
+      }
+      // Priority 3: empty object (better than null)
+      else {
+        payload = {};
+      }
     }
 
     // Extract path params from URL template
