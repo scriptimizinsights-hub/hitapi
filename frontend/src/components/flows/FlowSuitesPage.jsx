@@ -95,12 +95,17 @@ function StepResult({ result }) {
                                             </pre>
                                         </div>
                                     )}
-                                    {reqBody && (
+                                    {reqBody ? (
                                         <div>
                                             <div style={{ fontSize: 9, color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
                                             <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 100, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
                                                 {JSON.stringify(reqBody, null, 2)}
                                             </pre>
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '6px 10px', background: 'rgba(255,92,92,0.08)', borderRadius: 5, border: '1px solid rgba(255,92,92,0.2)' }}>
+                                            <div style={{ fontSize: 9, color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
+                                            <div style={{ fontSize: 10, color: 'var(--red)' }}>⚠ No body sent — AI could not infer schema. Edit step to add request body.</div>
                                         </div>
                                     )}
                                 </div>

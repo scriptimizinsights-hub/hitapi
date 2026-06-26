@@ -78,7 +78,10 @@ async function executeStep(step, context, project) {
     const headers = buildHeaders(step, context, project);
     const payload = step.input_payload ? resolveDeep(step.input_payload, context) : null;
 
-    const requestBody = payload ? JSON.stringify(payload) : undefined;
+    // For POST/PUT/PATCH with no payload, send {} to avoid "Unexpected end of JSON input"
+    const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+    const bodyToSend = payload ?? (hasBody ? {} : undefined);
+    const requestBody = bodyToSend !== undefined ? JSON.stringify(bodyToSend) : undefined;
 
     console.log(`[Flow] Step ${step.step_order}: ${method} ${url}`);
     if (payload) console.log(`[Flow] Body: ${JSON.stringify(payload).slice(0, 200)}`);
@@ -122,7 +125,7 @@ async function executeStep(step, context, project) {
             request_url: url,
             request_method: method,
             request_headers: headers,
-            request_body: payload
+            request_body: bodyToSend ?? null
         };
     }
 
@@ -164,7 +167,7 @@ async function executeStep(step, context, project) {
         request_url: url,
         request_method: method,
         request_headers: headers,
-        request_body: payload
+        request_body: bodyToSend ?? null
     };
 }
 
