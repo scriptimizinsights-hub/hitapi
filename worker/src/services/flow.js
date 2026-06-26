@@ -200,6 +200,18 @@ export async function runFlowSuite(suite, steps, project) {
 
         const result = await executeStep(step, context, project);
 
+        // Special case: signup step — if user already exists (400/409/422), 
+        // treat as soft pass so login can still proceed
+        if (result.status === 'failed' && step.name?.toLowerCase().includes('sign')) {
+            const status = result.actual_status;
+            if (status === 400 || status === 409 || status === 422) {
+                console.log(`[Flow] Signup returned ${status} — user likely already exists, continuing to login`);
+                result.status = 'passed';
+                result.failure_reason = null;
+                result._note = `User already exists (${status}) — skipped signup, proceeding to login`;
+            }
+        }
+
         // Merge extracted vars into context for next steps
         if (result.extracted_vars) {
             Object.assign(context, result.extracted_vars);

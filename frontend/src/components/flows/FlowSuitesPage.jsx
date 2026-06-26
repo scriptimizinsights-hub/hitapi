@@ -167,11 +167,45 @@ function SuiteCard({ suite, projectId, onDelete }) {
     const [expanded, setExpanded] = useState(false);
     const [steps, setSteps] = useState(null);
     const [loadingSteps, setLoadingSteps] = useState(false);
-    const [activeTab, setActiveTab] = useState('steps'); // 'steps' | 'results'
+    const [activeTab, setActiveTab] = useState('steps');
     const { addToast } = useStore();
 
+    // Load last run from DB on mount
+    useEffect(() => {
+        loadLastRun();
+    }, [suite.id]);
+
+    async function loadLastRun() {
+        try {
+            const runs = await api.flows.listRuns(projectId, suite.id);
+            if (!runs?.length) return;
+            const detail = await api.flows.getRun(projectId, suite.id, runs[0].id);
+            if (detail) {
+                setLastRun({
+                    summary: {
+                        total: detail.run.total_steps,
+                        passed: detail.run.passed,
+                        failed: detail.run.failed,
+                        pass_rate: detail.run.total_steps
+                            ? Math.round((detail.run.passed / detail.run.total_steps) * 100)
+                            : 0
+                    },
+                    context: safeJSON(detail.run.context) || {},
+                    results: (detail.stepResults || []).map(r => ({
+                        ...r,
+                        actual_body: safeJSON(r.actual_body),
+                        actual_headers: safeJSON(r.actual_headers),
+                        request_body: safeJSON(r.request_body),
+                        request_headers: safeJSON(r.request_headers),
+                        extracted_vars: safeJSON(r.extracted_vars),
+                    }))
+                });
+            }
+        } catch { /* no previous runs */ }
+    }
+
     async function loadSteps() {
-        if (steps) return; // already loaded
+        if (steps) return;
         setLoadingSteps(true);
         try {
             const data = await api.flows.get(projectId, suite.id);
