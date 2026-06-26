@@ -20,7 +20,7 @@ import {
   // Flow suites
   listFlowSuites, createFlowSuite, getFlowSuite, updateFlowSuite, deleteFlowSuite,
   runFlowSuiteRoute, listFlowRuns, getFlowRun,
-  autoGenerateFlowSuite
+  autoGenerateFlowSuite, updateFlowStep
 } from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -40,6 +40,7 @@ const ROUTES = [
   router('POST', '/api/projects/:id/flows/:flowId/run', runFlowSuiteRoute),
   router('GET', '/api/projects/:id/flows/:flowId/runs', listFlowRuns),
   router('GET', '/api/projects/:id/flows/:flowId/runs/:runId', getFlowRun),
+  router('PATCH', '/api/projects/:id/flows/:flowId/steps/:stepId', updateFlowStep),
 
   // Health
   router('GET', '/health', healthCheck),

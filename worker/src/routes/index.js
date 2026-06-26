@@ -154,7 +154,6 @@ export async function generateTests(request, env, { params }) {
   const generated = [];
   const errors = [];
 
-  console.log(`Generating tests for ${endpointsList.length} endpoints`);
   for (const endpoint of endpointsList.slice(0, limit)) {
     try {
       const ep = {
@@ -680,6 +679,43 @@ export async function listFlowRuns(request, env, { params }) {
   return json(success(runs));
 }
 
+export async function updateFlowStep(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const body = await parseBody(request);
+
+  const fields = [];
+  const values = [];
+
+  if (body.input_payload !== undefined) {
+    fields.push('input_payload = ?');
+    values.push(body.input_payload ? JSON.stringify(body.input_payload) : null);
+  }
+  if (body.input_params !== undefined) {
+    fields.push('input_params = ?');
+    values.push(body.input_params ? JSON.stringify(body.input_params) : null);
+  }
+  if (body.expected_status !== undefined) {
+    fields.push('expected_status = ?');
+    values.push(body.expected_status || null);
+  }
+  if (body.extract_vars !== undefined) {
+    fields.push('extract_vars = ?');
+    values.push(body.extract_vars?.length ? JSON.stringify(body.extract_vars) : null);
+  }
+  if (body.name !== undefined) {
+    fields.push('name = ?');
+    values.push(body.name);
+  }
+
+  if (!fields.length) return error('Nothing to update');
+
+  values.push(params.stepId);
+  await db.run(`UPDATE flow_steps SET ${fields.join(', ')} WHERE id = ?`, values);
+
+  const updated = await db.first(`SELECT * FROM flow_steps WHERE id = ?`, [params.stepId]);
+  return json(success(updated));
+}
+
 export async function getFlowRun(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const run = await db.first(`SELECT * FROM flow_runs WHERE id = ?`, [params.runId]);
@@ -703,26 +739,58 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
 
   if (!endpoints.length) return error('No endpoints found. Import Swagger first.');
 
-  // Find signup endpoint
+  console.log(`[Flow] Auto-generate: ${endpoints.length} endpoints found`);
+  console.log(`[Flow] Paths:`, endpoints.map(e => `${e.method} ${e.path}`).join(', '));
+
+  // Find signup endpoint — flexible matching
   const signupEp = endpoints.find(e =>
-    (e.path.toLowerCase().includes('signup') || e.path.toLowerCase().includes('register')) &&
-    e.method === 'POST'
+    e.method === 'POST' && (
+      e.path.toLowerCase().includes('signup') ||
+      e.path.toLowerCase().includes('register') ||
+      e.summary?.toLowerCase().includes('sign up') ||
+      e.summary?.toLowerCase().includes('register')
+    )
   );
 
-  // Find login endpoint
+  // Find login endpoint — flexible matching
   const loginEp = endpoints.find(e =>
-    (e.path.toLowerCase().includes('login') || e.path.toLowerCase().includes('signin') || e.path.toLowerCase().includes('token')) &&
-    e.method === 'POST'
+    e.method === 'POST' && (
+      e.path.toLowerCase().includes('login') ||
+      e.path.toLowerCase().includes('signin') ||
+      e.path.toLowerCase().includes('sign-in') ||
+      e.path.toLowerCase().includes('token') ||
+      e.path.toLowerCase().includes('auth/login') ||
+      e.summary?.toLowerCase().includes('login') ||
+      e.summary?.toLowerCase().includes('sign in') ||
+      e.summary?.toLowerCase().includes('authenticate')
+    )
   );
 
-  // Find secured endpoints (have security field set)
-  const securedEndpoints = endpoints.filter(e => {
+  console.log(`[Flow] signupEp: ${signupEp ? signupEp.path : 'NOT FOUND'}`);
+  console.log(`[Flow] loginEp: ${loginEp ? loginEp.path : 'NOT FOUND'}`);
+
+  // Find secured endpoints — try security field first, fall back to all non-auth endpoints
+  let securedEndpoints = endpoints.filter(e => {
     if (!e.security) return false;
     try {
       const sec = JSON.parse(e.security);
       return Array.isArray(sec) && sec.length > 0;
     } catch { return false; }
   }).filter(e => e.id !== loginEp?.id && e.id !== signupEp?.id);
+
+  console.log(`[Flow] securedEndpoints (from security field): ${securedEndpoints.length}`);
+
+  // If no endpoints have security field set, include ALL non-auth endpoints
+  if (securedEndpoints.length === 0) {
+    securedEndpoints = endpoints.filter(e => {
+      const path = e.path.toLowerCase();
+      const isAuthEndpoint = path.includes('login') || path.includes('signup') ||
+        path.includes('register') || path.includes('signin') || path.includes('token') ||
+        path.includes('/auth/') || path.includes('password/reset') || path.includes('logout');
+      return !isAuthEndpoint && e.id !== loginEp?.id && e.id !== signupEp?.id;
+    });
+    console.log(`[Flow] securedEndpoints (fallback — all non-auth): ${securedEndpoints.length}`);
+  }
 
   const steps = [];
   let order = 1;
@@ -822,7 +890,9 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     });
   }
 
-  if (!steps.length) return error('Could not auto-generate steps. No login or signup endpoint found.');
+  if (!steps.length) return error(
+    `Could not generate steps. Found: signup=${signupEp?.path || 'none'}, login=${loginEp?.path || 'none'}, secured=${securedEndpoints.length} endpoints. Total endpoints: ${endpoints.length}. Paths: ${endpoints.slice(0, 5).map(e => e.method + ' ' + e.path).join(', ')}`
+  );
 
   // Create the suite
   const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);

@@ -7,7 +7,7 @@ import {
     ArrowRight, Copy, Check, Trash2, RefreshCw,
     GitBranch, Plus, Wand2, PenLine
 } from 'lucide-react';
-import { SuiteCreator } from './SuiteCreator.jsx';
+import { StepEditPanel } from './StepEditPanel.jsx';
 
 function safeJSON(str) {
     if (!str) return null;
@@ -37,12 +37,16 @@ function StatusIcon({ status }) {
     return <Clock size={14} color="var(--text-tertiary)" />;
 }
 
-function StepResult({ result }) {
+function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved }) {
     const [expanded, setExpanded] = useState(false);
+    const [editing, setEditing] = useState(false);
     const body = safeJSON(result.actual_body);
     const reqBody = safeJSON(result.request_body);
     const reqHeaders = safeJSON(result.request_headers);
     const extracted = safeJSON(result.extracted_vars);
+    const swaggerExample = stepDef?.request_body
+        ? (() => { try { return JSON.parse(stepDef.request_body)?._example || null; } catch { return null; } })()
+        : null;
 
     return (
         <>
@@ -72,7 +76,36 @@ function StepResult({ result }) {
                 <td style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                     {result.response_time_ms ? `${result.response_time_ms}ms` : '—'}
                 </td>
+                <td onClick={e => e.stopPropagation()}>
+                    <button onClick={() => { setEditing(e => !e); setExpanded(true); }} style={{
+                        fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                        background: editing ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
+                        color: editing ? 'var(--accent)' : 'var(--text-tertiary)',
+                        border: `1px solid ${editing ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`,
+                    }}>
+                        {editing ? '✕ Close' : '✎ Edit'}
+                    </button>
+                </td>
             </tr>
+
+            {/* Edit panel — shown above expanded result */}
+            {editing && (
+                <tr>
+                    <td colSpan={9} style={{ padding: 0 }}>
+                        <StepEditPanel
+                            step={stepDef}
+                            result={result}
+                            context={context}
+                            projectId={projectId}
+                            suiteId={suiteId}
+                            swaggerExample={swaggerExample}
+                            onClose={() => setEditing(false)}
+                            onSaved={() => { setEditing(false); onStepSaved?.(); }}
+                            onRunResult={res => console.log('[StepEditPanel] single run result:', res)}
+                        />
+                    </td>
+                </tr>
+            )}
 
             {expanded && (
                 <tr>
@@ -475,10 +508,21 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                         <th>Path</th>
                                         <th style={{ width: 60 }}>HTTP</th>
                                         <th style={{ width: 70 }}>Time</th>
+                                        <th style={{ width: 70 }} />
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(lastRun.results || []).map((r, i) => <StepResult key={i} result={r} />)}
+                                    {(lastRun.results || []).map((r, i) => (
+                                        <StepResult
+                                            key={i}
+                                            result={r}
+                                            projectId={projectId}
+                                            suiteId={suite.id}
+                                            stepDef={steps?.find(s => s.id === r.step_id)}
+                                            context={lastRun.context || {}}
+                                            onStepSaved={() => { loadSteps(); }}
+                                        />
+                                    ))}
                                 </tbody>
                             </table>
                         </>
