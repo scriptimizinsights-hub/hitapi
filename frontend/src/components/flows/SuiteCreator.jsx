@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../../store/index.js';
 import {
     X, ChevronRight, ChevronLeft, Check, Plus, Trash2,
     Wand2, PenLine, Search, ArrowRight, GitBranch,
