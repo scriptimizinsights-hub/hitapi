@@ -78,9 +78,23 @@ async function executeStep(step, context, project) {
     const headers = buildHeaders(step, context, project);
     const payload = step.input_payload ? resolveDeep(step.input_payload, context) : null;
 
-    // For POST/PUT/PATCH with no payload, send {} to avoid "Unexpected end of JSON input"
+    // For POST/PUT/PATCH with no payload, try swagger example first, then {}
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
-    const bodyToSend = payload ?? (hasBody ? {} : undefined);
+    let bodyToSend;
+    if (payload !== null) {
+        bodyToSend = payload;
+    } else if (hasBody && step.swagger_example) {
+        try {
+            bodyToSend = typeof step.swagger_example === 'string'
+                ? JSON.parse(step.swagger_example)
+                : step.swagger_example;
+            console.log(`[Flow] Using Swagger example for ${method} ${step.endpoint_path || step.name}`);
+        } catch { bodyToSend = {}; }
+    } else if (hasBody) {
+        bodyToSend = {};
+    } else {
+        bodyToSend = undefined;
+    }
     const requestBody = bodyToSend !== undefined ? JSON.stringify(bodyToSend) : undefined;
 
     console.log(`[Flow] Step ${step.step_order}: ${method} ${url}`);

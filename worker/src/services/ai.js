@@ -66,35 +66,104 @@ export async function generateTestCases(ai, endpoint) {
   let fields = schema?.properties ? Object.keys(schema.properties) : [];
   let requiredFields = schema?.required || [];
 
-  console.log(`[TestGen] ${endpoint.method} ${endpoint.path} — schema fields: [${fields.join(', ')}]`);
-  console.log(`[TestGen] request_body:`, JSON.stringify(schema)?.slice(0, 300));
+  // Use example from Swagger spec if available and schema has no properties
+  const swaggerExample = schema?._example;
 
-  // If schema has no properties, infer fields from path name
+  console.log(`[TestGen] ${endpoint.method} ${endpoint.path} — schema fields: [${fields.join(', ')}], has example: ${!!swaggerExample}`);
+
+  // If schema has example, use it directly as the valid payload
+  if (fields.length === 0 && swaggerExample) {
+    console.log(`[TestGen] Using Swagger example as payload`);
+    const validPayload = swaggerExample;
+    // Missing: remove one key from example
+    const exampleKeys = Object.keys(swaggerExample);
+    const missingPayload = exampleKeys.length > 0
+      ? Object.fromEntries(exampleKeys.slice(1).map(k => [k, swaggerExample[k]]))
+      : {};
+    // Injection: put SQL injection in first string value
+    const injectionPayload = { ...swaggerExample };
+    const firstKey = exampleKeys.find(k => typeof swaggerExample[k] === 'string' || typeof swaggerExample[k] === 'object');
+    if (firstKey && typeof swaggerExample[firstKey] === 'string') {
+      injectionPayload[firstKey] = "'; DROP TABLE users; --";
+    }
+    return [
+      { name: 'Valid request', type: 'positive', input_payload: validPayload, input_params: null, expected_status: endpoint.method === 'POST' ? 201 : 200, ai_reasoning: 'Happy path using Swagger example' },
+      { name: 'Missing required field', type: 'negative', input_payload: missingPayload, input_params: null, expected_status: 400, ai_reasoning: `Missing first required field` },
+      { name: 'Empty values', type: 'boundary', input_payload: Object.fromEntries(exampleKeys.map(k => [k, typeof swaggerExample[k] === 'object' ? {} : ''])), input_params: null, expected_status: 400, ai_reasoning: 'Empty values should be rejected' },
+      { name: 'SQL injection attempt', type: 'security', input_payload: injectionPayload, input_params: null, expected_status: 400, ai_reasoning: 'SQL injection should be rejected' },
+    ];
+  }
+
+  // If schema has no properties — ask AI to understand the schema and infer payload
   if (fields.length === 0 && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
+
+    // Check if endpoint already has a cached AI-inferred payload
+    if (endpoint.ai_inferred_payload) {
+      try {
+        const cached = typeof endpoint.ai_inferred_payload === 'string'
+          ? JSON.parse(endpoint.ai_inferred_payload)
+          : endpoint.ai_inferred_payload;
+        console.log(`[TestGen] Using cached AI payload for ${endpoint.path}`);
+        return buildTestCasesFromPayload(cached, endpoint);
+      } catch { /* ignore bad cache */ }
+    }
+
+    // Ask AI with full schema context
+    const schemaStr = JSON.stringify(endpoint.request_body || {}).slice(0, 800);
+    const prompt = `You are an API testing expert. Generate a realistic JSON request body for this API endpoint.
+
+Endpoint: ${endpoint.method} ${endpoint.path}
+Summary: ${endpoint.summary || ''}
+Schema: ${schemaStr}
+
+Instructions:
+- Read the schema carefully including any $ref names like "CreateUserRequest", "LoginRequest" etc
+- Infer field names and types from the schema name and structure
+- Return ONLY a valid JSON object with realistic values
+- Use real emails, proper names, valid data — not placeholder strings like "string"
+- If schema is wrapped like {"user": {...}}, keep that wrapper
+
+Return ONLY the JSON object, nothing else.`;
+
+    console.log(`[TestGen] Asking AI to infer payload for ${endpoint.method} ${endpoint.path}`);
+
+    try {
+      const response = await runAI(ai, prompt, 400, 15000);
+      const text = extractText(response);
+
+      if (text) {
+        const aiPayload = parseJSON(text);
+        if (aiPayload && typeof aiPayload === 'object' && !Array.isArray(aiPayload)) {
+          console.log(`[TestGen] AI inferred payload: ${JSON.stringify(aiPayload).slice(0, 150)}`);
+
+          // Store back on endpoint so caller can persist it
+          endpoint._ai_inferred_payload = aiPayload;
+
+          return buildTestCasesFromPayload(aiPayload, endpoint);
+        }
+      }
+    } catch (err) {
+      console.warn(`[TestGen] AI payload inference failed for ${endpoint.path}: ${err.message}`);
+    }
+
+    // AI failed — fall back to path-name inference
     const path = endpoint.path.toLowerCase();
     if (path.includes('login') || path.includes('signin')) {
-      fields = ['email', 'password'];
-      requiredFields = ['email', 'password'];
+      fields = ['email', 'password']; requiredFields = ['email', 'password'];
     } else if (path.includes('signup') || path.includes('register')) {
-      fields = ['email', 'password', 'name'];
-      requiredFields = ['email', 'password', 'name'];
+      fields = ['email', 'password', 'name']; requiredFields = ['email', 'password', 'name'];
     } else if (path.includes('user')) {
-      fields = ['email', 'name', 'role'];
-      requiredFields = ['email', 'name'];
+      fields = ['email', 'name', 'role']; requiredFields = ['email', 'name'];
     } else if (path.includes('project')) {
-      fields = ['name', 'description'];
-      requiredFields = ['name'];
+      fields = ['name', 'description']; requiredFields = ['name'];
     } else if (path.includes('task')) {
-      fields = ['title', 'description', 'status'];
-      requiredFields = ['title'];
+      fields = ['title', 'description', 'status']; requiredFields = ['title'];
     } else if (path.includes('auth')) {
-      fields = ['email', 'password'];
-      requiredFields = ['email', 'password'];
+      fields = ['email', 'password']; requiredFields = ['email', 'password'];
     } else {
-      fields = ['name', 'description'];
-      requiredFields = ['name'];
+      fields = ['name', 'description']; requiredFields = ['name'];
     }
-    console.log(`[TestGen] No schema — inferred fields from path: [${fields.join(', ')}]`);
+    console.log(`[TestGen] AI failed — inferred from path: [${fields.join(', ')}]`);
   }
 
   // Use schema properties for types if available, otherwise guess from field name
@@ -210,6 +279,33 @@ export async function generateTestCases(ai, endpoint) {
       expected_status: 400,
       ai_reasoning: 'Security: SQL injection payload should be sanitized and rejected'
     }
+  ];
+}
+
+/**
+ * Build 4 test cases from a known valid payload
+ */
+function buildTestCasesFromPayload(validPayload, endpoint) {
+  const method = endpoint.method;
+  const keys = Object.keys(validPayload);
+
+  const missingPayload = keys.length > 1
+    ? Object.fromEntries(keys.slice(1).map(k => [k, validPayload[k]]))
+    : {};
+
+  const emptyPayload = Object.fromEntries(
+    keys.map(k => [k, typeof validPayload[k] === 'object' ? {} : ''])
+  );
+
+  const injectionPayload = { ...validPayload };
+  const firstStrKey = keys.find(k => typeof validPayload[k] === 'string');
+  if (firstStrKey) injectionPayload[firstStrKey] = "'; DROP TABLE users; --";
+
+  return [
+    { name: 'Valid request', type: 'positive', input_payload: validPayload, input_params: null, expected_status: method === 'POST' ? 201 : 200, ai_reasoning: 'Valid payload — should succeed' },
+    { name: 'Missing required field', type: 'negative', input_payload: missingPayload, input_params: null, expected_status: 400, ai_reasoning: 'Omitting a required field should return 400' },
+    { name: 'Empty values', type: 'boundary', input_payload: emptyPayload, input_params: null, expected_status: 400, ai_reasoning: 'Empty values should be rejected' },
+    { name: 'SQL injection attempt', type: 'security', input_payload: injectionPayload, input_params: null, expected_status: 400, ai_reasoning: 'SQL injection should be sanitized' },
   ];
 }
 

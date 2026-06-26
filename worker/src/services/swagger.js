@@ -89,8 +89,11 @@ export function extractEndpoints(spec) {
         const rb = resolveRef(spec, operation.requestBody);
         const content = rb.content || {};
         const jsonContent = content['application/json'] || Object.values(content)[0];
-        if (jsonContent?.schema) {
-          requestBody = resolveSchema(spec, jsonContent.schema);
+        if (jsonContent) {
+          const schema = jsonContent.schema ? resolveSchema(spec, jsonContent.schema) : null;
+          // Capture example — use as payload when schema has no resolvable properties
+          const example = jsonContent.example || jsonContent.examples?.default?.value || null;
+          requestBody = schema ? { ...schema, _example: example } : { _example: example };
         }
       } else if (!isV3 && operation.parameters) {
         // Swagger 2.0 body parameter

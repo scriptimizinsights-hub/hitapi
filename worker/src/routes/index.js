@@ -167,6 +167,18 @@ export async function generateTests(request, env, { params }) {
       const cases = await generateTestCases(env.AI, ep);
       if (!cases?.length) continue;
 
+      // If AI inferred a payload, cache it on the endpoint for next time
+      if (ep._ai_inferred_payload) {
+        const r2 = repos(env);
+        await r2.db?.run(
+          `UPDATE endpoints SET request_body = ? WHERE id = ?`,
+          [JSON.stringify({
+            ...(endpoint.request_body ? JSON.parse(endpoint.request_body) : {}),
+            _example: ep._ai_inferred_payload
+          }), endpoint.id]
+        ).catch(() => { }); // non-critical
+      }
+
       // Delete existing test cases for this endpoint before inserting new ones
       await r.testCases.deleteByEndpoint(endpoint.id);
 
@@ -800,9 +812,12 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
       method: ep.method,
       input_payload: payload,
       input_params: inputParams,
+      swagger_example: !payload && ep.request_body
+        ? (() => { try { const rb = JSON.parse(ep.request_body); return rb._example || null; } catch { return null; } })()
+        : null,
       expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
       extract_vars: [],
-      skip_if_failed: 1  // Skip auth-required steps if login failed
+      skip_if_failed: 1
     });
   }
 
@@ -819,14 +834,15 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
   for (const step of steps) {
     const sid = db.uuid();
     await db.run(
-      `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, input_payload, input_params, expected_status, extract_vars, skip_if_failed)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, input_payload, input_params, expected_status, extract_vars, skip_if_failed, swagger_example)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [sid, suiteId, step.step_order, step.name, step.endpoint_id || null, step.method,
         step.input_payload ? JSON.stringify(step.input_payload) : null,
         step.input_params ? JSON.stringify(step.input_params) : null,
         step.expected_status || null,
         step.extract_vars?.length ? JSON.stringify(step.extract_vars) : null,
-        step.skip_if_failed ? 1 : 0]
+        step.skip_if_failed ? 1 : 0,
+        step.swagger_example ? JSON.stringify(step.swagger_example) : null]
     );
   }
 

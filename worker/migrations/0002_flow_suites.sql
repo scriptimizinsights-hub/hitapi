@@ -60,3 +60,5 @@ CREATE TABLE IF NOT EXISTS flow_step_results (
   extracted_vars   TEXT,
   created_at       INTEGER NOT NULL DEFAULT (unixepoch())
 );
+
+ALTER TABLE flow_steps ADD COLUMN swagger_example TEXT;
