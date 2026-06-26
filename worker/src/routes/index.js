@@ -71,8 +71,11 @@ export async function importSwagger(request, env, { params }) {
   if (!source) return error('Provide swagger_url or content');
 
   const spec = await fetchAndParseSpec(source, env.CACHE);
+  console.log(`Importing ${Object.keys(spec.paths || {}).length} endpoints from spec for project ${params.id}`);
   const info = extractSpecInfo(spec);
+  console.log(`Spec info: title=${info.title}, version=${info.version}, description=${info.description?.slice(0, 100)}`);
   const extracted = extractEndpoints(spec);
+  console.log(`Extracted ${JSON.stringify(extracted)} endpoints from spec for project ${params.id}`);
 
   await epRepo.upsertMany(params.id, extracted);
   const stats = await epRepo.stats(params.id);
@@ -154,6 +157,7 @@ export async function generateTests(request, env, { params }) {
   const generated = [];
   const errors = [];
 
+  console.log(`Generating tests for ${endpointsList.length} endpoints`);
   for (const endpoint of endpointsList.slice(0, limit)) {
     try {
       const ep = {
