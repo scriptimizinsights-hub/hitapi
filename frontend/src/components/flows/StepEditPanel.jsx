@@ -89,9 +89,14 @@ function ContextBadge({ context }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function StepEditPanel({ step, result, context, projectId, suiteId, swaggerExample, onClose, onSaved, onRunResult }) {
-    // Initialise from last result's request (what was actually sent) or step definition
-    const [body, setBody] = useState(prettyJSON(result?.request_body || step?.input_payload));
-    const [params, setParams] = useState(prettyJSON(result?.request_params || step?.input_params));
+    // Initialise from last result's request (what was actually sent) — fallback to step definition
+    const [body, setBody] = useState(() => {
+        const fromResult = result?.request_body;
+        const fromStep = step?.input_payload;
+        const raw = fromResult || fromStep;
+        return prettyJSON(raw);
+    });
+    const [params, setParams] = useState(() => prettyJSON(result?.request_params || step?.input_params));
     const [expectedStatus, setExpectedStatus] = useState(String(step?.expected_status || result?.actual_status || 200));
     const [extractVars, setExtractVars] = useState(
         step?.extract_vars

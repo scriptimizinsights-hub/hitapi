@@ -93,7 +93,15 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                 <tr>
                     <td colSpan={9} style={{ padding: 0 }}>
                         <StepEditPanel
-                            step={stepDef}
+                            step={stepDef || {
+                                id: r.step_id,
+                                name: r.step_name,
+                                method: r.request_method,
+                                endpoint_path: r.request_url?.replace(/^https?:\/\/[^/]+/, ''),
+                                input_payload: r.request_body ? JSON.stringify(r.request_body) : null,
+                                extract_vars: null,
+                                expected_status: null,
+                            }}
                             result={result}
                             context={context}
                             projectId={projectId}
@@ -227,9 +235,10 @@ function SuiteCard({ suite, projectId, onDelete }) {
     const [activeTab, setActiveTab] = useState('steps');
     const { addToast } = useStore();
 
-    // Load last run from DB on mount
+    // Load last run AND steps from DB on mount
     useEffect(() => {
         loadLastRun();
+        loadSteps();
     }, [suite.id]);
 
     async function loadLastRun() {
