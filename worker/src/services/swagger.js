@@ -88,14 +88,13 @@ export function extractEndpoints(spec) {
       if (isV3 && operation.requestBody) {
         const rb = resolveRef(spec, operation.requestBody);
         const content = rb.content || {};
-        console.log("Content keys:", JSON.stringify(content));
         const jsonContent = content['application/json'] || Object.values(content)[0];
-        // if (jsonContent) {
-        //   const schema = jsonContent.schema ? resolveSchema(spec, jsonContent.schema) : null;
-        //   // Capture example — use as payload when schema has no resolvable properties
-        //   const example = jsonContent.example || jsonContent.examples?.default?.value || null;
-        //   requestBody = schema ? { ...schema, _example: example } : { _example: example };
-        // }
+        if (jsonContent) {
+          const schema = jsonContent.schema ? resolveSchema(spec, jsonContent.schema) : null;
+          // Capture example — use as payload when schema has no resolvable properties
+          const example = jsonContent.example || jsonContent.examples?.default?.value || null;
+          requestBody = schema ? { ...schema, _example: example } : { _example: example };
+        }
 
       } else if (!isV3 && operation.parameters) {
         // Swagger 2.0 body parameter
@@ -132,7 +131,7 @@ export function extractEndpoints(spec) {
         description: operation.description,
         tags: operation.tags || [],
         parameters: allParams,
-        request_body: operation.requestBody ? requestBody : null,
+        requestBody: operation.requestBody ? requestBody : null,
         responses,
         security: operation.security || spec.security || [],
         deprecated: operation.deprecated || false
