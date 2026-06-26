@@ -76,88 +76,106 @@ function StepResult({ result }) {
             {expanded && (
                 <tr>
                     <td colSpan={8} style={{ padding: 0, background: 'rgba(0,0,0,0.2)' }}>
-                        <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
 
-                            {/* Request */}
-                            <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Request sent</div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {result.request_url && (
-                                        <div style={{ padding: '6px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--blue)', wordBreak: 'break-all' }}>
-                                            {result.request_url}
-                                        </div>
-                                    )}
-                                    {reqHeaders && (
-                                        <div>
-                                            <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Headers</div>
-                                            <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                                                {JSON.stringify(reqHeaders, null, 2)}
-                                            </pre>
-                                        </div>
-                                    )}
-                                    {reqBody ? (
-                                        <div>
-                                            <div style={{ fontSize: 9, color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
-                                            <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 100, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                                                {JSON.stringify(reqBody, null, 2)}
-                                            </pre>
-                                        </div>
-                                    ) : (
-                                        <div style={{ padding: '6px 10px', background: 'rgba(255,92,92,0.08)', borderRadius: 5, border: '1px solid rgba(255,92,92,0.2)' }}>
-                                            <div style={{ fontSize: 9, color: 'var(--red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
-                                            <div style={{ fontSize: 10, color: 'var(--red)' }}>⚠ No body sent — AI could not infer schema. Edit step to add request body.</div>
-                                        </div>
-                                    )}
-                                </div>
+                            {/* ── Top: URL + status bar ── */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                                {result.request_method && (
+                                    <span className={`method-badge method-${result.request_method}`} style={{ fontSize: 9 }}>{result.request_method}</span>
+                                )}
+                                <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--blue)', flex: 1, wordBreak: 'break-all' }}>
+                                    {result.request_url || '—'}
+                                </code>
+                                {result.actual_status && (
+                                    <span style={{
+                                        fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, flexShrink: 0, padding: '2px 10px', borderRadius: 6,
+                                        background: result.actual_status < 300 ? 'var(--green-bg)' : 'var(--red-bg)',
+                                        color: result.actual_status < 300 ? 'var(--green)' : 'var(--red)',
+                                        border: `1px solid ${result.actual_status < 300 ? 'rgba(35,209,139,0.25)' : 'rgba(255,92,92,0.25)'}`
+                                    }}>{result.actual_status}</span>
+                                )}
+                                <span style={{ fontSize: 11, fontWeight: 600, flexShrink: 0, color: result.status === 'passed' ? 'var(--green)' : result.status === 'skipped' ? 'var(--amber)' : 'var(--red)' }}>
+                                    {result.status === 'passed' ? '✓ Passed' : result.status === 'skipped' ? '⊘ Skipped' : `✗ ${result.failure_reason || 'Failed'}`}
+                                </span>
+                                {result.response_time_ms && (
+                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>{result.response_time_ms}ms</span>
+                                )}
                             </div>
 
-                            {/* Response */}
-                            <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Response</div>
-                                {result.status === 'skipped' ? (
-                                    <div style={{ padding: '10px', background: 'var(--amber-bg)', borderRadius: 6, fontSize: 11, color: 'var(--amber)' }}>
-                                        ⚠ Skipped — previous step failed
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                        <div style={{ padding: '6px 10px', background: result.status === 'passed' ? 'rgba(35,209,139,0.08)' : 'rgba(255,92,92,0.08)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', border: `1px solid ${result.status === 'passed' ? 'rgba(35,209,139,0.2)' : 'rgba(255,92,92,0.2)'}` }}>
-                                            <span style={{ fontSize: 11, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
-                                                {result.status === 'passed' ? '✓ Passed' : `✗ ${result.failure_reason || 'Failed'}`}
-                                            </span>
-                                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: result.actual_status < 300 ? 'var(--green)' : 'var(--red)' }}>
-                                                {result.actual_status}
-                                            </span>
-                                        </div>
-                                        {body && (
-                                            <div>
-                                                <div style={{ fontSize: 9, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>Body</div>
-                                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', color: 'var(--text-secondary)', margin: 0, maxHeight: 120, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                                                    {JSON.stringify(body, null, 2)}
+                            {result.status === 'skipped' ? (
+                                <div style={{ padding: '8px 12px', background: 'var(--amber-bg)', borderRadius: 6, fontSize: 11, color: 'var(--amber)', border: '1px solid rgba(255,181,71,0.2)' }}>
+                                    ⊘ {result.failure_reason || 'Skipped'}
+                                </div>
+                            ) : (
+                                /* ── 2-column: request left (narrow) | response right (wide) ── */
+                                <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 12 }}>
+
+                                    {/* Request — compact */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Request</div>
+
+                                        {/* Headers — collapsed by default, show only auth */}
+                                        {reqHeaders && (
+                                            <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 5, padding: '5px 8px' }}>
+                                                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Headers</div>
+                                                {reqHeaders['Authorization'] ? (
+                                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', wordBreak: 'break-all', lineHeight: 1.4 }}>
+                                                        Authorization: Bearer {String(reqHeaders['Authorization']).replace('Bearer ', '').slice(0, 20)}…
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-tertiary)' }}>Content-Type: application/json</div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Body */}
+                                        {reqBody ? (
+                                            <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 5, padding: '5px 8px' }}>
+                                                <div style={{ fontSize: 9, color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Body</div>
+                                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                                    {JSON.stringify(reqBody, null, 2)}
                                                 </pre>
+                                            </div>
+                                        ) : (
+                                            <div style={{ padding: '5px 8px', background: 'rgba(255,92,92,0.06)', borderRadius: 5, border: '1px solid rgba(255,92,92,0.15)', fontSize: 9, color: 'var(--red)' }}>
+                                                ⚠ No body sent — schema not found in Swagger
+                                            </div>
+                                        )}
+
+                                        {/* Extracted vars */}
+                                        {extracted && Object.entries(extracted).filter(([k]) => !k.startsWith('__')).length > 0 && (
+                                            <div style={{ background: 'var(--accent-dim)', borderRadius: 5, padding: '5px 8px', borderLeft: '2px solid var(--accent)' }}>
+                                                <div style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Extracted</div>
+                                                {Object.entries(extracted).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
+                                                    <div key={k} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                        <span style={{ color: 'var(--accent)' }}>{'{{' + k + '}}'}</span> = {String(v).slice(0, 30)}{String(v).length > 30 ? '…' : ''}
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Extracted context */}
-                            <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Context extracted</div>
-                                {extracted && Object.entries(extracted).filter(([k]) => !k.startsWith('__')).length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        {Object.entries(extracted).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
-                                            <div key={k} style={{ padding: '6px 10px', background: 'var(--accent-dim)', borderRadius: 6, borderLeft: '2px solid var(--accent)' }}>
-                                                <div style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, marginBottom: 2 }}>{'{{' + k + '}}'} → injected into all next steps</div>
-                                                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
-                                                    {String(v).slice(0, 60)}{String(v).length > 60 ? '…' : ''}
-                                                </div>
+                                    {/* Response — wide and prominent */}
+                                    <div>
+                                        <div style={{ fontSize: 9, fontWeight: 600, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Response body</div>
+                                        {body ? (
+                                            <pre style={{
+                                                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, lineHeight: 1.7,
+                                                background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '10px 12px',
+                                                color: 'var(--text-secondary)', margin: 0,
+                                                maxHeight: 200, overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                                                border: `1px solid ${result.status === 'passed' ? 'rgba(35,209,139,0.15)' : 'rgba(255,92,92,0.15)'}`
+                                            }}>
+                                                {JSON.stringify(body, null, 2)}
+                                            </pre>
+                                        ) : (
+                                            <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic', border: '1px solid var(--border)' }}>
+                                                No response body
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
-                                ) : (
-                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No variables extracted</div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </td>
                 </tr>
