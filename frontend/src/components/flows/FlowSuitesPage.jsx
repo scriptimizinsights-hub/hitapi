@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { StepEditPanel } from './StepEditPanel.jsx';
 import { SuiteCreator } from './SuiteCreator.jsx';
+
 function safeJSON(str) {
     if (!str) return null;
     if (typeof str === 'object') return str;
@@ -112,7 +113,18 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                                 setEditing(false);
                                 // Reload steps so next run uses updated payloads
                                 await loadSteps();
-                                // Show success indicator
+                                // Update the displayed result to reflect saved body
+                                const savedStep = steps?.find(s => s.id === result.step_id);
+                                if (savedStep && lastRun) {
+                                    setLastRun(prev => ({
+                                        ...prev,
+                                        results: (prev?.results || []).map(r2 =>
+                                            r2.step_id === result.step_id
+                                                ? { ...r2, request_body: savedStep.input_payload ? JSON.parse(savedStep.input_payload) : r2.request_body }
+                                                : r2
+                                        )
+                                    }));
+                                }
                                 onStepSaved?.();
                             }}
                             onRunResult={res => {

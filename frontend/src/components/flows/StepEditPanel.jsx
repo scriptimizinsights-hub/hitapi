@@ -89,7 +89,10 @@ function ContextBadge({ context }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function StepEditPanel({ step, result, context, projectId, suiteId, swaggerExample, onClose, onSaved, onRunResult }) {
-    // Initialise from last result's request (what was actually sent) — fallback to step definition
+    // Track the last saved body so re-opening shows latest saved value
+    const [savedPayload, setSavedPayload] = useState(null);
+
+    // Initialise from last saved > last result's request > step definition
     const [body, setBody] = useState(() => {
         const fromResult = result?.request_body;
         const fromStep = step?.input_payload;
@@ -221,6 +224,7 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
             });
 
             console.log('[StepEditPanel] Save response:', response);
+            setSavedPayload(parseBody()); // Remember what we saved
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 2000);
             onSaved?.();
