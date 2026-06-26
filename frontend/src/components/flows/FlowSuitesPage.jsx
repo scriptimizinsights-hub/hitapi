@@ -8,7 +8,7 @@ import {
     GitBranch, Plus, Wand2, PenLine
 } from 'lucide-react';
 import { StepEditPanel } from './StepEditPanel.jsx';
-
+import { SuiteCreator } from './SuiteCreator.jsx';
 function safeJSON(str) {
     if (!str) return null;
     if (typeof str === 'object') return str;
