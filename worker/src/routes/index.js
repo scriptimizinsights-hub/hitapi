@@ -710,6 +710,7 @@ export async function updateFlowStep(request, env, { params }) {
   if (!fields.length) return error('Nothing to update');
 
   values.push(params.stepId);
+  console.log(`UPDATE flow_steps SET ${fields.join(', ')} WHERE id = ?`, values);
   await db.run(`UPDATE flow_steps SET ${fields.join(', ')} WHERE id = ?`, values);
 
   const updated = await db.first(`SELECT * FROM flow_steps WHERE id = ?`, [params.stepId]);
