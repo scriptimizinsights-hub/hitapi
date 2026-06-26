@@ -113,6 +113,7 @@ export class EndpointRepo {
     const n = v => (v === undefined ? null : v);
 
     const stmts = endpoints.map(ep => {
+      console.log("Request body for endpoint: " + JSON.stringify(ep.requestBody || null));
       return {
         sql: `INSERT INTO endpoints (
               id, project_id, path, method, summary, description,
