@@ -108,8 +108,24 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                             suiteId={suiteId}
                             swaggerExample={swaggerExample}
                             onClose={() => setEditing(false)}
-                            onSaved={() => { setEditing(false); onStepSaved?.(); }}
-                            onRunResult={res => console.log('[StepEditPanel] single run result:', res)}
+                            onSaved={async () => {
+                                setEditing(false);
+                                // Reload steps so next run uses updated payloads
+                                await loadSteps();
+                                // Show success indicator
+                                onStepSaved?.();
+                            }}
+                            onRunResult={res => {
+                                // Update the last run results inline so user sees new response
+                                if (res && lastRun) {
+                                    setLastRun(prev => ({
+                                        ...prev,
+                                        results: (prev?.results || []).map(r2 =>
+                                            r2.step_id === result.step_id ? { ...r2, ...res, step_id: r2.step_id, step_order: r2.step_order, step_name: r2.step_name } : r2
+                                        )
+                                    }));
+                                }
+                            }}
                         />
                     </td>
                 </tr>

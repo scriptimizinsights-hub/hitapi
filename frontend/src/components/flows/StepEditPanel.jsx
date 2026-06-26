@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import { api } from '../../store/index.js';
-import { Play, Save, X, Info } from 'lucide-react';
+import { Play, Save, X, Info, Check } from 'lucide-react';
 
 function safeJSON(val) {
     if (!val) return null;
@@ -108,6 +108,7 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
 
     const [running, setRunning] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     const [runResult, setRunResult] = useState(null);
     const [error, setError] = useState('');
 
@@ -212,13 +213,16 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                 }).filter(Boolean)
                 : [];
 
-            await api.flows.updateStep(projectId, suiteId, step.id, {
+            const response = await api.flows.updateStep(projectId, suiteId, step.id, {
                 input_payload: parseBody(),
                 input_params: parseParams(),
                 expected_status: parseInt(expectedStatus) || null,
                 extract_vars: extractVarsParsed,
             });
 
+            console.log('[StepEditPanel] Save response:', response);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 2000);
             onSaved?.();
         } catch (err) {
             setError(err.message);
@@ -369,12 +373,16 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                     <button onClick={handleSave} disabled={saving || !step?.id} style={{
                         display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 7,
                         cursor: saving ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 500,
-                        background: 'var(--green-bg)', color: 'var(--green)',
-                        border: '1px solid rgba(35,209,139,0.3)', opacity: saving ? 0.7 : 1
+                        background: saveSuccess ? 'var(--green-bg)' : 'var(--green-bg)',
+                        color: saveSuccess ? 'var(--green)' : 'var(--green)',
+                        border: `1px solid ${saveSuccess ? 'var(--green-border)' : 'rgba(35,209,139,0.3)'}`,
+                        opacity: saving ? 0.7 : 1
                     }}>
                         {saving
                             ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Saving…</>
-                            : <><Save size={12} /> Save to suite</>}
+                            : saveSuccess
+                                ? <><Check size={12} /> Saved!</>
+                                : <><Save size={12} /> Save to suite</>}
                     </button>
 
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
