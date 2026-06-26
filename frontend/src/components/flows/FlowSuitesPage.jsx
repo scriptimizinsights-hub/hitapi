@@ -165,13 +165,71 @@ function SuiteCard({ suite, projectId, onDelete }) {
     const [running, setRunning] = useState(false);
     const [lastRun, setLastRun] = useState(null);
     const [expanded, setExpanded] = useState(false);
+    const [steps, setSteps] = useState(null);
+    const [loadingSteps, setLoadingSteps] = useState(false);
+    const [activeTab, setActiveTab] = useState('steps'); // 'steps' | 'results'
     const { addToast } = useStore();
+
+    async function loadSteps() {
+        if (steps) return; // already loaded
+        setLoadingSteps(true);
+        try {
+            const data = await api.flows.get(projectId, suite.id);
+            setSteps(data.steps || []);
+        } catch (err) { addToast(err.message, 'error'); }
+        finally { setLoadingSteps(false); }
+    }
+
+    async function handleExpand() {
+        const next = !expanded;
+        setExpanded(next);
+        if (next && !steps) loadSteps();
+        // Load last run from DB if we don't have one yet
+        if (next && !lastRun) loadLastRun();
+    }
+
+    async function loadLastRun() {
+        try {
+            const runs = await api.flows.listRuns(projectId, suite.id);
+            if (runs?.length > 0) {
+                // Get full details of most recent run
+                const latest = runs[0];
+                const detail = await api.flows.getRun(projectId, suite.id, latest.id);
+                if (detail) {
+                    // Normalise to same shape as live run result
+                    setLastRun({
+                        summary: {
+                            total: detail.run.total_steps,
+                            passed: detail.run.passed,
+                            failed: detail.run.failed,
+                            pass_rate: detail.run.total_steps
+                                ? Math.round((detail.run.passed / detail.run.total_steps) * 100)
+                                : 0
+                        },
+                        context: detail.run.context ? JSON.parse(detail.run.context) : {},
+                        results: (detail.stepResults || []).map(r => ({
+                            ...r,
+                            // DB stores these as JSON strings — parse them
+                            actual_body: safeJSON(r.actual_body),
+                            actual_headers: safeJSON(r.actual_headers),
+                            request_body: safeJSON(r.request_body),
+                            request_headers: safeJSON(r.request_headers),
+                            extracted_vars: safeJSON(r.extracted_vars),
+                        }))
+                    });
+                    if (detail.run.total_steps > 0) setActiveTab('results');
+                }
+            }
+        } catch { /* no previous runs */ }
+    }
 
     async function handleRun(e) {
         e.stopPropagation();
         setRunning(true);
         setExpanded(true);
+        setActiveTab('results');
         setLastRun(null);
+        if (!steps) await loadSteps();
         try {
             const result = await api.flows.run(projectId, suite.id);
             setLastRun(result);
@@ -188,7 +246,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
 
     return (
         <div className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
-            <div onClick={() => setExpanded(e => !e)} style={{ padding: '16px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div onClick={handleExpand} style={{ padding: '16px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <GitBranch size={16} color="var(--accent)" />
                 </div>
@@ -202,7 +260,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             <div style={{ fontSize: 20, fontWeight: 700, color: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)' }}>
                                 {passRate}%
                             </div>
-                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{lastRun.summary.passed}/{lastRun.summary.total} passed</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{lastRun.summary.passed}/{lastRun.summary.total} passed · last run</div>
                         </div>
                     )}
                     <button onClick={handleRun} disabled={running} className="btn btn-primary"
