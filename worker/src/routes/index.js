@@ -804,7 +804,13 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
       const n = f.toLowerCase();
       if (n.includes('email')) payload[f] = 'test@example.com';
       else if (n.includes('password')) payload[f] = 'Test@123456';
+      else if (n === 'username' || n === 'user_name' || n.includes('username')) payload[f] = 'testuser';
+      else if (n.includes('firstname') || n === 'first_name') payload[f] = 'Test';
+      else if (n.includes('lastname') || n === 'last_name') payload[f] = 'User';
       else if (n.includes('name')) payload[f] = 'Test User';
+      else if (n.includes('phone')) payload[f] = '+919876543210';
+      else if (n.includes('org') || n.includes('organization') || n.includes('company')) payload[f] = 'Test Org';
+      else if (n.includes('referral') || n.includes('code')) payload[f] = '';
       else payload[f] = 'test_value';
     });
 

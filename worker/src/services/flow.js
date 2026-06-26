@@ -406,9 +406,13 @@ export async function runFlowSuite(suite, steps, project) {
         if (isLoginStep && result.status !== 'passed') {
             const loginUrl = result.request_url;
             const baseHdrs = buildHeaders(step, context, project);
+            // Sanitize username — "Test User" → "testuser", strip spaces/special chars
+            const rawUsername = signupCredentials.username || signupCredentials.email?.split('@')[0] || 'testuser';
+            const cleanUsername = rawUsername.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9._-]/g, '');
+
             const creds = {
                 email: signupCredentials.email || 'test@example.com',
-                username: signupCredentials.username || signupCredentials.email?.split('@')[0] || 'testuser',
+                username: cleanUsername || 'testuser',
                 phone: signupCredentials.phone || '+919876543210',
                 password: signupCredentials.password || 'Test@123456',
             };
