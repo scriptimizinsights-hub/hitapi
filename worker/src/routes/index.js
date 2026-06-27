@@ -723,6 +723,15 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
       );
     }
 
+    // Generate a report record for this flow run
+    const reportId = db.uuid();
+    const reportData = JSON.stringify({ run_id: runId, suite_id: suite.id, summary, results });
+    await db.run(
+      `INSERT OR IGNORE INTO reports (id, execution_id, project_id, format, r2_key, size_bytes)
+       VALUES (?, ?, ?, 'json', ?, ?)`,
+      [reportId, runId, suite.project_id, `flow-runs/${runId}.json`, reportData.length]
+    ).catch(() => { }); // non-critical
+
     return json(success({ run_id: runId, summary, results, context }));
   } catch (err) {
     await db.run(`UPDATE flow_runs SET status = 'failed', finished_at = unixepoch() WHERE id = ?`, [runId]);
@@ -767,11 +776,10 @@ async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
       const bugId = db.uuid();
       await db.run(
         `INSERT INTO bugs (id, project_id, execution_id, endpoint_id, severity, title, description, root_cause, suggested_fix, flow_run_id, flow_step_id, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
         [
           bugId,
           suite.project_id,
-          runId,
           endpoint?.id || step.endpoint_id || null,
           bug.severity || 'medium',
           (bug.title || `${step.method} ${step.endpoint_path} failed`).slice(0, 200),
