@@ -695,7 +695,7 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
 
 
 // ── Chunked runner — splits 80+ steps into batches of 40 ─────────────────────
-const CHUNK_SIZE = 40;
+const CHUNK_SIZE = 25; // safely under 50 subrequest limit
 
 export async function runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds = []) {
   const { runFlowSuite } = await import('../services/flow.js');
@@ -712,23 +712,47 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
     const activeCount = steps.filter(s => !s._force_skip).length;
 
     if (activeCount <= CHUNK_SIZE) {
-      // Single run
+      // Small suite — single run
       const run = await runFlowSuite(suite, steps, project, {});
       results = run.results;
       context = run.context;
       passed = run.summary.passed;
       failed = run.summary.failed;
     } else {
-      // Chunked run — pass context between chunks so token flows through
+      // Large suite — run in chunks, each chunk gets fresh subrequest budget
+      // by saving partial results to DB and continuing in next iteration
       console.log(`[Flow] Chunking ${steps.length} steps into batches of ${CHUNK_SIZE}`);
       for (let i = 0; i < steps.length; i += CHUNK_SIZE) {
         const chunk = steps.slice(i, i + CHUNK_SIZE);
-        console.log(`[Flow] Running chunk ${Math.floor(i / CHUNK_SIZE) + 1}: steps ${i + 1}-${Math.min(i + CHUNK_SIZE, steps.length)}`);
+        console.log(`[Flow] Running chunk ${Math.floor(i / CHUNK_SIZE) + 1}: steps ${i + 1}-${Math.min(i + CHUNK_SIZE, steps.length)}, context keys: ${Object.keys(context).join(',')}`);
         const run = await runFlowSuite(suite, chunk, project, context);
         results.push(...run.results);
-        Object.assign(context, run.context); // pass extracted vars to next chunk
+        // Pass extracted vars (token, IDs) to next chunk
+        Object.assign(context, run.context);
         passed += run.summary.passed;
         failed += run.summary.failed;
+
+        // Save partial results to DB so polling shows progress
+        for (const r of run.results) {
+          const rid = db.uuid();
+          await db.run(
+            `INSERT OR IGNORE INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
+              r.request_url ?? null, r.request_method ?? null,
+              r.request_headers ? JSON.stringify(r.request_headers) : null,
+              r.request_body ? JSON.stringify(r.request_body) : null,
+              r.actual_body ? JSON.stringify(r.actual_body) : null,
+              r.actual_headers ? JSON.stringify(r.actual_headers) : null,
+              r.response_time_ms ?? null, r.failure_reason ?? null,
+              r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+          );
+        }
+        // Update progress after each chunk
+        await db.run(
+          `UPDATE flow_runs SET passed = ?, failed = ?, context = ? WHERE id = ?`,
+          [passed, failed, JSON.stringify(context), runId]
+        );
       }
     }
 
@@ -739,21 +763,23 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
       pass_rate: steps.length ? Math.round((passed / steps.length) * 100) : 0
     };
 
-    // Save step results
-    for (const r of results) {
-      const rid = db.uuid();
-      await db.run(
-        `INSERT INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
-          r.request_url ?? null, r.request_method ?? null,
-          r.request_headers ? JSON.stringify(r.request_headers) : null,
-          r.request_body ? JSON.stringify(r.request_body) : null,
-          r.actual_body ? JSON.stringify(r.actual_body) : null,
-          r.actual_headers ? JSON.stringify(r.actual_headers) : null,
-          r.response_time_ms ?? null, r.failure_reason ?? null,
-          r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
-      );
+    // Save step results (only for non-chunked — chunked saves per chunk above)
+    if (activeCount <= CHUNK_SIZE) {
+      for (const r of results) {
+        const rid = db.uuid();
+        await db.run(
+          `INSERT INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
+            r.request_url ?? null, r.request_method ?? null,
+            r.request_headers ? JSON.stringify(r.request_headers) : null,
+            r.request_body ? JSON.stringify(r.request_body) : null,
+            r.actual_body ? JSON.stringify(r.actual_body) : null,
+            r.actual_headers ? JSON.stringify(r.actual_headers) : null,
+            r.response_time_ms ?? null, r.failure_reason ?? null,
+            r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+        );
+      }
     }
 
     await db.run(
@@ -781,6 +807,7 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
     throw err;
   }
 }
+
 
 
 /**
