@@ -566,6 +566,15 @@ export async function createFlowSuite(request, env, { params }) {
     return error(`Suite cannot have more than ${MAX_STEPS} steps. You have ${body.steps.length} — remove ${body.steps.length - MAX_STEPS} step(s) and try again.`, 400);
   }
 
+  // Deduplicate steps by endpoint_id + method (keep first occurrence)
+  const seen = new Set();
+  const dedupedSteps = (body.steps || []).filter(s => {
+    const key = `${s.endpoint_id}-${s.method}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((s, i) => ({ ...s, step_order: i + 1 })); // re-number after dedup
+
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const id = db.uuid();
   await db.run(
@@ -1066,6 +1075,15 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
   }
 
   // Step 3+: Secured endpoints — cap at 28 (leaving 2 slots for signup + login = 30 total)
+  // Sort secured endpoints: POST/GET/PUT/PATCH first, DELETE last
+  const METHOD_SORT = { POST: 0, GET: 1, PUT: 2, PATCH: 3, DELETE: 99 };
+  securedEndpoints.sort((a, b) => {
+    const aO = METHOD_SORT[a.method] ?? 5;
+    const bO = METHOD_SORT[b.method] ?? 5;
+    if (aO !== bO) return aO - bO;
+    return (a.path.split('/').length) - (b.path.split('/').length);
+  });
+
   for (const ep of securedEndpoints.slice(0, 28)) {
     const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);

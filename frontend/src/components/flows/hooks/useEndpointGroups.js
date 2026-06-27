@@ -62,7 +62,12 @@ export function pathToContextVar(basePath) {
  * CRUD method order for correct execution sequence
  * POST first (creates resource), DELETE last (cleans up)
  */
-const METHOD_ORDER = { POST: 0, GET: 1, PUT: 2, PATCH: 3, DELETE: 4 };
+const METHOD_ORDER = { POST: 0, GET: 1, PUT: 2, PATCH: 3, DELETE: 99 };
+
+// Count path segments to sort sub-resources before DELETE
+function pathDepth(path) {
+    return path.split('/').filter(Boolean).length;
+}
 
 // ── Common id paths to try in POST response ───────────────────────────────────
 export const COMMON_ID_PATHS = [
@@ -97,10 +102,15 @@ export function groupEndpointsByCrud(endpoints) {
     }
 
     // Sort endpoints within each group by CRUD order
+    // DELETE always last (99), sub-resources sorted by path depth
     for (const g of Object.values(groups)) {
-        g.endpoints.sort((a, b) =>
-            (METHOD_ORDER[a.method] ?? 99) - (METHOD_ORDER[b.method] ?? 99)
-        );
+        g.endpoints.sort((a, b) => {
+            const aOrder = METHOD_ORDER[a.method] ?? 5;
+            const bOrder = METHOD_ORDER[b.method] ?? 5;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            // Same method — sort shallower paths first
+            return pathDepth(a.path) - pathDepth(b.path);
+        });
 
         // Detect if group has a creator (POST without path params)
         g.hasCreate = g.endpoints.some(e =>
