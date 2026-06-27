@@ -21,7 +21,6 @@ import {
   listFlowSuites, createFlowSuite, getFlowSuite, updateFlowSuite, deleteFlowSuite,
   runFlowSuiteRoute, runFlowSuiteInline, listFlowRuns, getFlowRun,
   autoGenerateFlowSuite, updateFlowStep,
-  handleQueue,
 } from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
