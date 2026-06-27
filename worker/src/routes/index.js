@@ -716,11 +716,81 @@ export async function runFlowSuiteInline(db, suite, allSteps, project, runId, sk
       [summary.failed === 0 ? 'done' : 'failed', summary.passed, summary.failed, JSON.stringify(context), runId]
     );
 
+    // Analyze failed steps one by one — don't block on AI, run after response
+    if (summary.failed > 0 && env?.AI) {
+      analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
+        console.error('[BugAnalysis] Flow bug analysis failed:', err.message)
+      );
+    }
+
     return json(success({ run_id: runId, summary, results, context }));
   } catch (err) {
     await db.run(`UPDATE flow_runs SET status = 'failed', finished_at = unixepoch() WHERE id = ?`, [runId]);
     throw err;
   }
+}
+
+
+/**
+ * analyzeFlowRunBugs
+ * Processes failed steps one by one after suite run.
+ * Calls AI sequentially — one step at a time.
+ */
+async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
+  const { analyzeFlowStepBug } = await import('../services/ai.js');
+
+  const failedResults = results.filter(r => r.status === 'failed' || r.status === 'error');
+  console.log(`[BugAnalysis] Analyzing ${failedResults.length} failed steps for run ${runId}`);
+
+  await db.run(`DELETE FROM bugs WHERE flow_run_id = ?`, [runId]).catch(() => { });
+
+  let analyzed = 0;
+  for (const result of failedResults) {
+    try {
+      const step = allSteps.find(s => s.id === result.step_id) || {};
+      const endpoint = step.endpoint_id
+        ? await db.first(`SELECT * FROM endpoints WHERE id = ?`, [step.endpoint_id]).catch(() => null)
+        : null;
+
+      const stepIndex = results.findIndex(r => r.step_id === result.step_id);
+      const prevResult = stepIndex > 0 ? results[stepIndex - 1] : null;
+      const suiteContext = {
+        token: null,
+        previousPassed: prevResult?.status === 'passed',
+      };
+
+      console.log(`[BugAnalysis] Step ${result.step_order}: ${step.method} ${step.endpoint_path}`);
+
+      const bug = await analyzeFlowStepBug(env.AI, { step, result, endpoint, suiteContext });
+      if (!bug) continue;
+
+      const bugId = db.uuid();
+      await db.run(
+        `INSERT INTO bugs (id, project_id, execution_id, endpoint_id, severity, title, description, root_cause, suggested_fix, flow_run_id, flow_step_id, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+        [
+          bugId,
+          suite.project_id,
+          runId,
+          endpoint?.id || step.endpoint_id || null,
+          bug.severity || 'medium',
+          (bug.title || `${step.method} ${step.endpoint_path} failed`).slice(0, 200),
+          bug.description || '',
+          bug.root_cause || '',
+          bug.suggested_fix || '',
+          runId,
+          result.step_id || null,
+        ]
+      );
+
+      analyzed++;
+      console.log(`[BugAnalysis] Saved bug ${bugId} — ${bug.severity}: ${bug.title}`);
+      await new Promise(r => setTimeout(r, 500));
+    } catch (err) {
+      console.error(`[BugAnalysis] Step ${result.step_order} failed:`, err.message);
+    }
+  }
+  console.log(`[BugAnalysis] Done — ${analyzed}/${failedResults.length} bugs saved`);
 }
 
 export async function listFlowRuns(request, env, { params }) {

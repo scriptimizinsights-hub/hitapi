@@ -61,4 +61,14 @@ CREATE TABLE IF NOT EXISTS flow_step_results (
   created_at       INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
+-- Add swagger_example column to flow_steps
 ALTER TABLE flow_steps ADD COLUMN swagger_example TEXT;
+
+-- Add flow run linkage to bugs table
+ALTER TABLE bugs ADD COLUMN flow_run_id TEXT REFERENCES flow_runs(id) ON DELETE CASCADE;
+ALTER TABLE bugs ADD COLUMN flow_step_id TEXT;
+-- Make execution_id nullable for flow bugs
+-- SQLite doesn't support ALTER COLUMN, so we handle this in the INSERT
+
+-- Add bug_count to flow_runs
+ALTER TABLE flow_runs ADD COLUMN bug_count INTEGER DEFAULT 0;

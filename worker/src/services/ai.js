@@ -363,6 +363,84 @@ function fallbackTestCases(endpoint) {
   return cases;
 }
 
+/**
+ * analyzeFlowStepBug
+ * Single Responsibility: analyze ONE failed flow step at a time.
+ * Reuses existing analyzeBug prompt structure + adds flow context.
+ * Called sequentially per failed step — not all at once.
+ */
+export async function analyzeFlowStepBug(ai, { step, result, endpoint, suiteContext }) {
+  if (!ai || result.status === 'passed') return null;
+
+  try {
+    // Build minimal focused context for this ONE step
+    const stepContext = {
+      method: step.method || result.request_method,
+      path: endpoint?.path || step.endpoint_path || result.request_url,
+      expected_status: step.expected_status,
+      actual_status: result.actual_status,
+      request_body: result.request_body
+        ? JSON.stringify(result.request_body).slice(0, 200)
+        : null,
+      response_body: result.actual_body
+        ? JSON.stringify(result.actual_body).slice(0, 200)
+        : null,
+      failure_reason: result.failure_reason,
+      // Flow-specific context
+      had_token: !!suiteContext?.token,
+      previous_passed: suiteContext?.previousPassed ?? true,
+      step_order: step.step_order,
+    };
+
+    const prompt = `Analyze this ONE failed API test step and output ONLY a JSON object:
+
+Endpoint: ${stepContext.method} ${stepContext.path}
+Expected: ${stepContext.expected_status}, Got: ${stepContext.actual_status}
+Request body: ${stepContext.request_body || 'none'}
+Response: ${stepContext.response_body || 'none'}
+Had auth token: ${stepContext.had_token}
+Failure reason: ${stepContext.failure_reason || 'status mismatch'}
+
+Output this exact JSON (no markdown, no extra text):
+{"severity":"high|medium|low","title":"short title under 60 chars","description":"what went wrong in 1-2 sentences","root_cause":"why this specific request failed","suggested_fix":"concrete action to fix this"}`;
+
+    const response = await runAI(ai, prompt, 300, 12000);
+    const text = extractText(response);
+    if (!text) return ruleBugFallback(stepContext);
+    const parsed = parseJSON(text);
+    return parsed || ruleBugFallback(stepContext);
+  } catch (err) {
+    console.error(`[BugAnalysis] Failed for step ${step.step_order}:`, err.message);
+    return ruleBugFallback({
+      method: step.method,
+      path: endpoint?.path || step.endpoint_path,
+      expected_status: step.expected_status,
+      actual_status: result.actual_status,
+    });
+  }
+}
+
+function ruleBugFallback({ method, path, expected_status, actual_status }) {
+  const status = actual_status;
+  return {
+    severity: status >= 500 ? 'high' : status === 401 || status === 403 ? 'high' : 'medium',
+    title: `${method} ${path} — expected ${expected_status}, got ${status}`,
+    description: `Request returned ${status} instead of ${expected_status}.`,
+    root_cause: status === 401 ? 'Missing or invalid auth token'
+      : status === 403 ? 'Insufficient permissions'
+        : status === 404 ? 'Resource not found — id may be wrong'
+          : status === 400 ? 'Invalid request body or missing required fields'
+            : status >= 500 ? 'Server error — check API logs'
+              : 'Unexpected response status',
+    suggested_fix: status === 401 ? 'Ensure login step succeeds and token is extracted correctly'
+      : status === 403 ? 'Check user role/permissions for this endpoint'
+        : status === 404 ? 'Verify the resource ID is extracted correctly from previous steps'
+          : status === 400 ? 'Edit the request body to include all required fields'
+            : status >= 500 ? 'Check server logs for stack trace'
+              : 'Review request and expected status',
+  };
+}
+
 export async function analyzeBug(ai, { endpoint, testCase, result }) {
   if (!ai || result.status === 'passed') return null;
   try {

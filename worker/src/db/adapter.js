@@ -110,55 +110,23 @@ export class EndpointRepo {
   }
 
   async upsertMany(projectId, endpoints) {
-    const n = v => (v === undefined ? null : v);
-
-    const stmts = endpoints.map(ep => {
-
-      return {
-        sql: `INSERT INTO endpoints (
-              id, project_id, path, method, summary, description,
-              parameters, request_body, responses, tags, security
-            )
+    const n = v => (v === undefined ? null : v); // D1 rejects undefined, needs null
+    const stmts = endpoints.map(ep => ({
+      sql: `INSERT INTO endpoints (id, project_id, path, method, summary, description, parameters, request_body, responses, tags, security)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO NOTHING`,
-        params: [
-          this.db.uuid(),
-          projectId,
-          ep.path,
-          ep.method.toUpperCase(),
-          n(ep.summary),
-          n(ep.description),
-          JSON.stringify(ep.parameters || []),
-          JSON.stringify(ep.requestBody || null),
-          JSON.stringify(ep.responses || {}),
-          JSON.stringify(ep.tags || []),
-          JSON.stringify(ep.security || [])
-        ]
-      };
-    });
-
+      params: [
+        this.db.uuid(), projectId, ep.path, ep.method.toUpperCase(),
+        n(ep.summary), n(ep.description),
+        JSON.stringify(ep.parameters || []),
+        JSON.stringify(ep.requestBody || null),
+        JSON.stringify(ep.responses || {}),
+        JSON.stringify(ep.tags || []),
+        JSON.stringify(ep.security || [])
+      ]
+    }));
     return this.db.batch(stmts);
   }
-
-  // async upsertMany(projectId, endpoints) {
-  //   const n = v => (v === undefined ? null : v); // D1 rejects undefined, needs null
-  //   const stmts = endpoints.map(ep => (
-  //     {
-  //     sql: `INSERT INTO endpoints (id, project_id, path, method, summary, description, parameters, request_body, responses, tags, security)
-  //           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  //           ON CONFLICT(id) DO NOTHING`,
-  //     params: [
-  //       this.db.uuid(), projectId, ep.path, ep.method.toUpperCase(),
-  //       n(ep.summary), n(ep.description),
-  //       JSON.stringify(ep.parameters || []),
-  //       JSON.stringify(ep.requestBody || null),
-  //       JSON.stringify(ep.responses || {}),
-  //       JSON.stringify(ep.tags || []),
-  //       JSON.stringify(ep.security || [])
-  //     ]
-  //   }));
-  //   return this.db.batch(stmts);
-  // }
 
   async stats(projectId) {
     return this.db.first(
@@ -332,8 +300,10 @@ export class BugRepo {
 
   async listByProject(projectId) {
     return this.db.all(
-      `SELECT b.*, e.path, e.method FROM bugs b
-       JOIN endpoints e ON b.endpoint_id = e.id
+      `SELECT b.*, e.path, e.method,
+              CASE WHEN b.flow_run_id IS NOT NULL THEN 'flow' ELSE 'test' END as source
+       FROM bugs b
+       LEFT JOIN endpoints e ON b.endpoint_id = e.id
        WHERE b.project_id = ? AND b.status = 'open'
        ORDER BY CASE b.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END`,
       [projectId]
