@@ -17,7 +17,7 @@ id = "8a637407d80a470cb24c2201ab3a6047"
 # ─── Queue (async test execution) ────────────────────────────────────────────
 [[queues.producers]]
 queue = "hitapi-test-queue"
-binding = "hitapi-test-queue"
+binding = "QUEUE"
 
 [[queues.consumers]]
 queue = "hitapi-test-queue"
