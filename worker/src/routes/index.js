@@ -638,7 +638,7 @@ export async function deleteFlowSuite(request, env, { params }) {
   return json(success({ deleted: true }));
 }
 
-export async function runFlowSuiteRoute(request, env, { params }) {
+export async function runFlowSuiteRoute(request, env, { params, ctx }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
 
   const body = await parseBody(request).catch(() => ({}));
@@ -648,7 +648,7 @@ export async function runFlowSuiteRoute(request, env, { params }) {
   if (!suite) return error('Suite not found', 404);
 
   const allSteps = await db.all(
-    `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method
+    `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.request_body as endpoint_request_body
      FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
      WHERE fs.suite_id = ? ORDER BY fs.step_order`,
     [params.flowId]
@@ -665,7 +665,7 @@ export async function runFlowSuiteRoute(request, env, { params }) {
     [runId, params.flowId, params.id, allSteps.length]
   );
 
-  // Push to queue — queue consumer runs steps without subrequest limits
+  // Option 1: Use Cloudflare Queue if available
   if (env.TEST_QUEUE) {
     await env.TEST_QUEUE.send({
       type: 'flow_suite_run',
@@ -674,10 +674,22 @@ export async function runFlowSuiteRoute(request, env, { params }) {
       projectId: params.id,
       skipStepIds,
     });
+    console.log(`[Flow] Queued run ${runId}`);
     return json(success({ run_id: runId, status: 'queued', total_steps: allSteps.length }));
   }
 
-  // Fallback: run inline if no queue (dev/local)
+  // Option 2: Use ctx.waitUntil — runs after response, no subrequest limit on response
+  if (ctx?.waitUntil) {
+    console.log(`[Flow] Using waitUntil for run ${runId}`);
+    ctx.waitUntil(
+      runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds)
+        .catch(err => console.error('[Flow] waitUntil run failed:', err.message))
+    );
+    return json(success({ run_id: runId, status: 'queued', total_steps: allSteps.length }));
+  }
+
+  // Option 3: Fallback inline (dev only)
+  console.log(`[Flow] Running inline (no queue, no ctx) for run ${runId}`);
   return runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds);
 }
 
