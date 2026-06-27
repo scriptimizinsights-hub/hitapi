@@ -314,21 +314,21 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const TOKEN_OPTIONS = ['token', 'access_token', 'data.token', 'data.access_token', 'result.token', 'auth.token', 'jwt', 'custom'];
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Progress */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+            {/* Progress — compact */}
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
                     {Array.from({ length: TOTAL }, (_, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <div style={{
-                                width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 11, fontWeight: 700, flexShrink: 0,
+                                width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 10, fontWeight: 700, flexShrink: 0,
                                 background: i + 1 < step ? 'var(--green)' : i + 1 === step ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
                                 color: i + 1 <= step ? '#fff' : 'var(--text-tertiary)',
                             }}>
-                                {i + 1 < step ? <Check size={12} /> : i + 1}
+                                {i + 1 < step ? <Check size={11} /> : i + 1}
                             </div>
-                            {i < TOTAL - 1 && <div style={{ width: 20, height: 1, background: i + 1 < step ? 'var(--green)' : 'var(--border)' }} />}
+                            {i < TOTAL - 1 && <div style={{ width: 14, height: 1, background: i + 1 < step ? 'var(--green)' : 'var(--border)' }} />}
                         </div>
                     ))}
                 </div>
@@ -337,8 +337,8 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 </div>
             </div>
 
-            {/* Step content */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
+            {/* Scrollable step content */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px', minHeight: 0 }}>
 
                 {step === 1 && (
                     <div>
@@ -381,7 +381,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             Where is the token in the login response? HitAPI will try common paths automatically, but you can specify a custom one.
                         </div>
                         <Label>Token path in response</Label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflow: 'auto' }}>
                             {TOKEN_OPTIONS.map(opt => (
                                 <label key={opt} onClick={() => setTokenPath(opt)} style={{
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
@@ -524,8 +524,8 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 )}
             </div>
 
-            {/* Footer navigation */}
-            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
+            {/* Footer navigation — always visible */}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', flexShrink: 0, background: 'var(--bg-card)' }}>
                 <button onClick={() => step > 1 ? setStep(s => s - 1) : onClose()}
                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>
                     <ChevronLeft size={14} /> {step > 1 ? 'Back' : 'Cancel'}
