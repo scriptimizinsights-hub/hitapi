@@ -164,7 +164,9 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const { annotated, toggleAuth, authCount, publicCount } = useAuthDetector(endpoints);
 
     // NEW: CRUD groups hook — uses annotated endpoints so auth overrides flow through
-    const { groups, getGroupConfig, toggleGroup, setIdPath, buildCrudSteps } = useEndpointGroups(annotated);
+    const { groups, getGroupConfig, toggleGroup, setIdPath, buildCrudSteps,
+        excludeEndpoint, moveEndpoint, resetEndpoint,
+        endpointOverrides, excludedEndpoints } = useEndpointGroups(annotated);
 
     // Auto-detect on mount
     useEffect(() => {

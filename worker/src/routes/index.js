@@ -441,13 +441,46 @@ export async function downloadReport(request, env, { params }) {
 // ─── Queue consumer ─────────────────────────────────────────────────────────
 
 export async function handleQueue(batch, env) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+
   for (const message of batch.messages) {
-    const { executionId, projectId } = message.body;
+    const msg = message.body;
     try {
-      await runExecutionInline(executionId, projectId, env, null);
+      // Flow suite run — main use case
+      if (msg.type === 'flow_suite_run') {
+        const { runId, suiteId, projectId, skipStepIds = [] } = msg;
+
+        const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
+        if (!suite) { message.ack(); continue; }
+
+        const allSteps = await db.all(
+          `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method
+           FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+           WHERE fs.suite_id = ? ORDER BY fs.step_order`,
+          [suiteId]
+        );
+
+        const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
+        if (!project) { message.ack(); continue; }
+
+        const { runFlowSuiteInline } = await import('../routes/index.js');
+        await runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds);
+        message.ack();
+        continue;
+      }
+
+      // Legacy: test execution jobs
+      if (msg.executionId) {
+        await runExecutionInline(msg.executionId, msg.projectId, env, null);
+        message.ack();
+        continue;
+      }
+
+      // Unknown message type — ack to avoid infinite retry
+      console.warn('[Queue] Unknown message type:', msg);
       message.ack();
     } catch (err) {
-      console.error('Queue execution failed:', err);
+      console.error('[Queue] Job failed:', err);
       message.retry();
     }
   }
@@ -607,7 +640,6 @@ export async function deleteFlowSuite(request, env, { params }) {
 
 export async function runFlowSuiteRoute(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
-  const { runFlowSuite } = await import('../services/flow.js');
 
   const body = await parseBody(request).catch(() => ({}));
   const skipStepIds = body?.skip_step_ids || [];
@@ -623,51 +655,72 @@ export async function runFlowSuiteRoute(request, env, { params }) {
   );
   if (!allSteps.length) return error('Suite has no steps');
 
-  // Mark steps as skipped if in skipStepIds
+  const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
+  if (!project) return error('Project not found', 404);
+
+  // Create run record with queued status
+  const runId = db.uuid();
+  await db.run(
+    `INSERT INTO flow_runs (id, suite_id, project_id, status, total_steps) VALUES (?, ?, ?, 'queued', ?)`,
+    [runId, params.flowId, params.id, allSteps.length]
+  );
+
+  // Push to queue — queue consumer runs steps without subrequest limits
+  if (env.TEST_QUEUE) {
+    await env.TEST_QUEUE.send({
+      type: 'flow_suite_run',
+      runId,
+      suiteId: params.flowId,
+      projectId: params.id,
+      skipStepIds,
+    });
+    return json(success({ run_id: runId, status: 'queued', total_steps: allSteps.length }));
+  }
+
+  // Fallback: run inline if no queue (dev/local)
+  return runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds);
+}
+
+// Extracted inline runner — used by queue consumer AND fallback
+export async function runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds = []) {
+  const { runFlowSuite } = await import('../services/flow.js');
+
   const steps = allSteps.map(s => ({
     ...s,
     _force_skip: skipStepIds.includes(s.id)
   }));
 
-  const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
-  if (!project) return error('Project not found', 404);
+  await db.run(`UPDATE flow_runs SET status = 'running' WHERE id = ?`, [runId]);
 
-  // Create run record — count only non-skipped steps
-  const activeSteps = steps.filter(s => !s._force_skip);
-  const runId = db.uuid();
-  await db.run(
-    `INSERT INTO flow_runs (id, suite_id, project_id, status, total_steps) VALUES (?, ?, ?, 'running', ?)`,
-    [runId, params.flowId, params.id, steps.length]
-  );
+  try {
+    const { results, context, summary } = await runFlowSuite(suite, steps, project);
 
-  // Execute the suite
-  const { results, context, summary } = await runFlowSuite(suite, steps, project);
+    for (const r of results) {
+      const rid = db.uuid();
+      await db.run(
+        `INSERT INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
+          r.request_url ?? null, r.request_method ?? null,
+          r.request_headers ? JSON.stringify(r.request_headers) : null,
+          r.request_body ? JSON.stringify(r.request_body) : null,
+          r.actual_body ? JSON.stringify(r.actual_body) : null,
+          r.actual_headers ? JSON.stringify(r.actual_headers) : null,
+          r.response_time_ms ?? null, r.failure_reason ?? null,
+          r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+      );
+    }
 
-  // Save step results
-  for (const r of results) {
-    const rid = db.uuid();
     await db.run(
-      `INSERT INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
-        r.request_url ?? null, r.request_method ?? null,
-        r.request_headers ? JSON.stringify(r.request_headers) : null,
-        r.request_body ? JSON.stringify(r.request_body) : null,
-        r.actual_body ? JSON.stringify(r.actual_body) : null,
-        r.actual_headers ? JSON.stringify(r.actual_headers) : null,
-        r.response_time_ms ?? null, r.failure_reason ?? null,
-        r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+      `UPDATE flow_runs SET status = ?, passed = ?, failed = ?, context = ?, finished_at = unixepoch() WHERE id = ?`,
+      [summary.failed === 0 ? 'done' : 'failed', summary.passed, summary.failed, JSON.stringify(context), runId]
     );
+
+    return json(success({ run_id: runId, summary, results, context }));
+  } catch (err) {
+    await db.run(`UPDATE flow_runs SET status = 'failed', finished_at = unixepoch() WHERE id = ?`, [runId]);
+    throw err;
   }
-
-  // Update run record
-  await db.run(
-    `UPDATE flow_runs SET status = ?, passed = ?, failed = ?, context = ?, finished_at = unixepoch() WHERE id = ?`,
-    [summary.failed === 0 ? 'done' : 'failed', summary.passed, summary.failed,
-    JSON.stringify(context), runId]
-  );
-
-  return json(success({ run_id: runId, summary, results, context }));
 }
 
 export async function listFlowRuns(request, env, { params }) {
@@ -710,7 +763,6 @@ export async function updateFlowStep(request, env, { params }) {
   if (!fields.length) return error('Nothing to update');
 
   values.push(params.stepId);
-  console.log(`UPDATE flow_steps SET ${fields.join(', ')} WHERE id = ?`, values);
   await db.run(`UPDATE flow_steps SET ${fields.join(', ')} WHERE id = ?`, values);
 
   const updated = await db.first(`SELECT * FROM flow_steps WHERE id = ?`, [params.stepId]);

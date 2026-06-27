@@ -371,18 +371,80 @@ function SuiteCard({ suite, projectId, onDelete }) {
         setLastRun(null);
         if (!steps) await loadSteps();
         try {
-            const result = await api.flows.run(projectId, suite.id, {
+            const response = await api.flows.run(projectId, suite.id, {
                 skip_step_ids: [...skipStepIds]
             });
-            setLastRun(result);
-            await loadLastRun();
-            const { passed, failed, total } = result.summary;
+
+            // Queue-based: poll until done
+            if (response.status === 'queued' && response.run_id) {
+                addToast('Suite queued — running steps…', 'info');
+                await pollForResults(response.run_id);
+                return;
+            }
+
+            // Fallback: inline result (dev mode)
+            setLastRun(response);
+            const { passed, failed, total } = response.summary;
             addToast(`Suite: ${passed}/${total} passed`, failed > 0 ? 'error' : 'success');
         } catch (err) {
             addToast(err.message, 'error');
         } finally {
             setRunning(false);
         }
+    }
+
+    async function pollForResults(runId) {
+        const MAX_POLLS = 120; // 4 minutes max
+        const INTERVAL = 2000; // poll every 2s
+
+        for (let i = 0; i < MAX_POLLS; i++) {
+            await new Promise(r => setTimeout(r, INTERVAL));
+            try {
+                const detail = await api.flows.getRun(projectId, suite.id, runId);
+                if (!detail) continue;
+
+                const run = detail.run || detail;
+                const status = run.status;
+
+                // Show partial results as they come in
+                if (detail.stepResults?.length) {
+                    setLastRun({
+                        summary: {
+                            total: run.total_steps,
+                            passed: run.passed || 0,
+                            failed: run.failed || 0,
+                            pass_rate: run.total_steps
+                                ? Math.round(((run.passed || 0) / run.total_steps) * 100)
+                                : 0
+                        },
+                        context: safeJSON(run.context) || {},
+                        results: (detail.stepResults || []).map(r => ({
+                            ...r,
+                            actual_body: safeJSON(r.actual_body),
+                            actual_headers: safeJSON(r.actual_headers),
+                            request_body: safeJSON(r.request_body),
+                            request_headers: safeJSON(r.request_headers),
+                            extracted_vars: safeJSON(r.extracted_vars),
+                        }))
+                    });
+                }
+
+                if (status === 'done' || status === 'failed') {
+                    const passed = run.passed || 0;
+                    const total = run.total_steps || 0;
+                    addToast(
+                        `Suite: ${passed}/${total} passed`,
+                        status === 'done' ? 'success' : 'error'
+                    );
+                    setRunning(false);
+                    return;
+                }
+            } catch { /* keep polling */ }
+        }
+
+        // Timeout
+        addToast('Suite run timed out — check results', 'error');
+        setRunning(false);
     }
 
     const passRate = lastRun?.summary?.pass_rate ?? 0;
@@ -408,7 +470,9 @@ function SuiteCard({ suite, projectId, onDelete }) {
                     )}
                     <button onClick={handleRun} disabled={running} className="btn btn-primary"
                         style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-                        {running ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Running…</> : <><Play size={11} fill="currentColor" /> Run</>}
+                        {running
+                            ? <><div className="spinner" style={{ width: 12, height: 12 }} /> {lastRun ? 'Running…' : 'Queued…'}</>
+                            : <><Play size={11} fill="currentColor" /> Run</>}
                     </button>
                     {/* Skip steps button */}
                     {lastRun?.results?.length > 0 && (

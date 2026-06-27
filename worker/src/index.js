@@ -19,8 +19,9 @@ import {
   testLoginProxy,
   // Flow suites
   listFlowSuites, createFlowSuite, getFlowSuite, updateFlowSuite, deleteFlowSuite,
-  runFlowSuiteRoute, listFlowRuns, getFlowRun,
-  autoGenerateFlowSuite, updateFlowStep
+  runFlowSuiteRoute, runFlowSuiteInline, listFlowRuns, getFlowRun,
+  autoGenerateFlowSuite, updateFlowStep,
+  handleQueue,
 } from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
