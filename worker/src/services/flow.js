@@ -402,11 +402,11 @@ export async function runFlowSuite(suite, steps, project) {
             }
         }
 
-        // Smart login — if login step failed, try all credential combos
-        if (isLoginStep && result.status !== 'passed') {
+        // Smart login — ALWAYS try credential combos for login step
+        // Don't rely on input_payload which may have example credentials
+        if (isLoginStep) {
             const loginUrl = result.request_url;
             const baseHdrs = buildHeaders(step, context, project);
-            // Sanitize username — "Test User" → "testuser", strip spaces/special chars
             const rawUsername = signupCredentials.username || signupCredentials.email?.split('@')[0] || 'testuser';
             const cleanUsername = rawUsername.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9._-]/g, '');
 
@@ -417,7 +417,7 @@ export async function runFlowSuite(suite, steps, project) {
                 password: signupCredentials.password || 'Test@123456',
             };
 
-            console.log(`[Flow] Login failed — trying smart combos with creds:`, { ...creds, password: '***' });
+            console.log(`[Flow] Smart login trying combos:`, { ...creds, password: '***' });
             const smartResult = await smartLogin(loginUrl, creds, baseHdrs, project);
 
             if (smartResult.success) {
@@ -435,6 +435,7 @@ export async function runFlowSuite(suite, steps, project) {
                     console.log(`[Flow] Smart login succeeded: ${JSON.stringify(smartResult.body)}`);
                 }
             } else {
+                result.status = 'failed';
                 result.failure_reason = `All login combos failed. Tried: ${smartResult.attempts.map(a => `${JSON.stringify(a.body)}→${a.status}`).join(', ')
                     }`;
                 console.log(`[Flow] All login combos failed`);

@@ -464,7 +464,7 @@ export async function handleQueue(batch, env) {
         if (!project) { message.ack(); continue; }
 
         // Run inline — no circular import, function is in same file
-        await runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds);
+        await runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds);
         message.ack();
         continue;
       }
@@ -678,11 +678,11 @@ export async function runFlowSuiteRoute(request, env, { params }) {
   }
 
   // Fallback: run inline if no queue (dev/local)
-  return runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds);
+  return runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds);
 }
 
 // Extracted inline runner — used by queue consumer AND fallback
-export async function runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds = []) {
+export async function runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds = []) {
   const { runFlowSuite } = await import('../services/flow.js');
 
   const steps = allSteps.map(s => ({

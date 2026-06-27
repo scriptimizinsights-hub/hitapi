@@ -313,4 +313,4 @@ export class BugRepo {
   async dismiss(id) {
     return this.db.run("UPDATE bugs SET status = 'dismissed' WHERE id = ?", [id]);
   }
-}
+} 
