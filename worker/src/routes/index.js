@@ -682,8 +682,8 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
   );
 
   // Option 1: Use Cloudflare Queue if available
-  if (env.TEST_QUEUE) {
-    await env.TEST_QUEUE.send({
+  if (env.QUEUE) {
+    await env.QUEUE.send({
       type: 'flow_suite_run',
       runId,
       suiteId: params.flowId,
