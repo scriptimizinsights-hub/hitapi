@@ -463,7 +463,7 @@ export async function handleQueue(batch, env) {
         const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
         if (!project) { message.ack(); continue; }
 
-        const { runFlowSuiteInline } = await import('../routes/index.js');
+        // Run inline — no circular import, function is in same file
         await runFlowSuiteInline(db, suite, allSteps, project, runId, skipStepIds);
         message.ack();
         continue;

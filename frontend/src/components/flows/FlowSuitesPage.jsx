@@ -10,6 +10,18 @@ import {
 import { StepEditPanel } from './StepEditPanel.jsx';
 import { SuiteCreator } from './SuiteCreator.jsx';
 
+// Derive base group from step name/path for visual grouping
+function getStepGroup(result) {
+    const path = result.request_url
+        ? result.request_url.replace(/^https?:\/\/[^/]+\/[^/]+/, '') // strip base
+        : (result.step_name || '');
+    // Strip path params and trailing segments to get base group
+    const base = path.replace(/\/\{[^}]+\}.*$/, '').replace(/\/[^/]+$/, s =>
+        s.includes('{') ? '' : s
+    );
+    return base || null;
+}
+
 function safeJSON(str) {
     if (!str) return null;
     if (typeof str === 'object') return str;
@@ -613,17 +625,39 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(lastRun.results || []).map((r, i) => (
-                                        <StepResult
-                                            key={i}
-                                            result={r}
-                                            projectId={projectId}
-                                            suiteId={suite.id}
-                                            stepDef={steps?.find(s => s.id === r.step_id)}
-                                            context={lastRun.context || {}}
-                                            onStepSaved={() => { loadSteps(); }}
-                                        />
-                                    ))}
+                                    {(() => {
+                                        const rows = [];
+                                        let lastGroup = null;
+                                        (lastRun.results || []).forEach((r, i) => {
+                                            const group = getStepGroup(r);
+                                            if (group && group !== lastGroup && i > 1) {
+                                                rows.push(
+                                                    <tr key={`grp-${i}`}>
+                                                        <td colSpan={9} style={{ padding: '5px 14px 2px', background: 'rgba(130,100,255,0.04)', borderTop: '1px solid rgba(130,100,255,0.15)' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <div style={{ width: 3, height: 11, borderRadius: 2, background: 'var(--accent)', flexShrink: 0 }} />
+                                                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{group}</span>
+                                                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 2 }}>· CRUD group</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }
+                                            lastGroup = group;
+                                            rows.push(
+                                                <StepResult
+                                                    key={i}
+                                                    result={r}
+                                                    projectId={projectId}
+                                                    suiteId={suite.id}
+                                                    stepDef={steps?.find(s => s.id === r.step_id)}
+                                                    context={lastRun.context || {}}
+                                                    onStepSaved={() => { loadSteps(); }}
+                                                />
+                                            );
+                                        });
+                                        return rows;
+                                    })()}
                                 </tbody>
                             </table>
                         </>
