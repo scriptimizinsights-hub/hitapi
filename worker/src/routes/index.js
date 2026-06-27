@@ -693,7 +693,10 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
   return runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds);
 }
 
-// Extracted inline runner — used by queue consumer AND fallback
+
+// ── Chunked runner — splits 80+ steps into batches of 40 ─────────────────────
+const CHUNK_SIZE = 40;
+
 export async function runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds = []) {
   const { runFlowSuite } = await import('../services/flow.js');
 
@@ -705,8 +708,38 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
   await db.run(`UPDATE flow_runs SET status = 'running' WHERE id = ?`, [runId]);
 
   try {
-    const { results, context, summary } = await runFlowSuite(suite, steps, project);
+    let results = [], context = {}, passed = 0, failed = 0;
+    const activeCount = steps.filter(s => !s._force_skip).length;
 
+    if (activeCount <= CHUNK_SIZE) {
+      // Single run
+      const run = await runFlowSuite(suite, steps, project, {});
+      results = run.results;
+      context = run.context;
+      passed = run.summary.passed;
+      failed = run.summary.failed;
+    } else {
+      // Chunked run — pass context between chunks so token flows through
+      console.log(`[Flow] Chunking ${steps.length} steps into batches of ${CHUNK_SIZE}`);
+      for (let i = 0; i < steps.length; i += CHUNK_SIZE) {
+        const chunk = steps.slice(i, i + CHUNK_SIZE);
+        console.log(`[Flow] Running chunk ${Math.floor(i / CHUNK_SIZE) + 1}: steps ${i + 1}-${Math.min(i + CHUNK_SIZE, steps.length)}`);
+        const run = await runFlowSuite(suite, chunk, project, context);
+        results.push(...run.results);
+        Object.assign(context, run.context); // pass extracted vars to next chunk
+        passed += run.summary.passed;
+        failed += run.summary.failed;
+      }
+    }
+
+    const summary = {
+      total: steps.length,
+      passed,
+      failed,
+      pass_rate: steps.length ? Math.round((passed / steps.length) * 100) : 0
+    };
+
+    // Save step results
     for (const r of results) {
       const rid = db.uuid();
       await db.run(
@@ -728,21 +761,19 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
       [summary.failed === 0 ? 'done' : 'failed', summary.passed, summary.failed, JSON.stringify(context), runId]
     );
 
-    // Analyze failed steps one by one — don't block on AI, run after response
     if (summary.failed > 0 && env?.AI) {
       analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
-        console.error('[BugAnalysis] Flow bug analysis failed:', err.message)
+        console.error('[BugAnalysis] Failed:', err.message)
       );
     }
 
-    // Generate a report record for this flow run
     const reportId = db.uuid();
-    const reportData = JSON.stringify({ run_id: runId, suite_id: suite.id, summary, results });
     await db.run(
       `INSERT OR IGNORE INTO reports (id, execution_id, project_id, format, r2_key, size_bytes)
        VALUES (?, ?, ?, 'json', ?, ?)`,
-      [reportId, runId, suite.project_id, `flow-runs/${runId}.json`, reportData.length]
-    ).catch(() => { }); // non-critical
+      [reportId, runId, suite.project_id, `flow-runs/${runId}.json`,
+        JSON.stringify({ run_id: runId, summary }).length]
+    ).catch(() => { });
 
     return json(success({ run_id: runId, summary, results, context }));
   } catch (err) {

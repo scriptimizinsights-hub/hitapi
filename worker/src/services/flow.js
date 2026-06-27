@@ -312,8 +312,8 @@ async function executeStep(step, context, project) {
 }
 
 // ── Main: run a full flow suite ───────────────────────────────────────────────
-export async function runFlowSuite(suite, steps, project) {
-    let context = {};
+export async function runFlowSuite(suite, steps, project, initialContext = {}) {
+    let context = { ...initialContext }; // start with context from previous chunk
     const results = [];
     let passed = 0, failed = 0;
     let signupCredentials = {};
