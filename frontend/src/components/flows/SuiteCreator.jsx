@@ -213,6 +213,16 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
     async function handleCreate() {
         if (!loginId && !signupId) { setError('Select at least a login or signup endpoint'); return; }
+
+        // Count total steps before creating
+        const crudStepCount = buildCrudSteps(1).length;
+        const totalSteps = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size + crudStepCount;
+        const MAX_STEPS = 30;
+        if (totalSteps > MAX_STEPS) {
+            setError(`Too many steps (${totalSteps}). Maximum is ${MAX_STEPS}. Remove ${totalSteps - MAX_STEPS} endpoint(s) from selection or CRUD groups.`);
+            return;
+        }
+
         setCreating(true);
         setError('');
         try {
@@ -464,8 +474,19 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                 );
                             })}
                         </div>
-                        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                            {selected.size} endpoint{selected.size !== 1 ? 's' : ''} selected
+                        <div style={{ marginTop: 10, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-tertiary)' }}>
+                                {selected.size} endpoint{selected.size !== 1 ? 's' : ''} selected
+                            </span>
+                            {(() => {
+                                const total = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size;
+                                const over = total > 30;
+                                return (
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: over ? 'var(--red)' : total > 25 ? 'var(--amber)' : 'var(--green)' }}>
+                                        {total}/30 steps {over ? '⚠ over limit' : ''}
+                                    </span>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
@@ -633,6 +654,7 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     async function handleCreate() {
         if (!suiteName.trim()) { setError('Suite name is required'); return; }
         if (steps.length === 0) { setError('Add at least one step'); return; }
+        if (steps.length > 30) { setError(`Maximum 30 steps allowed. Remove ${steps.length - 30} step(s).`); return; }
         setCreating(true);
         setError('');
         try {
@@ -701,13 +723,17 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                     ))
                 )}
 
-                <button onClick={addStep} style={{
-                    width: '100%', padding: '10px', borderRadius: 8, cursor: 'pointer', marginTop: 8,
-                    background: 'rgba(130,100,255,0.06)', color: 'var(--accent)',
-                    border: '1px dashed rgba(130,100,255,0.3)', fontSize: 13, fontWeight: 500,
+                <button onClick={addStep} disabled={steps.length >= 30} style={{
+                    width: '100%', padding: '10px', borderRadius: 8, cursor: steps.length >= 30 ? 'not-allowed' : 'pointer', marginTop: 8,
+                    background: steps.length >= 30 ? 'rgba(255,92,92,0.05)' : 'rgba(130,100,255,0.06)',
+                    color: steps.length >= 30 ? 'var(--red)' : 'var(--accent)',
+                    border: `1px dashed ${steps.length >= 30 ? 'rgba(255,92,92,0.3)' : 'rgba(130,100,255,0.3)'}`,
+                    fontSize: 13, fontWeight: 500,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                 }}>
-                    <Plus size={14} /> Add step
+                    {steps.length >= 30
+                        ? `⚠ Maximum 30 steps reached`
+                        : <><Plus size={14} /> Add step ({steps.length}/30)</>}
                 </button>
             </div>
 

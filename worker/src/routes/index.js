@@ -559,6 +559,13 @@ export async function listFlowSuites(request, env, { params }) {
 export async function createFlowSuite(request, env, { params }) {
   const body = await parseBody(request);
   if (!body?.name) return error('name is required');
+
+  // Enforce max 30 steps per suite
+  const MAX_STEPS = 30;
+  if (body.steps?.length > MAX_STEPS) {
+    return error(`Suite cannot have more than ${MAX_STEPS} steps. You have ${body.steps.length} — remove ${body.steps.length - MAX_STEPS} step(s) and try again.`, 400);
+  }
+
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const id = db.uuid();
   await db.run(
@@ -807,7 +814,6 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
     throw err;
   }
 }
-
 
 
 /**
@@ -1059,8 +1065,8 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     });
   }
 
-  // Step 3+: Secured endpoints (up to 10)
-  for (const ep of securedEndpoints.slice(0, 10)) {
+  // Step 3+: Secured endpoints — cap at 28 (leaving 2 slots for signup + login = 30 total)
+  for (const ep of securedEndpoints.slice(0, 28)) {
     const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
     let payload = null;
