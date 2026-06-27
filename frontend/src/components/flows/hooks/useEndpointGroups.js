@@ -240,7 +240,7 @@ export function useEndpointGroups(annotatedEndpoints) {
                     method: ep.method,
                     extract_vars: isCreator ? [{ var: `${group.varName}Id`, path: idPath }] : [],
                     input_params: needsId && pathParams.length
-                        ? Object.fromEntries(pathParams.map(p => [p, contextVar.slice(2, -2)]))
+                        ? Object.fromEntries(pathParams.map(p => [p, contextVar])) // keep {{varName}} intact
                         : null,
                     input_payload: null,
                     expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
