@@ -124,24 +124,82 @@ export function groupEndpointsByCrud(endpoints) {
 /**
  * useEndpointGroups
  * Detects CRUD groups, manages id extraction config per group.
+ * Supports: include/exclude groups, move endpoints between groups,
+ * exclude individual endpoints from groups.
  */
 export function useEndpointGroups(annotatedEndpoints) {
-    const groups = useMemo(
+    const baseGroups = useMemo(
         () => groupEndpointsByCrud(annotatedEndpoints),
         [annotatedEndpoints]
     );
 
-    // Per-group config: idPath (where to find id in POST response)
+    // Per-group config: idPath
     const [groupConfig, setGroupConfig] = useState({});
 
-    // Toggle whether a group is included in the suite
+    // Per-group inclusion
     const [includedGroups, setIncludedGroups] = useState(() => {
         const init = {};
-        groups.forEach(g => { init[g.basePath] = g.isCrud; });
+        baseGroups.forEach(g => { init[g.basePath] = g.isCrud; });
         return init;
     });
 
-    // Update id extraction path for a group
+    // Endpoint overrides: endpointId → basePath (which group it belongs to)
+    // null means excluded from all groups
+    const [endpointOverrides, setEndpointOverrides] = useState({});
+
+    // Compute final groups with overrides applied
+    const groups = useMemo(() => {
+        const result = baseGroups.map(g => ({
+            ...g,
+            endpoints: g.endpoints.filter(ep => {
+                if (ep.id in endpointOverrides) {
+                    return endpointOverrides[ep.id] === g.basePath;
+                }
+                return true; // default: keep in original group
+            })
+        }));
+
+        // Add endpoints moved to a different group
+        for (const [epId, targetPath] of Object.entries(endpointOverrides)) {
+            if (!targetPath) continue; // excluded
+            const targetGroup = result.find(g => g.basePath === targetPath);
+            if (!targetGroup) continue;
+            // Check if already in target (from original grouping)
+            if (targetGroup.endpoints.find(e => e.id === epId)) continue;
+            // Find the endpoint in original groups
+            const ep = annotatedEndpoints.find(e => e.id === epId);
+            if (ep) targetGroup.endpoints.push(ep);
+        }
+
+        return result.filter(g => g.endpoints.length > 0);
+    }, [baseGroups, endpointOverrides, annotatedEndpoints]);
+
+    // Exclude an endpoint from its group
+    const excludeEndpoint = useCallback((endpointId) => {
+        setEndpointOverrides(prev => ({ ...prev, [endpointId]: null }));
+    }, []);
+
+    // Move an endpoint to a different group
+    const moveEndpoint = useCallback((endpointId, targetBasePath) => {
+        setEndpointOverrides(prev => ({ ...prev, [endpointId]: targetBasePath }));
+    }, []);
+
+    // Reset an endpoint to its original group
+    const resetEndpoint = useCallback((endpointId) => {
+        setEndpointOverrides(prev => {
+            const next = { ...prev };
+            delete next[endpointId];
+            return next;
+        });
+    }, []);
+
+    // Get excluded endpoints (not in any group)
+    const excludedEndpoints = useMemo(() => {
+        return annotatedEndpoints.filter(ep =>
+            ep.id in endpointOverrides && endpointOverrides[ep.id] === null
+        );
+    }, [annotatedEndpoints, endpointOverrides]);
+
     const setIdPath = useCallback((basePath, idPath) => {
         setGroupConfig(prev => ({
             ...prev,
@@ -149,22 +207,16 @@ export function useEndpointGroups(annotatedEndpoints) {
         }));
     }, []);
 
-    // Toggle group inclusion
     const toggleGroup = useCallback((basePath) => {
-        setIncludedGroups(prev => ({
-            ...prev,
-            [basePath]: !prev[basePath]
-        }));
+        setIncludedGroups(prev => ({ ...prev, [basePath]: !prev[basePath] }));
     }, []);
 
-    // Get config for a group with defaults
     const getGroupConfig = useCallback((basePath) => ({
         idPath: 'id',
         ...groupConfig[basePath],
         included: includedGroups[basePath] ?? false,
     }), [groupConfig, includedGroups]);
 
-    // Build steps for all included CRUD groups
     const buildCrudSteps = useCallback((startOrder) => {
         const steps = [];
         let order = startOrder;
@@ -179,25 +231,18 @@ export function useEndpointGroups(annotatedEndpoints) {
             for (const ep of endpoints) {
                 const isCreator = ep.method === 'POST' && !ep.path.includes('{');
                 const needsId = ep.path.includes('{');
-
-                // Extract path param name from URL template
-                const pathParams = (ep.path.match(/\{(\w+)\}/g) || [])
-                    .map(p => p.slice(1, -1));
+                const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
 
                 steps.push({
                     step_order: order++,
                     name: `${ep.method} ${ep.path}`,
                     endpoint_id: ep.id,
                     method: ep.method,
-                    // Creator extracts the id; others use it
-                    extract_vars: isCreator
-                        ? [{ var: `${group.varName}Id`, path: idPath }]
-                        : [],
-                    // Id endpoints inject the extracted var
+                    extract_vars: isCreator ? [{ var: `${group.varName}Id`, path: idPath }] : [],
                     input_params: needsId && pathParams.length
                         ? Object.fromEntries(pathParams.map(p => [p, contextVar.slice(2, -2)]))
                         : null,
-                    input_payload: null, // filled by swagger example or AI
+                    input_payload: null,
                     expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
                     skip_if_failed: isCreator ? 0 : 1,
                     requiresAuth: ep.requiresAuth,
@@ -209,11 +254,17 @@ export function useEndpointGroups(annotatedEndpoints) {
 
     return {
         groups,
+        baseGroups,
         groupConfig,
         includedGroups,
+        excludedEndpoints,
+        endpointOverrides,
         setIdPath,
         toggleGroup,
         getGroupConfig,
         buildCrudSteps,
+        excludeEndpoint,
+        moveEndpoint,
+        resetEndpoint,
     };
 }

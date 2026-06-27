@@ -483,6 +483,11 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         getGroupConfig={getGroupConfig}
                         toggleGroup={toggleGroup}
                         setIdPath={setIdPath}
+                        excludeEndpoint={excludeEndpoint}
+                        moveEndpoint={moveEndpoint}
+                        resetEndpoint={resetEndpoint}
+                        endpointOverrides={endpointOverrides}
+                        excludedEndpoints={excludedEndpoints}
                     />
                 )}
 
