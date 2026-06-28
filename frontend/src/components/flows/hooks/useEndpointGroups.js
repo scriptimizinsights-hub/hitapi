@@ -231,6 +231,18 @@ export function useEndpointGroups(annotatedEndpoints) {
         const steps = [];
         let order = startOrder;
 
+        // Build a map of all group contextVars for cross-group param matching
+        // e.g. { "projectId": "{{staffProjectsId}}", "userId": "{{adminUsersId}}" }
+        const paramVarMap = {};
+        for (const g of groups) {
+            if (!getGroupConfig(g.basePath).included) continue;
+            // The path param name is usually the last segment of varName + "Id"
+            // e.g. varName="adminUser" → param could be "userId", "id"
+            const paramName = g.varName.replace(/([A-Z])/g, c => c.toLowerCase()) + 'Id';
+            paramVarMap[paramName] = g.contextVar;
+            paramVarMap['id'] = g.contextVar; // generic 'id' maps to current group
+        }
+
         for (const group of groups) {
             const config = getGroupConfig(group.basePath);
             if (!config.included) continue;
@@ -238,10 +250,34 @@ export function useEndpointGroups(annotatedEndpoints) {
             const { contextVar, endpoints } = group;
             const idPath = config.idPath || 'id';
 
+            // Reset generic 'id' to current group's contextVar
+            paramVarMap['id'] = contextVar;
+
             for (const ep of endpoints) {
                 const isCreator = ep.method === 'POST' && !ep.path.includes('{');
                 const needsId = ep.path.includes('{');
                 const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
+                const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
+                const schema = ep.request_body ? (() => { try { return JSON.parse(ep.request_body); } catch { return null; } })() : null;
+                const payload = hasBody ? (schema?._example || null) : null;
+
+                // Smart param resolution:
+                // 1. If param name matches a known group's var → use that group's contextVar
+                // 2. If param is 'id' or matches current group → use current group's contextVar
+                // 3. Otherwise → use current group's contextVar as fallback
+                const resolvedParams = needsId && pathParams.length
+                    ? Object.fromEntries(pathParams.map(p => {
+                        const pLower = p.toLowerCase();
+                        // Check if param name hints at another group's resource
+                        // e.g. "projectId" → look for group whose varName contains "project"
+                        const matchedGroup = groups.find(g =>
+                            getGroupConfig(g.basePath).included &&
+                            (g.varName.toLowerCase() + 'id' === pLower ||
+                                pLower.includes(g.varName.toLowerCase()))
+                        );
+                        return [p, matchedGroup ? matchedGroup.contextVar : contextVar];
+                    }))
+                    : null;
 
                 steps.push({
                     step_order: order++,
@@ -249,10 +285,9 @@ export function useEndpointGroups(annotatedEndpoints) {
                     endpoint_id: ep.id,
                     method: ep.method,
                     extract_vars: isCreator ? [{ var: `${group.varName}Id`, path: idPath }] : [],
-                    input_params: needsId && pathParams.length
-                        ? Object.fromEntries(pathParams.map(p => [p, contextVar])) // keep {{varName}} intact
-                        : null,
-                    input_payload: null,
+                    input_params: resolvedParams,
+                    input_payload: payload,
+                    swagger_example: !payload && hasBody ? (schema?._example || null) : null,
                     expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
                     skip_if_failed: isCreator ? 0 : 1,
                     requiresAuth: ep.requiresAuth,

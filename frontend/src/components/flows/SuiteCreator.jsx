@@ -189,8 +189,44 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
         setSuiteName('Full Auth Flow');
     }, []);
 
-    const signupEp = endpoints.find(e => e.id === signupId);
-    const loginEp = endpoints.find(e => e.id === loginId);
+    const [reviewSteps, setReviewSteps] = useState([]);
+
+    // Build preview steps when entering step 7
+    useEffect(() => {
+        if (step !== 7) return;
+        const preview = [];
+        let order = 1;
+        if (signupId) {
+            const ep = endpoints.find(e => e.id === signupId);
+            preview.push({ order: order++, name: 'Sign up', method: 'POST', path: ep?.path || '', color: 'var(--green)', fixed: true });
+        }
+        if (loginId) {
+            const ep = endpoints.find(e => e.id === loginId);
+            preview.push({ order: order++, name: 'Login', method: 'POST', path: ep?.path || '', color: 'var(--accent)', fixed: true });
+        }
+        for (const id of selected) {
+            const ep = endpoints.find(e => e.id === id);
+            if (!ep) continue;
+            preview.push({ order: order++, name: `${ep.method} ${ep.path}`, method: ep.method, path: ep.path, color: 'var(--amber)', endpointId: id });
+        }
+        const crudSteps = buildCrudSteps(order);
+        crudSteps.forEach(s => {
+            preview.push({ order: order++, name: s.name, method: s.method, path: s.name.split(' ').slice(1).join(' '), color: 'var(--blue)', crudStep: s });
+        });
+        setReviewSteps(preview);
+    }, [step]);
+
+    function moveReviewStep(idx, dir) {
+        setReviewSteps(prev => {
+            const next = [...prev];
+            const swap = idx + dir;
+            if (swap < 0 || swap >= next.length) return prev;
+            // Don't move fixed steps (signup/login)
+            if (next[idx].fixed || next[swap].fixed) return prev;
+            [next[idx], next[swap]] = [next[swap], next[idx]];
+            return next.map((s, i) => ({ ...s, order: i + 1 }));
+        });
+    }
     const otherEps = endpoints.filter(e => e.id !== signupId && e.id !== loginId);
 
     const STEP_LABELS = [
@@ -300,10 +336,53 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             const crudSteps = buildCrudSteps(order);
             crudSteps.forEach(s => { s.step_order = order++; steps.push(s); });
 
+            // Use reviewSteps order if available (user may have reordered)
+            let finalSteps;
+            if (reviewSteps.length > 0) {
+                finalSteps = reviewSteps.map((rs, i) => {
+                    if (rs.crudStep) return { ...rs.crudStep, step_order: i + 1 };
+                    if (rs.fixed && rs.name === 'Sign up' && signupId) {
+                        const ep = endpoints.find(e => e.id === signupId);
+                        const schema = safeJSON(ep?.request_body);
+                        return {
+                            step_order: i + 1, name: 'Sign up', endpoint_id: signupId, method: 'POST',
+                            input_payload: schema?._example || buildPayload(Object.keys(schema?.properties || {}), ep?.path),
+                            expected_status: 201, extract_vars: [{ var: 'userId', path: 'id' }], skip_if_failed: 0
+                        };
+                    }
+                    if (rs.fixed && rs.name === 'Login' && loginId) {
+                        const ep = endpoints.find(e => e.id === loginId);
+                        const schema = safeJSON(ep?.request_body);
+                        return {
+                            step_order: i + 1, name: 'Login', endpoint_id: loginId, method: 'POST',
+                            input_payload: schema?._example || buildPayload(Object.keys(schema?.properties || {}), ep?.path),
+                            expected_status: 200,
+                            extract_vars: [{ var: 'token', path: finalTokenPath }, { var: 'token', path: 'data.token' }, { var: 'token', path: 'access_token' }],
+                            skip_if_failed: 0
+                        };
+                    }
+                    // Individual selected endpoint
+                    const ep = endpoints.find(e => e.id === rs.endpointId);
+                    if (!ep) return null;
+                    const schema = safeJSON(ep.request_body);
+                    const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
+                    const payload = hasBody ? (schema?._example || buildPayload(Object.keys(schema?.properties || {}), ep.path)) : null;
+                    const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
+                    return {
+                        step_order: i + 1, name: `${ep.method} ${ep.path}`, endpoint_id: ep.id, method: ep.method,
+                        input_payload: payload, input_params: pathParams.length ? Object.fromEntries(pathParams.map(p => [p, `{{${p}}}`])) : null,
+                        expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
+                        extract_vars: [], skip_if_failed: 1
+                    };
+                }).filter(Boolean);
+            } else {
+                finalSteps = steps;
+            }
+
             const result = await api.flows.create(projectId, {
                 name: suiteName || 'Full Auth Flow',
-                description: `Wizard: ${steps.length} steps · ${groups.filter(g => getGroupConfig(g.basePath).included).length} CRUD groups`,
-                steps
+                description: `Wizard: ${finalSteps.length} steps · ${groups.filter(g => getGroupConfig(g.basePath).included).length} CRUD groups`,
+                steps: finalSteps
             });
             onCreated(result);
         } catch (err) { setError(err.message); }
@@ -527,39 +606,71 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 )}
 
                 {step === 7 && (
-                    <div>
-                        <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
                             <Label>Suite name</Label>
                             <Input value={suiteName} onChange={setSuiteName} placeholder="My Auth Flow" />
                         </div>
-                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10, color: 'var(--text-secondary)' }}>Summary</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {[
-                                signupEp && { icon: '1', label: 'Sign up', path: signupEp.path, color: 'var(--green)' },
-                                loginEp && { icon: '2', label: 'Login', path: loginEp.path, color: 'var(--accent)' },
-                                selected.size > 0 && { icon: '3+', label: `${selected.size} individual endpoint${selected.size > 1 ? 's' : ''}`, path: 'with Bearer {{token}}', color: 'var(--amber)' },
-                                groups.filter(g => getGroupConfig(g.basePath).included).length > 0 && {
-                                    icon: '⟳',
-                                    label: `${groups.filter(g => getGroupConfig(g.basePath).included).length} CRUD group${groups.filter(g => getGroupConfig(g.basePath).included).length > 1 ? 's' : ''}`,
-                                    path: groups.filter(g => getGroupConfig(g.basePath).included).map(g => g.contextVar).join(', '),
-                                    color: 'var(--blue)'
-                                }
-                            ].filter(Boolean).map((item, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${item.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: item.color, flexShrink: 0 }}>{item.icon}</div>
-                                    <div>
-                                        <div style={{ fontSize: 12, fontWeight: 500 }}>{item.label}</div>
-                                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace' }}>{item.path}</div>
+
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>Steps ({reviewSteps.length}) — reorder with ↑↓</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400 }}>Signup & Login are fixed</span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 340, overflow: 'auto' }}>
+                            {reviewSteps.map((s, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                                    borderRadius: 7, background: s.fixed ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.02)',
+                                    border: `1px solid ${s.fixed ? 'rgba(255,255,255,0.06)' : 'var(--border)'}`,
+                                }}>
+                                    {/* Step number */}
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${s.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: s.color, flexShrink: 0 }}>
+                                        {s.order}
                                     </div>
+
+                                    {/* Method badge */}
+                                    <span className={`method-badge method-${s.method}`} style={{ fontSize: 9, flexShrink: 0 }}>{s.method}</span>
+
+                                    {/* Path */}
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>
+                                        {s.path}
+                                    </span>
+
+                                    {/* Fixed badge */}
+                                    {s.fixed && (
+                                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)' }}>fixed</span>
+                                    )}
+
+                                    {/* ↑↓ buttons — only for non-fixed steps */}
+                                    {!s.fixed && (
+                                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                                            <button onClick={() => moveReviewStep(i, -1)} disabled={i <= (signupId && loginId ? 2 : signupId || loginId ? 1 : 0)}
+                                                style={{
+                                                    width: 22, height: 22, borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 11,
+                                                    opacity: i <= (signupId && loginId ? 2 : signupId || loginId ? 1 : 0) ? 0.3 : 1
+                                                }}>
+                                                ↑
+                                            </button>
+                                            <button onClick={() => moveReviewStep(i, 1)} disabled={i === reviewSteps.length - 1}
+                                                style={{
+                                                    width: 22, height: 22, borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 11,
+                                                    opacity: i === reviewSteps.length - 1 ? 0.3 : 1
+                                                }}>
+                                                ↓
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
+
                         {!signupEp && !loginEp && (
-                            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--red-bg)', borderRadius: 8, fontSize: 12, color: 'var(--red)' }}>
+                            <div style={{ padding: '10px 12px', background: 'var(--red-bg)', borderRadius: 8, fontSize: 12, color: 'var(--red)' }}>
                                 ⚠ Select at least a login or signup endpoint to continue
                             </div>
                         )}
-                        {error && <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--red-bg)', borderRadius: 8, fontSize: 12, color: 'var(--red)' }}>{error}</div>}
+                        {error && <div style={{ padding: '10px 12px', background: 'var(--red-bg)', borderRadius: 8, fontSize: 12, color: 'var(--red)' }}>{error}</div>}
                     </div>
                 )}
             </div>

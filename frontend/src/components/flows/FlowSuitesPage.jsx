@@ -10,16 +10,17 @@ import {
 import { StepEditPanel } from './StepEditPanel.jsx';
 import { SuiteCreator } from './SuiteCreator.jsx';
 
-// Derive base group from step name/path for visual grouping
+// Derive base group from step name for visual grouping
 function getStepGroup(result) {
-    const path = result.request_url
-        ? result.request_url.replace(/^https?:\/\/[^/]+\/[^/]+/, '') // strip base
-        : (result.step_name || '');
-    // Strip path params and trailing segments to get base group
-    const base = path.replace(/\/\{[^}]+\}.*$/, '').replace(/\/[^/]+$/, s =>
-        s.includes('{') ? '' : s
-    );
-    return base || null;
+    // Use step_name which has the path template e.g. "POST /admin/users/{id}"
+    const name = result.step_name || '';
+    const path = name.includes(' ') ? name.split(' ').slice(1).join(' ') : name;
+    if (!path || path.startsWith('/auth') || path.startsWith('/public')) return null;
+    // Strip path params to get base group
+    const base = path.replace(/\/\{[^}]+\}.*$/, '');
+    // Skip very short paths
+    if (!base || base === '/') return null;
+    return base;
 }
 
 function safeJSON(str) {

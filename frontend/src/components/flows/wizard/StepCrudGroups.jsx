@@ -21,7 +21,7 @@ const METHOD_META = {
     DELETE: { label: 'Delete', color: 'var(--red)' },
 };
 
-function EndpointRow({ ep, isCreator, needsId, contextVar, idPath, groups, currentBasePath, onExclude, onMove, onReset, isOverridden }) {
+function EndpointRow({ ep, isCreator, needsId, contextVar, idPath, groups, currentBasePath, onExclude, onMove, onReset, isOverridden, resolvedParams }) {
     const [showMove, setShowMove] = useState(false);
 
     return (
@@ -33,10 +33,18 @@ function EndpointRow({ ep, isCreator, needsId, contextVar, idPath, groups, curre
                 ? <Lock size={10} color="var(--red)" style={{ flexShrink: 0 }} />
                 : <Globe size={10} color="var(--green)" style={{ flexShrink: 0 }} />}
 
-            {/* What this step does */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                {isCreator && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(130,100,255,0.12)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)' }}>extracts {contextVar}</span>}
-                {needsId && !isCreator && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', fontFamily: 'JetBrains Mono, monospace' }}>uses {contextVar}</span>}
+            {/* What this step does — show param wiring */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap', maxWidth: 220 }}>
+                {isCreator && (
+                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(130,100,255,0.12)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)' }}>
+                        extracts {contextVar}
+                    </span>
+                )}
+                {needsId && !isCreator && resolvedParams && Object.entries(resolvedParams).map(([param, varRef]) => (
+                    <span key={param} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', fontFamily: 'JetBrains Mono, monospace' }}>
+                        {param}={varRef}
+                    </span>
+                ))}
                 {!isCreator && !needsId && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>list</span>}
                 {isOverridden && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--amber-bg)', color: 'var(--amber)' }}>moved</span>}
             </div>
@@ -180,7 +188,21 @@ function CrudGroupCard({ group, config, allGroups, onToggle, onSetIdPath, onExcl
                         {group.endpoints.map(ep => {
                             const isCreator = ep.method === 'POST' && !ep.path.includes('{');
                             const needsId = ep.path.includes('{');
+                            const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
                             const isOverridden = ep.id in endpointOverrides;
+
+                            // Compute resolved params for display
+                            const resolvedParams = needsId && pathParams.length
+                                ? Object.fromEntries(pathParams.map(p => {
+                                    const pLower = p.toLowerCase();
+                                    const matchedGroup = allGroups.find(g =>
+                                        g.varName.toLowerCase() + 'id' === pLower ||
+                                        pLower.includes(g.varName.toLowerCase())
+                                    );
+                                    return [p, matchedGroup ? matchedGroup.contextVar : contextVar];
+                                }))
+                                : null;
+
                             return (
                                 <EndpointRow
                                     key={ep.id}
@@ -195,6 +217,7 @@ function CrudGroupCard({ group, config, allGroups, onToggle, onSetIdPath, onExcl
                                     onMove={onMove}
                                     onReset={onReset}
                                     isOverridden={isOverridden}
+                                    resolvedParams={resolvedParams}
                                 />
                             );
                         })}
