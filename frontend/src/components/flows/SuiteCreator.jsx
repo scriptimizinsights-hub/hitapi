@@ -227,6 +227,8 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             return next.map((s, i) => ({ ...s, order: i + 1 }));
         });
     }
+    const signupEp = endpoints.find(e => e.id === signupId);
+    const loginEp = endpoints.find(e => e.id === loginId);
     const otherEps = endpoints.filter(e => e.id !== signupId && e.id !== loginId);
 
     const STEP_LABELS = [
