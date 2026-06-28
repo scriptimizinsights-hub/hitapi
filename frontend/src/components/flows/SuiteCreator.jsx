@@ -264,14 +264,26 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 });
             }
 
+            // Collect all endpoint IDs already in CRUD groups to avoid duplicates
+            const crudEndpointIds = new Set(
+                groups
+                    .filter(g => getGroupConfig(g.basePath).included)
+                    .flatMap(g => g.endpoints.map(e => e.id))
+            );
+
             for (const id of selected) {
                 const ep = endpoints.find(e => e.id === id);
                 if (!ep) continue;
+                // Skip if already included in a CRUD group
+                if (crudEndpointIds.has(id)) continue;
+                // Skip signup/login — already added above
+                if (id === signupId || id === loginId) continue;
+
                 const schema = safeJSON(ep.request_body);
                 const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
-                const payload = hasBody ? (schema?._example || schema?.properties
-                    ? buildPayload(Object.keys(schema?.properties || {}), ep.path)
-                    : {}) : null;
+                const payload = hasBody ? (schema?._example || (schema?.properties
+                    ? buildPayload(Object.keys(schema.properties || {}), ep.path)
+                    : {})) : null;
                 const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
                 steps.push({
                     step_order: order++,
@@ -691,20 +703,18 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
             {/* Header */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Suite name</div>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Suite name</div>
                 <Input value={suiteName} onChange={setSuiteName} placeholder="e.g. Admin API Flow" />
-                <div style={{ marginTop: 10, padding: '10px 12px', background: 'rgba(130,100,255,0.06)', borderRadius: 8, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Add steps in order. Values extracted from one step (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{'{{token}}'}</code>) are automatically injected into all following steps.
-                    <br />
-                    <span style={{ color: 'var(--text-tertiary)' }}>Tip: Add Login first → extract token → use in all later steps.</span>
                 </div>
             </div>
 
-            {/* Steps */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px' }}>
+            {/* Steps — scrollable */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '14px 20px', minHeight: 0 }}>
                 {steps.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
                         <PenLine size={28} style={{ marginBottom: 12, opacity: 0.4 }} />
@@ -737,8 +747,8 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                 </button>
             </div>
 
-            {/* Footer */}
-            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)' }}>
+            {/* Footer — always visible */}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg-card)' }}>
                 {error && <div style={{ marginBottom: 10, padding: '8px 12px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 12, color: 'var(--red)' }}>{error}</div>}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <button onClick={onClose} style={{ padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>
@@ -894,7 +904,7 @@ export function SuiteCreator({ projectId, onCreated, onClose }) {
         }} onClick={e => e.target === e.currentTarget && onClose()}>
             <div style={{
                 width: '100%', maxWidth: mode ? 600 : 480,
-                maxHeight: '90vh', borderRadius: 14,
+                maxHeight: '92vh', borderRadius: 14,
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
                 display: 'flex', flexDirection: 'column', overflow: 'hidden'

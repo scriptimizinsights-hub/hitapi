@@ -711,7 +711,7 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
 
 
 // ── Chunked runner — splits 80+ steps into batches of 40 ─────────────────────
-const CHUNK_SIZE = 25; // safely under 50 subrequest limit
+const CHUNK_SIZE = 100; // safely under 50 subrequest limit
 
 export async function runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds = []) {
   const { runFlowSuite } = await import('../services/flow.js');
