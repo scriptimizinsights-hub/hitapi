@@ -495,7 +495,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                 const over = total > 30;
                                 return (
                                     <span style={{ fontSize: 11, fontWeight: 600, color: over ? 'var(--red)' : total > 25 ? 'var(--amber)' : 'var(--green)' }}>
-                                        {total}/30 steps {over ? '⚠ over limit' : ''}
+                                        {total}/100 steps {over ? '⚠ over limit' : ''}
                                     </span>
                                 );
                             })()}
