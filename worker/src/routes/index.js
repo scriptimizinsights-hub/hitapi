@@ -682,8 +682,8 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
   );
 
   // Option 1: Use Cloudflare Queue if available
-  if (env.QUEUE) {
-    await env.QUEUE.send({
+  if (env.TEST_QUEUE) {
+    await env.TEST_QUEUE.send({
       type: 'flow_suite_run',
       runId,
       suiteId: params.flowId,
@@ -711,7 +711,7 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
 
 
 // ── Chunked runner — splits 80+ steps into batches of 40 ─────────────────────
-const CHUNK_SIZE = 100; // safely under 50 subrequest limit
+const CHUNK_SIZE = 25; // safely under 50 subrequest limit
 
 export async function runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds = []) {
   const { runFlowSuite } = await import('../services/flow.js');
@@ -752,8 +752,8 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
         for (const r of run.results) {
           const rid = db.uuid();
           await db.run(
-            `INSERT OR IGNORE INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT OR IGNORE INTO flow_step_results (id, run_id, step_id, step_order, step_name, status, actual_status, request_url, request_method, request_headers, request_body, actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars, sub_checks)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [rid, runId, r.step_id, r.step_order, r.step_name, r.status, r.actual_status ?? null,
               r.request_url ?? null, r.request_method ?? null,
               r.request_headers ? JSON.stringify(r.request_headers) : null,
@@ -761,7 +761,8 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
               r.actual_body ? JSON.stringify(r.actual_body) : null,
               r.actual_headers ? JSON.stringify(r.actual_headers) : null,
               r.response_time_ms ?? null, r.failure_reason ?? null,
-              r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+              r.extracted_vars ? JSON.stringify(r.extracted_vars) : null,
+              r.sub_checks ? JSON.stringify(r.sub_checks) : null]
           );
         }
         // Update progress after each chunk

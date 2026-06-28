@@ -311,6 +311,120 @@ async function executeStep(step, context, project) {
     };
 }
 
+
+// ── Sub-checks: run security/validation checks per step ───────────────────────
+const SUB_CHECK_TIMEOUT = 8000;
+
+async function runSubCheck(url, method, headers, body, expectedFailStatus, label, checkType) {
+    try {
+        const start = Date.now();
+        const res = await fetch(url, {
+            method,
+            headers,
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+            signal: AbortSignal.timeout(SUB_CHECK_TIMEOUT)
+        });
+        const ms = Date.now() - start;
+        const ct = res.headers.get('content-type') || '';
+        const responseBody = ct.includes('application/json')
+            ? await res.json().catch(() => null)
+            : null;
+
+        // Sub-check passes if response matches expected fail status (e.g. 401 for auth check)
+        const passed = Array.isArray(expectedFailStatus)
+            ? expectedFailStatus.includes(res.status)
+            : res.status === expectedFailStatus;
+
+        return {
+            check_type: checkType,
+            label,
+            status: passed ? 'passed' : 'failed',
+            actual_status: res.status,
+            expected_status: Array.isArray(expectedFailStatus) ? expectedFailStatus[0] : expectedFailStatus,
+            actual_body: responseBody,
+            response_time_ms: ms,
+            failure_reason: passed ? null : `Expected ${expectedFailStatus}, got ${res.status}`,
+        };
+    } catch (err) {
+        return {
+            check_type: checkType,
+            label,
+            status: 'error',
+            actual_status: null,
+            expected_status: Array.isArray(expectedFailStatus) ? expectedFailStatus[0] : expectedFailStatus,
+            actual_body: null,
+            response_time_ms: 0,
+            failure_reason: err.message,
+        };
+    }
+}
+
+async function runSubChecks(step, happyResult, context, project) {
+    const checks = [];
+    const method = step.method || happyResult.request_method || 'GET';
+    const url = happyResult.request_url;
+    if (!url) return checks;
+
+    const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+    const authHeaders = { 'Content-Type': 'application/json' };
+    const fullHeaders = { ...authHeaders };
+    if (context.token || context.__token) {
+        fullHeaders['Authorization'] = `Bearer ${context.token || context.__token}`;
+    }
+
+    const sentBody = happyResult.request_body;
+
+    // 1. 🔒 Auth check — remove token, expect 401/403
+    const noAuthHeaders = { 'Content-Type': 'application/json' };
+    checks.push(await runSubCheck(
+        url, method, noAuthHeaders,
+        hasBody ? (sentBody || {}) : undefined,
+        [401, 403],
+        'No auth token → should return 401/403',
+        'auth'
+    ));
+
+    // 2. ⚠ Validation check — empty body for POST/PUT/PATCH, expect 400
+    if (hasBody) {
+        checks.push(await runSubCheck(
+            url, method, fullHeaders, {},
+            [400, 422],
+            'Empty body → should return 400/422',
+            'validation'
+        ));
+    }
+
+    // 3. 🛡 SQL injection check — inject malicious string in first string field
+    if (hasBody && sentBody && typeof sentBody === 'object') {
+        const injectedBody = JSON.parse(JSON.stringify(sentBody));
+        function injectSQL(obj) {
+            for (const k of Object.keys(obj)) {
+                if (typeof obj[k] === 'string') { obj[k] = "'; DROP TABLE users; --"; break; }
+                if (typeof obj[k] === 'object' && obj[k] !== null) { injectSQL(obj[k]); break; }
+            }
+        }
+        injectSQL(injectedBody);
+        checks.push(await runSubCheck(
+            url, method, fullHeaders, injectedBody,
+            [400, 422],
+            'SQL injection → should return 400/422',
+            'security'
+        ));
+    }
+
+    // 4. 🔁 Wrong method check — expect 404/405
+    const wrongMethod = method === 'GET' ? 'POST' : 'GET';
+    checks.push(await runSubCheck(
+        url, wrongMethod, fullHeaders,
+        wrongMethod === 'POST' ? {} : undefined,
+        [404, 405],
+        `Wrong method (${wrongMethod}) → should return 404/405`,
+        'method'
+    ));
+
+    return checks;
+}
+
 // ── Main: run a full flow suite ───────────────────────────────────────────────
 export async function runFlowSuite(suite, steps, project, initialContext = {}) {
     let context = { ...initialContext }; // start with context from previous chunk
@@ -372,6 +486,16 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
 
         // Execute step normally
         const result = await executeStep(step, context, project);
+
+        // ── Run sub-checks on every step (auth, validation, security, method) ──
+        // Sub-checks use context from previous steps so {{token}} is injected
+        // They don't affect cascade — sub-check failures never block next step
+        const subChecks = await runSubChecks(step, result, context, project);
+        result.sub_checks = subChecks;
+        if (subChecks.length > 0) {
+            const subPassed = subChecks.filter(c => c.status === 'passed').length;
+            console.log(`[Flow] Sub-checks step ${step.step_order}: ${subPassed}/${subChecks.length} passed`);
+        }
 
         // After signup — extract credentials + check for token
         if (isSignupStep) {

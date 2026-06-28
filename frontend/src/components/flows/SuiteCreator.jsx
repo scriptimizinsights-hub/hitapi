@@ -204,9 +204,18 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             const ep = endpoints.find(e => e.id === loginId);
             preview.push({ order: order++, name: 'Login', method: 'POST', path: ep?.path || '', color: 'var(--accent)', fixed: true });
         }
+        // Collect endpoint IDs in CRUD groups to avoid duplicates
+        const crudEndpointIds = new Set(
+            groups
+                .filter(g => getGroupConfig(g.basePath).included)
+                .flatMap(g => g.endpoints.map(e => e.id))
+        );
+
         for (const id of selected) {
             const ep = endpoints.find(e => e.id === id);
             if (!ep) continue;
+            if (crudEndpointIds.has(id)) continue; // skip - already in CRUD group
+            if (id === signupId || id === loginId) continue;
             preview.push({ order: order++, name: `${ep.method} ${ep.path}`, method: ep.method, path: ep.path, color: 'var(--amber)', endpointId: id });
         }
         const crudSteps = buildCrudSteps(order);

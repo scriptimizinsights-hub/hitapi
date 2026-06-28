@@ -58,6 +58,7 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
     const reqBody = safeJSON(result.request_body);
     const reqHeaders = safeJSON(result.request_headers);
     const extracted = safeJSON(result.extracted_vars);
+    const subChecks = safeJSON(result.sub_checks) || [];
     const swaggerExample = stepDef?.request_body
         ? (() => { try { return JSON.parse(stepDef.request_body)?._example || null; } catch { return null; } })()
         : null;
@@ -259,6 +260,48 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                                     </div>
                                 </div>
                             )}
+
+                            {/* Sub-checks */}
+                            {subChecks.length > 0 && (
+                                <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
+                                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
+                                        Security & Validation checks
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
+                                        {subChecks.map((c, i) => {
+                                            const icon = c.check_type === 'auth' ? '🔒'
+                                                : c.check_type === 'validation' ? '⚠'
+                                                    : c.check_type === 'security' ? '🛡'
+                                                        : '🔁';
+                                            const color = c.status === 'passed' ? 'var(--green)'
+                                                : c.status === 'failed' ? 'var(--red)'
+                                                    : 'var(--amber)';
+                                            return (
+                                                <div key={i} style={{
+                                                    padding: '7px 10px', borderRadius: 6,
+                                                    background: c.status === 'passed' ? 'rgba(35,209,139,0.05)' : 'rgba(255,92,92,0.05)',
+                                                    border: `1px solid ${c.status === 'passed' ? 'rgba(35,209,139,0.15)' : 'rgba(255,92,92,0.15)'}`,
+                                                    display: 'flex', alignItems: 'flex-start', gap: 7
+                                                }}>
+                                                    <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ fontSize: 11, color, fontWeight: 500, marginBottom: 2 }}>
+                                                            {c.status === 'passed' ? '✓' : '✗'} {c.label}
+                                                        </div>
+                                                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', display: 'flex', gap: 6 }}>
+                                                            <span>Expected: <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>{c.expected_status}</code></span>
+                                                            <span>Got: <code style={{ fontFamily: 'JetBrains Mono, monospace', color }}>{c.actual_status ?? 'error'}</code></span>
+                                                        </div>
+                                                        {c.failure_reason && c.status !== 'passed' && (
+                                                            <div style={{ fontSize: 10, color: 'var(--red)', marginTop: 2 }}>{c.failure_reason}</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </td>
                 </tr>
@@ -438,6 +481,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             request_body: safeJSON(r.request_body),
                             request_headers: safeJSON(r.request_headers),
                             extracted_vars: safeJSON(r.extracted_vars),
+                            sub_checks: safeJSON(r.sub_checks) || [],
                         }))
                     });
                 }
