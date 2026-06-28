@@ -211,7 +211,12 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
         try {
             const extractVarsParsed = extractVars
                 ? extractVars.split(',').map(part => {
-                    const [varName, path] = part.trim().split('=').map(s => s.trim());
+                    const [varName, path] = part.trim().split('=').map(s =>
+                        s.trim()
+                            .replace(/^\[+/, '').replace(/\]+$/, '')
+                            .replace(/^response\./, '')
+                            .trim()
+                    );
                     return varName && path ? { var: varName, path } : null;
                 }).filter(Boolean)
                 : [];

@@ -217,7 +217,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
         // Count total steps before creating
         const crudStepCount = buildCrudSteps(1).length;
         const totalSteps = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size + crudStepCount;
-        const MAX_STEPS = 100;
+        const MAX_STEPS = 30;
         if (totalSteps > MAX_STEPS) {
             setError(`Too many steps (${totalSteps}). Maximum is ${MAX_STEPS}. Remove ${totalSteps - MAX_STEPS} endpoint(s) from selection or CRUD groups.`);
             return;
@@ -495,7 +495,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                 const over = total > 30;
                                 return (
                                     <span style={{ fontSize: 11, fontWeight: 600, color: over ? 'var(--red)' : total > 25 ? 'var(--amber)' : 'var(--green)' }}>
-                                        {total}/100 steps {over ? '⚠ over limit' : ''}
+                                        {total}/30 steps {over ? '⚠ over limit' : ''}
                                     </span>
                                 );
                             })()}
@@ -674,7 +674,12 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                 // Parse extract_vars: "token=data.token, userId=data.id"
                 const extractVars = s.extract_vars
                     ? s.extract_vars.split(',').map(part => {
-                        const [varName, path] = part.trim().split('=').map(x => x.trim());
+                        const [varName, path] = part.trim().split('=').map(x =>
+                            x.trim()
+                                .replace(/^\[+/, '').replace(/\]+$/, '') // strip accidental [ ]
+                                .replace(/^response\./, '') // strip accidental "response." prefix
+                                .trim()
+                        );
                         return varName && path ? { var: varName, path } : null;
                     }).filter(Boolean)
                     : [];
@@ -848,11 +853,10 @@ function StepEditor({ step, index, total, endpoints, onUpdate, onPickEndpoint, o
                     <div>
                         <Label hint="Save values from this response for use in later steps">Extract from response</Label>
                         <Input value={step.extract_vars} onChange={v => onUpdate('extract_vars', v)}
-                            placeholder="token=data.token, userId=data.id" />
+                            placeholder="adminUserId=id, token=data.token" />
                         <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-                            Format: <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>variableName=response.path</code>
-                            <br />
-                            e.g. <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>token=data.token</code> saves as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>{'{{token}}'}</code> · <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>userId=data.id</code> saves as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>{'{{userId}}'}</code>
+                            Format: <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>variableName=path</code>
+                            &nbsp;— e.g. response <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>{`{"id": 11}`}</code> → type <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>adminUserId=id</code> → use as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>{'{{adminUserId}}'}</code>
                         </div>
                     </div>
 
