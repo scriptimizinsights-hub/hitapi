@@ -44,6 +44,124 @@ function CopyBtn({ text }) {
     );
 }
 
+// ── cURL copy button ──────────────────────────────────────────────────────────
+function buildCurl(url, method, headers, body) {
+    const h = headers || {};
+    const parts = [`curl -X ${method || 'GET'} '${url}'`];
+    Object.entries(h).forEach(([k, v]) => {
+        if (k === 'Authorization') parts.push(`  -H '${k}: ${v}'`);
+        else parts.push(`  -H '${k}: ${v}'`);
+    });
+    if (!h['Content-Type']) parts.push(`  -H 'Content-Type: application/json'`);
+    if (body && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        parts.push(`  -d '${JSON.stringify(body)}'`);
+    }
+    return parts.join(' \\\n');
+}
+
+function CurlButton({ url, method, headers, body }) {
+    const [copied, setCopied] = React.useState(false);
+    const copy = (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(buildCurl(url, method, headers, body));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+        <button onClick={copy} style={{
+            fontSize: 9, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+            background: copied ? 'rgba(35,209,139,0.1)' : 'rgba(255,255,255,0.05)',
+            color: copied ? 'var(--green)' : 'var(--text-tertiary)',
+            border: `1px solid ${copied ? 'rgba(35,209,139,0.3)' : 'var(--border)'}`,
+            fontFamily: 'JetBrains Mono, monospace', transition: 'all .15s',
+        }}>
+            {copied ? '✓ Copied' : '⎘ cURL'}
+        </button>
+    );
+}
+
+// ── Sub-check card with expandable request/response ───────────────────────────
+function SubCheckCard({ check, baseUrl, method }) {
+    const [open, setOpen] = React.useState(false);
+    const icon = check.check_type === 'auth' ? '🔒'
+        : check.check_type === 'validation' ? '⚠'
+            : check.check_type === 'security' ? '🛡'
+                : '🔁';
+    const passed = check.status === 'passed';
+    const color = passed ? 'var(--green)' : check.status === 'failed' ? 'var(--red)' : 'var(--amber)';
+
+    // Reconstruct the sub-check request for cURL
+    const checkMethod = check.check_type === 'method'
+        ? (method === 'GET' ? 'POST' : 'GET')
+        : method;
+    const checkHeaders = check.check_type === 'auth'
+        ? { 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json', 'Authorization': '{{token}}' };
+    const checkBody = check.check_type === 'validation' ? {}
+        : check.check_type === 'security' ? { "test": "'; DROP TABLE users; --" }
+            : null;
+
+    return (
+        <div style={{
+            borderRadius: 7,
+            background: passed ? 'rgba(35,209,139,0.04)' : 'rgba(255,92,92,0.04)',
+            border: `1px solid ${passed ? 'rgba(35,209,139,0.15)' : 'rgba(255,92,92,0.15)'}`,
+            overflow: 'hidden',
+        }}>
+            {/* Header row */}
+            <div onClick={() => setOpen(o => !o)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer',
+            }}>
+                <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
+                <span style={{ fontSize: 11, color, fontWeight: 500, flex: 1 }}>
+                    {passed ? '✓' : '✗'} {check.label}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+                    {checkMethod} → <span style={{ color }}>{check.actual_status ?? 'error'}</span>
+                    {' '}(exp: {Array.isArray(check.expected_status) ? check.expected_status.join('/') : check.expected_status})
+                </span>
+                <CurlButton url={baseUrl} method={checkMethod} headers={checkHeaders} body={checkBody} />
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 11, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+            </div>
+
+            {/* Expandable request/response */}
+            {open && (
+                <div style={{ borderTop: `1px solid ${passed ? 'rgba(35,209,139,0.1)' : 'rgba(255,92,92,0.1)'}`, padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Request</div>
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px' }}>
+                            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                <div><span style={{ color: 'var(--amber)' }}>Method:</span> {checkMethod}</div>
+                                <div><span style={{ color: 'var(--amber)' }}>URL:</span> {baseUrl}</div>
+                                {check.check_type === 'auth' && <div><span style={{ color: 'var(--red)' }}>Auth:</span> none (removed)</div>}
+                                {check.check_type === 'validation' && <div><span style={{ color: 'var(--amber)' }}>Body:</span> {'{}'} (empty)</div>}
+                                {check.check_type === 'security' && <div><span style={{ color: 'var(--red)' }}>Body:</span> SQL injection payload</div>}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: passed ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Response</div>
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', minHeight: 40 }}>
+                            {check.actual_body ? (
+                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {JSON.stringify(check.actual_body, null, 2)}
+                                </pre>
+                            ) : (
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-tertiary)' }}>No response body</span>
+                            )}
+                        </div>
+                    </div>
+                    {check.failure_reason && !passed && (
+                        <div style={{ gridColumn: '1/-1', fontSize: 10, color: 'var(--red)', padding: '4px 6px', background: 'rgba(255,92,92,0.06)', borderRadius: 4 }}>
+                            ✗ {check.failure_reason}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function StatusIcon({ status }) {
     if (status === 'passed') return <CheckCircle2 size={14} color="var(--green)" />;
     if (status === 'failed') return <XCircle size={14} color="var(--red)" />;
@@ -184,6 +302,9 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                                 {result.response_time_ms && (
                                     <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>{result.response_time_ms}ms</span>
                                 )}
+                                {result.request_url && (
+                                    <CurlButton url={result.request_url} method={result.request_method} headers={reqHeaders} body={reqBody} />
+                                )}
                             </div>
 
                             {result.status === 'skipped' ? (
@@ -261,44 +382,15 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                                 </div>
                             )}
 
-                            {/* Sub-checks */}
                             {subChecks.length > 0 && (
                                 <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
                                     <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
-                                        Security & Validation checks
+                                        Security & Validation checks — {subChecks.filter(c => c.status === 'passed').length}/{subChecks.length} passed
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 6 }}>
-                                        {subChecks.map((c, i) => {
-                                            const icon = c.check_type === 'auth' ? '🔒'
-                                                : c.check_type === 'validation' ? '⚠'
-                                                    : c.check_type === 'security' ? '🛡'
-                                                        : '🔁';
-                                            const color = c.status === 'passed' ? 'var(--green)'
-                                                : c.status === 'failed' ? 'var(--red)'
-                                                    : 'var(--amber)';
-                                            return (
-                                                <div key={i} style={{
-                                                    padding: '7px 10px', borderRadius: 6,
-                                                    background: c.status === 'passed' ? 'rgba(35,209,139,0.05)' : 'rgba(255,92,92,0.05)',
-                                                    border: `1px solid ${c.status === 'passed' ? 'rgba(35,209,139,0.15)' : 'rgba(255,92,92,0.15)'}`,
-                                                    display: 'flex', alignItems: 'flex-start', gap: 7
-                                                }}>
-                                                    <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <div style={{ fontSize: 11, color, fontWeight: 500, marginBottom: 2 }}>
-                                                            {c.status === 'passed' ? '✓' : '✗'} {c.label}
-                                                        </div>
-                                                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', display: 'flex', gap: 6 }}>
-                                                            <span>Expected: <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>{c.expected_status}</code></span>
-                                                            <span>Got: <code style={{ fontFamily: 'JetBrains Mono, monospace', color }}>{c.actual_status ?? 'error'}</code></span>
-                                                        </div>
-                                                        {c.failure_reason && c.status !== 'passed' && (
-                                                            <div style={{ fontSize: 10, color: 'var(--red)', marginTop: 2 }}>{c.failure_reason}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {subChecks.map((c, i) => (
+                                            <SubCheckCard key={i} check={c} baseUrl={result.request_url} method={result.request_method} />
+                                        ))}
                                     </div>
                                 </div>
                             )}
