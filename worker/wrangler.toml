@@ -38,6 +38,7 @@ binding = "AI"
 ENVIRONMENT = "production"
 VITE_API_URL="https://services.hitapi.dev/api"
 CORS_ORIGIN = "*"
+ENCRYPTION_KEY="0ef7713c8eeab0dfc19a906ac866155138cf1e603d228da3868fbe4d0814b8ca"
 
 # ─── Local dev overrides ─────────────────────────────────────────────────────
 [env.development]

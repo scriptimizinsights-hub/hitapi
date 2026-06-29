@@ -97,7 +97,9 @@ export const api = {
   },
   // Reports
   reports: {
-    list: (id) => request(`/projects/${id}/reports`)
+    list: (id) => request(`/projects/\${id}/reports`),
+    deleteRun: (id, runId) => request(`/projects/\${id}/runs/\${runId}`, { method: 'DELETE' }),
+    deleteAll: (id, flowId) => request(`/projects/\${id}/flows/\${flowId}/runs`, { method: 'DELETE' }),
   }
 };
 

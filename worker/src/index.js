@@ -21,7 +21,7 @@ import {
   // Flow suites
   listFlowSuites, createFlowSuite, getFlowSuite, updateFlowSuite, deleteFlowSuite,
   runFlowSuiteRoute, runFlowSuiteInline, listFlowRuns, getFlowRun,
-  autoGenerateFlowSuite, updateFlowStep,
+  autoGenerateFlowSuite, updateFlowStep, deleteFlowRun, deleteAllFlowRuns,
 } from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -44,6 +44,8 @@ const ROUTES = [
   router('GET', '/api/projects/:id/flows/:flowId', getFlowSuite),
   router('PUT', '/api/projects/:id/flows/:flowId', updateFlowSuite),
   router('DELETE', '/api/projects/:id/flows/:flowId', deleteFlowSuite),
+  router('DELETE', '/api/projects/:id/flows/:flowId/runs', deleteAllFlowRuns),
+  router('DELETE', '/api/projects/:id/runs/:runId', deleteFlowRun),
   router('POST', '/api/projects/:id/flows/:flowId/run', runFlowSuiteRoute),
   router('GET', '/api/projects/:id/flows/:flowId/runs', listFlowRuns),
   router('GET', '/api/projects/:id/flows/:flowId/runs/:runId', getFlowRun),

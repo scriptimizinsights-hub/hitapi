@@ -345,11 +345,28 @@ export function ReportsPage() {
                   <Detail label="Size" value={selected.size_bytes ? `${Math.round(selected.size_bytes / 1024)} KB` : '—'} />
                 </div>
 
-                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Data retention warning */}
+                <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,181,71,0.07)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 6, fontSize: 11, color: 'var(--amber)', lineHeight: 1.5 }}>
+                  ⚠ API response bodies from this run are stored. Delete this run if it contains sensitive data.
+                </div>
+
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <a href={`/projects/${projectId}/flows`}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(130,100,255,0.08)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
                     <ExternalLink size={12} /> View flow suite
                   </a>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm('Delete this run? This removes all step results, bugs, and reports for this run. This cannot be undone.')) return;
+                      try {
+                        await import('../../store/index.js').then(({ api }) => api.reports.deleteRun(projectId, selected.execution_id));
+                        setReports(r => r.filter(x => x.id !== selected.id));
+                        setSelected(null);
+                      } catch (e) { alert('Delete failed: ' + e.message); }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(255,92,92,0.08)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.2)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                    🗑 Delete this run
+                  </button>
                 </div>
               </div>
             </div>

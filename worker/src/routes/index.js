@@ -8,6 +8,7 @@ import { generateTestCases, analyzeBug, detectWorkflows, generateRecommendations
 import { executeAll } from '../services/executor.js';
 import { storeReport, getReport } from '../services/reports.js';
 import { json, error, parseBody, success } from '../middleware/cors.js';
+import { encryptField, decryptField } from '../services/encryption.js';
 
 function repos(env) {
   const db = new DatabaseAdapter(env.DB);
@@ -467,11 +468,12 @@ export async function handleQueue(batch, env) {
         const { runId, suiteId, projectId, skipStepIds = [] } = msg;
 
         const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
-        const allSteps = await db.all(
+        const rawAllSteps = await db.all(
           `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.request_body as endpoint_request_body
            FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
            WHERE fs.suite_id = ? ORDER BY fs.step_order`, [suiteId]
         );
+        const allSteps = await decryptSteps(env, rawAllSteps);
         const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
 
         if (!suite || !project || !allSteps.length) { message.ack(); continue; }
@@ -501,11 +503,12 @@ export async function handleQueue(batch, env) {
         } = msg;
 
         const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
-        const allSteps = await db.all(
+        const rawAllSteps = await db.all(
           `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.request_body as endpoint_request_body
            FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
            WHERE fs.suite_id = ? ORDER BY fs.step_order`, [suiteId]
         );
+        const allSteps = await decryptSteps(env, rawAllSteps);
         const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
 
         if (!suite || !project) { message.ack(); continue; }
@@ -687,7 +690,7 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
     `SELECT * FROM flow_step_results WHERE run_id = ? ORDER BY step_order`, [runId]
   ).catch(() => []);
 
-  // AI bug analysis for failed steps
+  // AI bug analysis for failed steps — AWAITED so it completes before worker exits
   if (failed > 0 && env?.AI) {
     await analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
       console.error('[BugAnalysis] Failed:', err.message)
@@ -825,7 +828,7 @@ export async function createFlowSuite(request, env, { params }) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [sid, id, step.step_order, step.name, step.endpoint_id || null, step.method || null,
           step.url_override || null,
-          step.input_payload ? JSON.stringify(step.input_payload) : null,
+          step.input_payload ? await encryptField(env, JSON.stringify(step.input_payload)) : null,
           step.input_headers ? JSON.stringify(step.input_headers) : null,
           step.input_params ? JSON.stringify(step.input_params) : null,
           step.expected_status || null,
@@ -838,16 +841,30 @@ export async function createFlowSuite(request, env, { params }) {
   return json(success(suite), 201);
 }
 
+// ── Decrypt flow step payloads after reading from DB ──────────────────────────
+async function decryptSteps(env, steps) {
+  return Promise.all(steps.map(async step => {
+    if (!step.input_payload) return step;
+    try {
+      const plain = await decryptField(env, step.input_payload);
+      return { ...step, input_payload: plain };
+    } catch {
+      return step; // return as-is if decryption fails (legacy unencrypted row)
+    }
+  }));
+}
+
 export async function getFlowSuite(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
   if (!suite) return error('Suite not found', 404);
-  const steps = await db.all(
+  const rawSteps = await db.all(
     `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.summary
      FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
      WHERE fs.suite_id = ? ORDER BY fs.step_order`,
     [params.flowId]
   );
+  const steps = await decryptSteps(env, rawSteps);
   return json(success({ suite, steps }));
 }
 
@@ -870,7 +887,7 @@ export async function updateFlowSuite(request, env, { params }) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [sid, params.flowId, step.step_order, step.name, step.endpoint_id || null, step.method || null,
           step.url_override || null,
-          step.input_payload ? JSON.stringify(step.input_payload) : null,
+          step.input_payload ? await encryptField(env, JSON.stringify(step.input_payload)) : null,
           step.input_headers ? JSON.stringify(step.input_headers) : null,
           step.input_params ? JSON.stringify(step.input_params) : null,
           step.expected_status || null,
@@ -887,6 +904,39 @@ export async function deleteFlowSuite(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   await db.run(`DELETE FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
   return json(success({ deleted: true }));
+}
+
+export async function deleteFlowRun(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  // Verify run belongs to this project via suite
+  const run = await db.first(
+    `SELECT fr.id FROM flow_runs fr
+     JOIN flow_suites fs ON fs.id = fr.suite_id
+     WHERE fr.id = ? AND fs.project_id = ?`,
+    [params.runId, params.id]
+  );
+  if (!run) return error('Run not found', 404);
+  await db.run(`DELETE FROM flow_step_results WHERE run_id = ?`, [params.runId]);
+  await db.run(`DELETE FROM bugs WHERE flow_run_id = ?`, [params.runId]);
+  await db.run(`DELETE FROM reports WHERE flow_run_id = ?`, [params.runId]);
+  await db.run(`DELETE FROM flow_runs WHERE id = ?`, [params.runId]);
+  console.log(`[Delete] Run ${params.runId} deleted from project ${params.id}`);
+  return json(success({ deleted: true }));
+}
+
+export async function deleteAllFlowRuns(request, env, { params }) {
+  const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  // Verify suite belongs to project
+  const suite = await db.first(`SELECT id FROM flow_suites WHERE id = ? AND project_id = ?`, [params.flowId, params.id]);
+  if (!suite) return error('Suite not found', 404);
+  const runs = await db.all(`SELECT id FROM flow_runs WHERE suite_id = ?`, [params.flowId]);
+  for (const run of runs) {
+    await db.run(`DELETE FROM flow_step_results WHERE run_id = ?`, [run.id]);
+    await db.run(`DELETE FROM bugs WHERE flow_run_id = ?`, [run.id]);
+    await db.run(`DELETE FROM reports WHERE flow_run_id = ?`, [run.id]);
+  }
+  await db.run(`DELETE FROM flow_runs WHERE suite_id = ?`, [params.flowId]);
+  return json(success({ deleted: runs.length }));
 }
 
 export async function runFlowSuiteRoute(request, env, { params, ctx }) {
@@ -1227,7 +1277,7 @@ export async function updateFlowStep(request, env, { params }) {
 
   if (body.input_payload !== undefined) {
     fields.push('input_payload = ?');
-    values.push(body.input_payload ? JSON.stringify(body.input_payload) : null);
+    values.push(body.input_payload ? await encryptField(env, JSON.stringify(body.input_payload)) : null);
   }
   if (body.input_params !== undefined) {
     fields.push('input_params = ?');
