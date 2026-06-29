@@ -442,48 +442,192 @@ export async function downloadReport(request, env, { params }) {
 
 export async function handleQueue(batch, env) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+  const queue = env.QUEUE || env.TEST_QUEUE;
 
   for (const message of batch.messages) {
     const msg = message.body;
     try {
-      // Flow suite run — main use case
+
+      // ── Initial suite run — split into chunk jobs ──────────────────────────
       if (msg.type === 'flow_suite_run') {
         const { runId, suiteId, projectId, skipStepIds = [] } = msg;
 
         const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
-        if (!suite) { message.ack(); continue; }
-
         const allSteps = await db.all(
-          `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method
+          `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.request_body as endpoint_request_body
            FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
-           WHERE fs.suite_id = ? ORDER BY fs.step_order`,
-          [suiteId]
+           WHERE fs.suite_id = ? ORDER BY fs.step_order`, [suiteId]
         );
-
         const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
-        if (!project) { message.ack(); continue; }
 
-        // Run inline — no circular import, function is in same file
-        await runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds);
+        if (!suite || !project || !allSteps.length) { message.ack(); continue; }
+
+        await db.run(`UPDATE flow_runs SET status = 'running' WHERE id = ?`, [runId]);
+
+        // Push first chunk job — subsequent chunks push themselves
+        await queue.send({
+          type: 'flow_suite_chunk',
+          runId, suiteId, projectId, skipStepIds,
+          chunkIndex: 0,
+          context: {},
+          accPassed: 0,
+          accFailed: 0,
+        });
+
         message.ack();
         continue;
       }
 
-      // Legacy: test execution jobs
+      // ── Chunk execution — each chunk runs CHUNK_SIZE steps ────────────────
+      if (msg.type === 'flow_suite_chunk') {
+        const {
+          runId, suiteId, projectId, skipStepIds = [],
+          chunkIndex, context: prevContext,
+          accPassed, accFailed
+        } = msg;
+
+        const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
+        const allSteps = await db.all(
+          `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method, e.request_body as endpoint_request_body
+           FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+           WHERE fs.suite_id = ? ORDER BY fs.step_order`, [suiteId]
+        );
+        const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
+
+        if (!suite || !project) { message.ack(); continue; }
+
+        const { runFlowSuite } = await import('../services/flow.js');
+        const CHUNK_SIZE = 45;
+
+        // Apply skip flags
+        const steps = allSteps.map(s => ({
+          ...s,
+          _force_skip: skipStepIds.includes(s.id)
+        }));
+
+        // Get this chunk's slice
+        const chunkStart = chunkIndex * CHUNK_SIZE;
+        const chunk = steps.slice(chunkStart, chunkStart + CHUNK_SIZE);
+
+        if (!chunk.length) {
+          // No more steps — finalize
+          await finalizeRun(db, env, suite, allSteps, runId, accPassed, accFailed, prevContext);
+          message.ack();
+          continue;
+        }
+
+        console.log(`[Queue] Chunk ${chunkIndex + 1}: steps ${chunkStart + 1}-${chunkStart + chunk.length} of ${steps.length}`);
+
+        // Run this chunk — gets fresh subrequest budget
+        const { results, context: newContext, summary } = await runFlowSuite(
+          suite, chunk, project, prevContext
+        );
+
+        // Save chunk results to DB immediately
+        for (const r of results) {
+          const rid = db.uuid();
+          await db.run(
+            `INSERT OR IGNORE INTO flow_step_results
+             (id, run_id, step_id, step_order, step_name, status, actual_status,
+              request_url, request_method, request_headers, request_body,
+              actual_body, actual_headers, response_time_ms, failure_reason, extracted_vars)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [rid, runId, r.step_id, r.step_order, r.step_name, r.status,
+              r.actual_status ?? null, r.request_url ?? null, r.request_method ?? null,
+              r.request_headers ? JSON.stringify(r.request_headers) : null,
+              r.request_body ? JSON.stringify(r.request_body) : null,
+              r.actual_body ? JSON.stringify(r.actual_body) : null,
+              r.actual_headers ? JSON.stringify(r.actual_headers) : null,
+              r.response_time_ms ?? null, r.failure_reason ?? null,
+              r.extracted_vars ? JSON.stringify(r.extracted_vars) : null]
+          );
+        }
+
+        const totalPassed = accPassed + summary.passed;
+        const totalFailed = accFailed + summary.failed;
+
+        // Merge context — pass token and all extracted vars to next chunk
+        const mergedContext = { ...prevContext, ...newContext };
+
+        // Update progress
+        await db.run(
+          `UPDATE flow_runs SET passed = ?, failed = ?, context = ? WHERE id = ?`,
+          [totalPassed, totalFailed, JSON.stringify(mergedContext), runId]
+        );
+
+        const hasMoreSteps = chunkStart + CHUNK_SIZE < steps.length;
+
+        if (hasMoreSteps) {
+          // Push next chunk as a new queue job — fresh subrequest budget
+          await queue.send({
+            type: 'flow_suite_chunk',
+            runId, suiteId, projectId, skipStepIds,
+            chunkIndex: chunkIndex + 1,
+            context: mergedContext,
+            accPassed: totalPassed,
+            accFailed: totalFailed,
+          });
+          console.log(`[Queue] Pushed chunk ${chunkIndex + 2}`);
+        } else {
+          // All chunks done — finalize
+          await finalizeRun(db, env, suite, allSteps, runId, totalPassed, totalFailed, mergedContext);
+        }
+
+        message.ack();
+        continue;
+      }
+
+      // ── Legacy: test execution jobs ───────────────────────────────────────
       if (msg.executionId) {
         await runExecutionInline(msg.executionId, msg.projectId, env, null);
         message.ack();
         continue;
       }
 
-      // Unknown message type — ack to avoid infinite retry
-      console.warn('[Queue] Unknown message type:', msg);
+      console.warn('[Queue] Unknown message type:', msg.type);
       message.ack();
     } catch (err) {
-      console.error('[Queue] Job failed:', err);
+      console.error('[Queue] Job failed:', err.message);
       message.retry();
     }
   }
+}
+
+// ── Finalize run after all chunks complete ────────────────────────────────────
+async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, context) {
+  const total = allSteps.length;
+  await db.run(
+    `UPDATE flow_runs SET status = ?, passed = ?, failed = ?, context = ?, finished_at = unixepoch() WHERE id = ?`,
+    [failed === 0 ? 'done' : 'failed', passed, failed, JSON.stringify(context), runId]
+  );
+
+  console.log(`[Queue] Run ${runId} complete: ${passed}/${total} passed`);
+
+  // Load all results for post-processing
+  const results = await db.all(
+    `SELECT * FROM flow_step_results WHERE run_id = ? ORDER BY step_order`, [runId]
+  ).catch(() => []);
+
+  // AI bug analysis for failed steps
+  if (failed > 0 && env?.AI) {
+    analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
+      console.error('[BugAnalysis] Failed:', err.message)
+    );
+  }
+
+  // Sub-checks (fire & forget)
+  runAllSubChecks(db, env, suite, allSteps, results, runId, { base_url: suite.base_url }).catch(err =>
+    console.error('[SubChecks] Failed:', err.message)
+  );
+
+  // Report record
+  const reportId = db.uuid();
+  await db.run(
+    `INSERT OR IGNORE INTO reports (id, execution_id, project_id, format, r2_key, size_bytes)
+     VALUES (?, ?, ?, 'json', ?, ?)`,
+    [reportId, runId, suite.project_id, `flow-runs/${runId}.json`,
+      JSON.stringify({ run_id: runId, passed, failed }).length]
+  ).catch(() => { });
 }
 
 // ─── Test login proxy (avoids browser CORS) ──────────────────────────────────
@@ -560,7 +704,7 @@ export async function createFlowSuite(request, env, { params }) {
   const body = await parseBody(request);
   if (!body?.name) return error('name is required');
 
-  // Enforce max 100 steps per suite
+  // Enforce max 100 steps per suite (queue handles chunking)
   const MAX_STEPS = 100;
   if (body.steps?.length > MAX_STEPS) {
     return error(`Suite cannot have more than ${MAX_STEPS} steps. You have ${body.steps.length} — remove ${body.steps.length - MAX_STEPS} step(s) and try again.`, 400);
@@ -831,8 +975,6 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
     throw err;
   }
 }
-
-
 
 
 /**

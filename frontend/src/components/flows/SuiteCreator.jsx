@@ -582,10 +582,10 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             </span>
                             {(() => {
                                 const total = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size;
-                                const over = total > 30;
+                                const over = total > 100;
                                 return (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: over ? 'var(--red)' : total > 25 ? 'var(--amber)' : 'var(--green)' }}>
-                                        {total}/30 steps {over ? '⚠ over limit' : ''}
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: over ? 'var(--red)' : total > 90 ? 'var(--amber)' : 'var(--green)' }}>
+                                        {total}/100 steps {over ? '⚠ over limit' : ''}
                                     </span>
                                 );
                             })()}
@@ -788,7 +788,7 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     async function handleCreate() {
         if (!suiteName.trim()) { setError('Suite name is required'); return; }
         if (steps.length === 0) { setError('Add at least one step'); return; }
-        if (steps.length > 30) { setError(`Maximum 30 steps allowed. Remove ${steps.length - 30} step(s).`); return; }
+        if (steps.length > 100) { setError(`Maximum 100 steps allowed. Remove ${steps.length - 100} step(s).`); return; }
         setCreating(true);
         setError('');
         try {
@@ -869,7 +869,7 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                 }}>
                     {steps.length >= 30
-                        ? `⚠ Maximum 30 steps reached`
+                        ? `⚠ Maximum 100 steps reached`
                         : <><Plus size={14} /> Add step ({steps.length}/30)</>}
                 </button>
             </div>
