@@ -560,8 +560,8 @@ export async function createFlowSuite(request, env, { params }) {
   const body = await parseBody(request);
   if (!body?.name) return error('name is required');
 
-  // Enforce max 30 steps per suite
-  const MAX_STEPS = 30;
+  // Enforce max 100 steps per suite
+  const MAX_STEPS = 100;
   if (body.steps?.length > MAX_STEPS) {
     return error(`Suite cannot have more than ${MAX_STEPS} steps. You have ${body.steps.length} — remove ${body.steps.length - MAX_STEPS} step(s) and try again.`, 400);
   }

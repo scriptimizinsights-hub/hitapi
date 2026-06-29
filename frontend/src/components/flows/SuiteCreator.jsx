@@ -264,7 +264,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
         // Count total steps before creating
         const crudStepCount = buildCrudSteps(1).length;
         const totalSteps = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size + crudStepCount;
-        const MAX_STEPS = 30;
+        const MAX_STEPS = 100;
         if (totalSteps > MAX_STEPS) {
             setError(`Too many steps (${totalSteps}). Maximum is ${MAX_STEPS}. Remove ${totalSteps - MAX_STEPS} endpoint(s) from selection or CRUD groups.`);
             return;
