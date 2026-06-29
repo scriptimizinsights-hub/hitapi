@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Eye, Database, Globe, Mail, MapPin } from 'lucide-react';
 
-const LAST_UPDATED = 'June 24, 2026';
+const LAST_UPDATED = 'June 30, 2026';
 const COMPANY = 'Scriptimiz Insight LLP';
 const EMAIL = 'support@hitapi.dev';
 const ADDRESS = 'Gokul Nagar, Akurli Road, Kandivali East, Mumbai – 400101, Maharashtra, India';
@@ -42,7 +42,6 @@ export function PrivacyPage() {
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-app)' }}>
-            {/* Nav */}
             {isPublic && (
                 <nav style={{
                     position: 'sticky', top: 0, zIndex: 50,
@@ -72,54 +71,60 @@ export function PrivacyPage() {
                         <strong style={{ color: 'var(--text-primary)' }}>{PRODUCT}</strong> by {COMPANY} &nbsp;·&nbsp; Last updated: {LAST_UPDATED}
                     </p>
                     <div style={{ marginTop: 14, padding: '12px 16px', background: 'rgba(35,209,139,0.08)', border: '1px solid rgba(35,209,139,0.2)', borderRadius: 8, fontSize: 13, color: 'var(--green)' }}>
-                        <strong>Short version:</strong> HitAPI does not collect, sell, or share your personal data. Your API credentials stay on your device and are only sent to your own Cloudflare Worker.
+                        <strong>In plain English:</strong> HitAPI does not sell your data, does not share it with third parties for advertising, and only uses what is necessary to provide the service.
                     </div>
                 </div>
 
                 <Section icon={Eye} color="var(--accent)" title="1. What we collect">
-                    <p style={{ marginBottom: 10 }}>HitAPI collects the minimum data necessary to provide the service:</p>
-                    <Li><strong>Configuration data</strong> — Swagger URLs, base URLs, and your HitAPI Worker URL are stored locally in your browser using <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--accent)' }}>chrome.storage.local</code>. This data never leaves your browser except to communicate with your own configured Worker.</Li>
-                    <Li><strong>API credentials</strong> — Bearer tokens, API keys, and login credentials you enter are stored locally only and transmitted exclusively to your own Cloudflare Worker. We do not receive, store, or log these values.</Li>
-                    <Li><strong>Usage data</strong> — We do not collect analytics, crash reports, or telemetry of any kind.</Li>
-                    <Li><strong>No personal information</strong> — We do not collect names, email addresses, IP addresses, or any personally identifiable information through the extension.</Li>
+                    <p style={{ marginBottom: 10 }}>HitAPI collects only the minimum information required to operate the service:</p>
+                    <Li><strong>Account information</strong> — When you register, we collect your name and email address to identify your account.</Li>
+                    <Li><strong>Project configuration</strong> — API spec URLs and base URLs you provide are stored securely and associated with your account.</Li>
+                    <Li><strong>Test results</strong> — Execution results, response data, and detected issues are stored to display reports and bug history within your account.</Li>
+                    <Li><strong>Usage information</strong> — Standard server logs (timestamps, response codes) used for security monitoring and debugging. These are not shared or sold.</Li>
                 </Section>
 
-                <Section icon={Globe} color="var(--blue)" title="2. How your data flows">
-                    <p style={{ marginBottom: 10 }}>When you use HitAPI, data flows as follows:</p>
-                    <Li><strong>Extension → Your Cloudflare Worker</strong> — Test configurations and API credentials are sent to the Worker URL you provide. This is your own infrastructure — we have no access to it.</Li>
-                    <Li><strong>Your Worker → Your API</strong> — The Worker makes HTTP requests to your API endpoints. Your API responses are returned to the extension. No data passes through Scriptimiz servers.</Li>
-                    <Li><strong>Your Worker → Cloudflare Workers AI</strong> — Endpoint schemas (not credentials) are sent to Cloudflare's AI service to generate test cases. This is governed by Cloudflare's privacy policy.</Li>
-                    <Li><strong>Browser tab scanning</strong> — The extension reads the current tab URL to detect Swagger documentation. This happens locally and is not transmitted anywhere.</Li>
+                <Section icon={Globe} color="var(--blue)" title="2. What we do not collect">
+                    <Li>We do not collect your API credentials, bearer tokens, or passwords for the APIs you test. These are transmitted directly to your target API and not stored on our servers.</Li>
+                    <Li>We do not use tracking pixels, advertising cookies, or third-party analytics.</Li>
+                    <Li>We do not build advertising profiles or sell your data to any third party.</Li>
+                    <Li>We do not access the APIs you test beyond what is needed to execute the test cases you configure.</Li>
                 </Section>
 
-                <Section icon={Database} color="var(--amber)" title="3. Data storage">
-                    <Li>All extension configuration is stored in <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--accent)' }}>chrome.storage.local</code> — local to your device only.</Li>
-                    <Li>Test results and execution history are stored in your own Cloudflare D1 database, which you control.</Li>
-                    <Li>Generated reports are stored in your own Cloudflare R2 bucket, which you control.</Li>
-                    <Li>We do not operate any servers that store your data. The Cloudflare Worker runs in your own Cloudflare account.</Li>
+                <Section icon={Database} color="var(--amber)" title="3. How we store your data">
+                    <p style={{ marginBottom: 10 }}>Your data is stored securely on our infrastructure with the following practices:</p>
+                    <Li>Data is encrypted in transit using TLS.</Li>
+                    <Li>Access to stored data is restricted to your account only — other users cannot view your projects, results, or configurations.</Li>
+                    <Li>We retain your data for as long as your account is active. You may request deletion at any time by contacting us.</Li>
+                    <Li>Passwords are never stored in plain text. We use industry-standard one-way hashing.</Li>
                 </Section>
 
-                <Section icon={Lock} color="var(--green)" title="4. Third-party services">
-                    <p style={{ marginBottom: 10 }}>HitAPI relies on the following third-party services, each with their own privacy policies:</p>
-                    <Li><strong>Cloudflare Workers AI</strong> — Used for AI test generation. Data processed: API endpoint schemas only. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Cloudflare Privacy Policy</a></Li>
-                    <Li><strong>Cloudflare Pages</strong> — Hosts the HitAPI web interface. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Cloudflare Privacy Policy</a></Li>
-                    <Li><strong>Google Chrome</strong> — The extension runs in Chrome and uses standard Chrome APIs. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Google Privacy Policy</a></Li>
+                <Section icon={Lock} color="var(--green)" title="4. How we use your data">
+                    <p style={{ marginBottom: 10 }}>We use the information we collect solely to:</p>
+                    <Li>Provide and operate the HitAPI service.</Li>
+                    <Li>Display your test results, reports, and detected issues within your account.</Li>
+                    <Li>Send transactional emails (e.g. account verification, password reset) if applicable.</Li>
+                    <Li>Investigate security incidents or abuse involving our platform.</Li>
+                    <Li>Improve the service based on aggregated, anonymised usage patterns.</Li>
                 </Section>
 
-                <Section icon={Shield} color="var(--pink)" title="5. Permissions we request">
-                    <p style={{ marginBottom: 10 }}>The Chrome extension requests the following permissions and here is why:</p>
-                    <Li><strong>activeTab</strong> — To read the current tab URL and detect Swagger documentation. Only activated when you click the extension icon.</Li>
-                    <Li><strong>storage</strong> — To save your configuration (Worker URL, Swagger URL) locally so you don't have to re-enter it every time.</Li>
-                    <Li><strong>scripting</strong> — To run a small content script that detects Swagger UI on pages you visit.</Li>
-                    <Li><strong>host_permissions (&lt;all_urls&gt;)</strong> — Required to detect Swagger docs across any domain you develop on (e.g. localhost, staging, production). We only scan for Swagger-specific patterns.</Li>
+                <Section icon={Shield} color="var(--pink)" title="5. Sharing of data">
+                    <p style={{ marginBottom: 10 }}>We do not sell, rent, or trade your personal information. We may share data only in these limited circumstances:</p>
+                    <Li><strong>Legal compliance</strong> — If required by applicable law, court order, or governmental authority.</Li>
+                    <Li><strong>Security</strong> — To investigate fraud, abuse, or violations of our terms of service.</Li>
+                    <Li><strong>Business transfer</strong> — In the event of a merger or acquisition, data may transfer to the new entity under the same privacy commitments.</Li>
                 </Section>
 
-                <Section icon={Eye} color="var(--text-secondary)" title="6. Children's privacy">
-                    HitAPI is a developer tool intended for professional use. It is not directed at children under 13 years of age and we do not knowingly collect information from children.
+                <Section icon={Eye} color="var(--text-secondary)" title="6. Your rights">
+                    <p style={{ marginBottom: 10 }}>You have the right to:</p>
+                    <Li>Access the personal data we hold about you.</Li>
+                    <Li>Request correction of inaccurate data.</Li>
+                    <Li>Request deletion of your account and associated data.</Li>
+                    <Li>Withdraw consent at any time by discontinuing use and requesting account deletion.</Li>
+                    <p style={{ marginTop: 10 }}>To exercise any of these rights, contact us at the address below.</p>
                 </Section>
 
                 <Section icon={Globe} color="var(--accent)" title="7. Changes to this policy">
-                    We may update this Privacy Policy from time to time. We will update the "Last updated" date at the top of this page. Continued use of {PRODUCT} after changes constitutes acceptance of the updated policy.
+                    We may update this Privacy Policy periodically. The "Last updated" date at the top of this page will reflect any changes. Continued use of {PRODUCT} after changes are posted constitutes acceptance of the updated policy. For significant changes, we will make reasonable efforts to notify registered users.
                 </Section>
 
                 {/* Contact */}
@@ -129,7 +134,7 @@ export function PrivacyPage() {
                         <h2 style={{ fontSize: 15, fontWeight: 600 }}>8. Contact us</h2>
                     </div>
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.7 }}>
-                        If you have any questions about this Privacy Policy or how we handle data, please contact us:
+                        For any questions, concerns, or requests regarding this Privacy Policy or your personal data:
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
