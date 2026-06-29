@@ -16,94 +16,161 @@ export function BugsPage() {
   const { projectId } = useParams();
   const { bugs, loadBugs, dismissBug } = useStore();
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadBugs(projectId); }, [projectId]);
+  useEffect(() => {
+    setLoading(true);
+    loadBugs(projectId).finally(() => setLoading(false));
+  }, [projectId]);
 
-  const filtered = severityFilter === 'all' ? bugs : bugs.filter(b => b.severity === severityFilter);
+  const filtered = bugs
+    .filter(b => severityFilter === 'all' || b.severity === severityFilter)
+    .filter(b => sourceFilter === 'all' || b.source === sourceFilter);
+
+  const flowBugCount = bugs.filter(b => b.source === 'flow').length;
+  const testBugCount = bugs.filter(b => b.source !== 'flow').length;
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">AI Bug Detection</h1>
-        <p className="page-subtitle">Issues automatically detected by Cloudflare Workers AI</p>
+        <div>
+          <h1 className="page-title">AI Bug Detection</h1>
+          <p className="page-subtitle">Issues automatically detected by Cloudflare Workers AI</p>
+        </div>
+        <button onClick={() => loadBugs(projectId)} className="btn btn-ghost btn-sm">↻ Refresh</button>
+      </div>
+
+      {/* Source filter */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {[
+          { key: 'all', label: `All bugs`, count: bugs.length },
+          { key: 'flow', label: 'Flow Suite', count: flowBugCount, color: 'var(--accent)' },
+          { key: 'test', label: 'Test Cases', count: testBugCount, color: 'var(--blue)' },
+        ].map(({ key, label, count, color }) => (
+          <button key={key} onClick={() => setSourceFilter(key)} style={{
+            padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+            background: sourceFilter === key ? 'rgba(130,100,255,0.1)' : 'var(--bg-card)',
+            color: sourceFilter === key ? (color || 'var(--accent)') : 'var(--text-secondary)',
+            border: `1px solid ${sourceFilter === key ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`,
+            fontWeight: sourceFilter === key ? 600 : 400,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            {label}
+            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)' }}>{count}</span>
+          </button>
+        ))}
       </div>
 
       {/* Severity filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {['all', 'critical', 'high', 'medium', 'low'].map(s => {
           const meta = SEV[s] || { color: 'var(--text-secondary)', bg: 'var(--bg-card)', border: 'var(--border)', label: 'All' };
-          const count = s === 'all' ? bugs.length : bugs.filter(b => b.severity === s).length;
+          const count = s === 'all' ? filtered.length : filtered.filter(b => b.severity === s).length;
           const active = severityFilter === s;
           return (
-            <button key={s} onClick={() => setSeverityFilter(s)}
-              style={{
-                padding: '6px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
-                background: active ? meta.bg : 'var(--bg-card)',
-                color: active ? meta.color : 'var(--text-secondary)',
-                border: active ? `1px solid ${meta.border}` : '1px solid var(--border)',
-                fontWeight: active ? 600 : 400, transition: 'all 0.12s',
-                display: 'flex', alignItems: 'center', gap: 6
-              }}
-            >
+            <button key={s} onClick={() => setSeverityFilter(s)} style={{
+              padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+              background: active ? meta.bg : 'var(--bg-card)',
+              color: active ? meta.color : 'var(--text-secondary)',
+              border: active ? `1px solid ${meta.border}` : '1px solid var(--border)',
+              fontWeight: active ? 600 : 400,
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
               {s === 'all' ? 'All severities' : meta.label}
-              <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.08)', color: active ? meta.color : 'var(--text-tertiary)' }}>
-                {count}
-              </span>
+              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', color: active ? meta.color : 'var(--text-tertiary)' }}>{count}</span>
             </button>
           );
         })}
       </div>
 
-      {bugs.length === 0 ? (
+      {loading ? (
+        <div className="card"><div className="empty-state"><div className="spinner" /><p>Loading bugs...</p></div></div>
+      ) : bugs.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <Bug size={40} />
             <h3 style={{ color: 'var(--green)' }}>No open bugs</h3>
-            <p>Run your test suite to detect API issues automatically</p>
+            <p>Run a flow suite or test cases to detect API issues automatically</p>
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="card">
+          <div className="empty-state">
+            <Bug size={32} />
+            <p style={{ color: 'var(--text-tertiary)' }}>No bugs match this filter</p>
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(bug => {
             const meta = SEV[bug.severity] || SEV.medium;
+            const isFlow = bug.source === 'flow';
             return (
               <div key={bug.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'stretch',
-                  borderLeft: `3px solid ${meta.color}`
-                }}>
-                  <div style={{ flex: 1, padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-                        background: meta.bg, color: meta.color, letterSpacing: '0.04em'
-                      }}>
+                <div style={{ display: 'flex', alignItems: 'stretch', borderLeft: `3px solid ${meta.color}` }}>
+                  <div style={{ flex: 1, padding: '14px 18px' }}>
+
+                    {/* Top row — severity + source + endpoint */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: meta.bg, color: meta.color, letterSpacing: '.04em' }}>
                         {meta.label.toUpperCase()}
                       </span>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)', padding: '1px 6px', background: 'rgba(255,255,255,0.04)', borderRadius: 4 }}>
-                        {bug.method} {bug.path}
+                      <span style={{
+                        fontSize: 10, padding: '2px 7px', borderRadius: 4, fontWeight: 600,
+                        background: isFlow ? 'rgba(130,100,255,0.1)' : 'rgba(59,130,246,0.1)',
+                        color: isFlow ? 'var(--accent)' : 'var(--blue)',
+                        border: `1px solid ${isFlow ? 'rgba(130,100,255,0.2)' : 'rgba(59,130,246,0.2)'}`,
+                      }}>
+                        {isFlow ? '⟳ Flow Suite' : '▶ Test Case'}
                       </span>
+                      {(bug.method || bug.path) && (
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)', padding: '1px 6px', background: 'rgba(255,255,255,0.04)', borderRadius: 4 }}>
+                          {bug.method} {bug.path}
+                        </span>
+                      )}
+                      {isFlow && bug.flow_step_id && (
+                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                          step {bug.step_order || ''}
+                        </span>
+                      )}
                     </div>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{bug.title}</h3>
+
+                    {/* Title */}
+                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, lineHeight: 1.4 }}>{bug.title}</h3>
+
+                    {/* Description */}
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>{bug.description}</p>
+
+                    {/* Root cause */}
                     {bug.root_cause && (
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, marginBottom: 8, fontFamily: 'JetBrains Mono, monospace' }}>
-                        <span style={{ color: 'var(--text-tertiary)' }}>Root cause: </span>{bug.root_cause}
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '7px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, marginBottom: 8, lineHeight: 1.5 }}>
+                        <span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Root cause: </span>{bug.root_cause}
                       </div>
                     )}
+
+                    {/* Suggested fix */}
                     {bug.suggested_fix && (
-                      <div style={{ fontSize: 12, color: 'var(--green)', padding: '8px 12px', background: 'var(--green-bg)', borderRadius: 6, border: '1px solid var(--green-border)' }}>
-                        💡 {bug.suggested_fix}
+                      <div style={{ fontSize: 12, color: 'var(--green)', padding: '7px 10px', background: 'var(--green-bg)', borderRadius: 6, border: '1px solid var(--green-border)', lineHeight: 1.5 }}>
+                        💡 <strong>Fix:</strong> {bug.suggested_fix}
+                      </div>
+                    )}
+
+                    {/* Flow run link */}
+                    {isFlow && bug.flow_run_id && (
+                      <div style={{ marginTop: 8 }}>
+                        <a href={`/projects/${projectId}/flows`} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <ExternalLink size={11} /> View flow run
+                        </a>
                       </div>
                     )}
                   </div>
-                  <div style={{ padding: '16px 14px', borderLeft: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start' }}>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => dismissBug(projectId, bug.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
-                      <X size={12} /> Dismiss
+
+                  {/* Dismiss button */}
+                  <div style={{ padding: '14px 12px', borderLeft: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start' }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => dismissBug(projectId, bug.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                      <X size={11} /> Dismiss
                     </button>
                   </div>
                 </div>
@@ -247,7 +314,7 @@ export function NewProjectModal({ onClose, onCreated }) {
           {form.auth_type === 'login_flow' && (
             <div style={{ background: 'rgba(130,100,255,0.06)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 8, padding: '14px 16px' }}>
               <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500, marginBottom: 12 }}>
-                🔐 Login flow — APIForge will POST to your login endpoint first, extract the token, then inject it as Bearer into all test requests.
+                🔐 Login flow — HitAPI will POST to your login endpoint first, extract the token, then inject it as Bearer into all test requests.
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div>
@@ -296,8 +363,8 @@ export function NewProjectModal({ onClose, onCreated }) {
             {loading ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Creating…</> : 'Create project'}
           </button>
         </div>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
 
