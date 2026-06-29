@@ -44,6 +44,7 @@ const ROUTES = [
 
   // Health
   router('GET', '/health', healthCheck),
+  router('GET', '/api/health', healthCheck),
 
   // Projects
   router('GET', '/api/projects', listProjects),

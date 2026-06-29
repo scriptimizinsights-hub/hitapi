@@ -232,8 +232,8 @@ export async function runExecution(request, env, { params }) {
   // Queue it if queue is available, otherwise run inline
   const executionId = await r.executions.create(params.id, body?.triggered || 'manual');
 
-  if (env.TEST_QUEUE) {
-    await env.TEST_QUEUE.send({ executionId, projectId: params.id });
+  if (env.TEST_QUEUE || env.QUEUE) {
+    await (env.TEST_QUEUE || env.QUEUE).send({ executionId, projectId: params.id });
     return json(success({ execution_id: executionId, status: 'queued' }));
   }
 
@@ -681,9 +681,10 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
     [runId, params.flowId, params.id, allSteps.length]
   );
 
-  // Option 1: Use Cloudflare Queue if available
-  if (env.TEST_QUEUE) {
-    await env.TEST_QUEUE.send({
+  // Option 1: Use Cloudflare Queue if available (binding may be TEST_QUEUE or QUEUE)
+  const queueBinding = env.TEST_QUEUE || env.QUEUE;
+  if (queueBinding) {
+    await queueBinding.send({
       type: 'flow_suite_run',
       runId,
       suiteId: params.flowId,
@@ -824,6 +825,7 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
     throw err;
   }
 }
+
 
 
 /**
@@ -1184,7 +1186,8 @@ export async function healthCheck(request, env) {
     services: {
       db: !!env.DB,
       cache: !!env.CACHE,
-      queue: !!env.TEST_QUEUE,
+      queue: !!(env.QUEUE || env.TEST_QUEUE),
+      queue_binding: env.QUEUE ? 'QUEUE' : env.TEST_QUEUE ? 'TEST_QUEUE' : 'none',
       r2: !!env.REPORTS,
       ai: !!env.AI
     }
