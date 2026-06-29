@@ -17,8 +17,8 @@ const NAV = [
   { to: 'monitors', icon: Bell, label: 'Monitors' },
   { to: 'flows', icon: GitBranch, label: 'Flow Suites', dividerBefore: true },
   { to: 'settings', icon: Settings, label: 'Settings' },
-  { to: 'flow', icon: HelpCircle, label: 'How it works' },
-  { to: 'login-flow', icon: Lock, label: 'Login flow' },
+  // { to: 'flow', icon: HelpCircle, label: 'How it works' },
+  // { to: 'login-flow', icon: Lock, label: 'Login flow' },
 ];
 
 export function Sidebar({ onNewProject }) {
@@ -26,13 +26,9 @@ export function Sidebar({ onNewProject }) {
   const navigate = useNavigate();
   const { projects, currentProject, setCurrentProject, projectLoading, user, logout } = useStore();
   const [projectsOpen, setProjectsOpen] = useState(true);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   function handleLogout() {
-    setUserMenuOpen(false);
-    setCurrentProject(null);
-    useStore.setState({ projects: [], currentProject: null, endpoints: [], testCases: [], executions: [], bugs: [], lastRunResult: null });
-    navigate('/');
+    logout();
   }
 
   return (
@@ -205,97 +201,24 @@ export function Sidebar({ onNewProject }) {
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>Support</button>
         </div>
 
-        {/* User */}
+        {/* User card — shows logged in user with sign out */}
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', marginBottom: 8, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
               {user.name?.[0]?.toUpperCase() || '?'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
             </div>
-            <button onClick={logout} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14, padding: '2px 4px', borderRadius: 4, flexShrink: 0 }}
+            <button onClick={logout} title="Sign out"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '4px', borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>
-              ⏻
+              <LogOut size={14} />
             </button>
           </div>
         )}
-
-        {/* Settings menu */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setUserMenuOpen(o => !o)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-              background: userMenuOpen ? 'var(--bg-card-hover)' : 'var(--bg-card)',
-              border: '1px solid var(--border)', transition: 'all 0.12s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-            onMouseLeave={e => { if (!userMenuOpen) e.currentTarget.style.background = 'var(--bg-card)'; }}
-          >
-            <div style={{
-              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #8264ff, #5ca8ff)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <User size={13} color="#fff" />
-            </div>
-            <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden' }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Settings
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>How it works · Support</div>
-            </div>
-            <ChevronDown size={12} color="var(--text-tertiary)"
-              style={{ transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }} />
-          </button>
-
-          {userMenuOpen && (
-            <>
-              <div onClick={() => setUserMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
-              <div style={{
-                position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50,
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
-                borderRadius: 10, overflow: 'hidden',
-                boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
-                animation: 'modalIn 0.15s ease'
-              }}>
-                {[
-                  { icon: HelpCircle, label: 'How it works', action: () => navigate('/how-it-works') },
-                  { icon: Settings, label: 'Settings', action: () => navigate(`/projects/${currentProject?.id}/settings`) },
-                ].map(({ icon: Icon, label, action }) => (
-                  <button key={label}
-                    onClick={() => { setUserMenuOpen(false); action(); }}
-                    style={{
-                      width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
-                      background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', textAlign: 'left',
-                      borderBottom: '1px solid var(--border)', transition: 'background 0.1s'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <Icon size={14} /> {label}
-                  </button>
-                ))}
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
-                    background: 'transparent', color: 'var(--red)', fontSize: 13, cursor: 'pointer', textAlign: 'left',
-                    transition: 'background 0.1s'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--red-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <LogOut size={14} /> Sign out
-                </button>
-              </div>
-            </>
-          )}
-        </div>
       </div>
     </aside>
   );
