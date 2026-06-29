@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name apiforge"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name hitapi"
   },
   "dependencies": {
     "react": "^18.3.1",
