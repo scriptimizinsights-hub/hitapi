@@ -348,6 +348,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         request_body: safeJSON(r.request_body),
                         request_headers: safeJSON(r.request_headers),
                         extracted_vars: safeJSON(r.extracted_vars),
+                        sub_checks: safeJSON(r.sub_checks) || [],
                     }))
                 });
             }
@@ -399,6 +400,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             request_body: safeJSON(r.request_body),
                             request_headers: safeJSON(r.request_headers),
                             extracted_vars: safeJSON(r.extracted_vars),
+                            sub_checks: safeJSON(r.sub_checks) || [],
                         }))
                     });
                     if (detail.run.total_steps > 0) setActiveTab('results');
