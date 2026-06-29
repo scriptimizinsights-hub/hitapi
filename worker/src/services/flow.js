@@ -372,7 +372,9 @@ export async function runSubChecks(step, happyResult, context, project) {
         fullHeaders['Authorization'] = `Bearer ${context.token || context.__token}`;
     }
 
-    const sentBody = happyResult.request_body;
+    const sentBody = typeof happyResult.request_body === 'string'
+        ? (() => { try { return JSON.parse(happyResult.request_body); } catch { return null; } })()
+        : (happyResult.request_body || null);
 
     // 1. 🔒 Auth check — remove token, expect 401/403
     const noAuthHeaders = { 'Content-Type': 'application/json' };
