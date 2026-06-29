@@ -425,7 +425,7 @@ export async function listReports(request, env, { params }) {
             fr.bug_count    as run_bugs,
             fs.name         as suite_name
      FROM reports r
-     LEFT JOIN flow_runs fr ON fr.id = r.execution_id
+     LEFT JOIN flow_runs fr ON fr.id = COALESCE(r.flow_run_id, r.execution_id)
      LEFT JOIN flow_suites fs ON fs.id = fr.suite_id
      WHERE r.project_id = ?
      ORDER BY r.created_at DESC LIMIT 20`,
@@ -714,7 +714,7 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
   // Report record
   const reportId = db.uuid();
   await db.run(
-    `INSERT OR IGNORE INTO reports (id, execution_id, project_id, format, r2_key, size_bytes)
+    `INSERT OR IGNORE INTO reports (id, flow_run_id, project_id, format, r2_key, size_bytes)
      VALUES (?, ?, ?, 'json', ?, ?)`,
     [reportId, runId, suite.project_id, `flow-runs/${runId}.json`,
       JSON.stringify({ run_id: runId, passed, failed }).length]
@@ -1054,7 +1054,7 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
 
     const reportId = db.uuid();
     await db.run(
-      `INSERT OR IGNORE INTO reports (id, execution_id, project_id, format, r2_key, size_bytes)
+      `INSERT OR IGNORE INTO reports (id, flow_run_id, project_id, format, r2_key, size_bytes)
        VALUES (?, ?, ?, 'json', ?, ?)`,
       [reportId, runId, suite.project_id, `flow-runs/${runId}.json`,
         JSON.stringify({ run_id: runId, summary }).length]
