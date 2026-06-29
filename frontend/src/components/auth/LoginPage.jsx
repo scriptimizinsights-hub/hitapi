@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/index.js';
+import { CURRENT_TERMS_VERSION } from '../ui/TermsGate.jsx';
 
 export function LoginPage({ onAuth }) {
     const { login, signup } = useStore();
@@ -7,12 +8,17 @@ export function LoginPage({ onAuth }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [termsChecked, setTermsChecked] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+        if (mode === 'signup' && !termsChecked) {
+            setError('You must accept the Terms & Conditions to create an account');
+            return;
+        }
         setLoading(true);
         try {
             if (mode === 'login') {
@@ -20,7 +26,7 @@ export function LoginPage({ onAuth }) {
             } else {
                 if (!name.trim()) { setError('Name is required'); setLoading(false); return; }
                 if (password.length < 8) { setError('Password must be at least 8 characters'); setLoading(false); return; }
-                await signup(name, email, password);
+                await signup(name, email, password, CURRENT_TERMS_VERSION);
             }
             onAuth?.();
         } catch (err) {
@@ -88,6 +94,20 @@ export function LoginPage({ onAuth }) {
                             <div style={{ padding: '8px 12px', background: 'var(--red-bg)', borderRadius: 7, fontSize: 12, color: 'var(--red)', border: '1px solid var(--red-border)' }}>
                                 ✗ {error}
                             </div>
+                        )}
+
+
+                        {mode === 'signup' && (
+                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                                <input type="checkbox" checked={termsChecked} onChange={e => setTermsChecked(e.target.checked)}
+                                    style={{ width: 15, height: 15, marginTop: 2, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
+                                <span style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                    I agree to the{' '}
+                                    <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Terms & Conditions</a>
+                                    {' '}and{' '}
+                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Privacy Policy</a>
+                                </span>
+                            </label>
                         )}
 
                         <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: 4, padding: '10px', fontSize: 14 }}>

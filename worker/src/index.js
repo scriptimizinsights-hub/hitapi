@@ -5,7 +5,7 @@
  */
 
 import { handleCORS, json } from './middleware/cors.js';
-import { hitapiSignup, hitapiLogin, hitapiMe, requireAuth } from './services/auth.js';
+import { hitapiSignup, hitapiLogin, hitapiMe, hitapiAcceptTerms, hitapiTermsHistory, requireAuth } from './services/auth.js';
 import {
   listProjects, createProject, getProject, updateProject, deleteProject,
   importSwagger,
@@ -35,6 +35,8 @@ const ROUTES = [
   router('POST', '/api/auth/signup', hitapiSignup),
   router('POST', '/api/auth/login', hitapiLogin),
   router('GET', '/api/auth/me', hitapiMe),
+  router('POST', '/api/auth/accept-terms', hitapiAcceptTerms),
+  router('GET', '/api/auth/terms-history', hitapiTermsHistory),
   // Flow Suites
   router('GET', '/api/projects/:id/flows', listFlowSuites),
   router('POST', '/api/projects/:id/flows', createFlowSuite),
@@ -130,7 +132,7 @@ export default {
       if (!matched) continue;
 
       // Public routes — no auth required
-      const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/health', '/api/health'];
+      const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/api/auth/accept-terms', '/health', '/api/health'];
       const isPublic = PUBLIC.some(p => urlPath === p || urlPath.startsWith(p));
 
       if (!isPublic && urlPath.startsWith('/api/')) {

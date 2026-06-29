@@ -37,6 +37,8 @@ export const api = {
     signup: (body) => request('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
     login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
     me: () => request('/auth/me'),
+    acceptTerms: (version) => request('/auth/accept-terms', { method: 'POST', body: JSON.stringify({ version }) }),
+    termsHistory: () => request('/auth/terms-history'),
   },
   // Projects
   projects: {
@@ -113,11 +115,16 @@ export const useStore = create((set, get) => ({
     set({ user: data.user });
     return data.user;
   },
-  signup: async (name, email, password) => {
-    const data = await api.auth.signup({ name, email, password });
+  signup: async (name, email, password, termsVersion) => {
+    const data = await api.auth.signup({ name, email, password, terms_version: termsVersion });
     setToken(data.token);
     set({ user: data.user });
     return data.user;
+  },
+  acceptTerms: async (version) => {
+    const data = await api.auth.acceptTerms(version);
+    set(s => ({ user: s.user ? { ...s.user, terms_version_accepted: data.terms_version_accepted } : s.user }));
+    return data;
   },
   logout: () => {
     setToken(null);
