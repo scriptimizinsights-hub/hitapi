@@ -5,6 +5,7 @@
  */
 
 import { handleCORS, json } from './middleware/cors.js';
+import { hitapiSignup, hitapiLogin, hitapiMe, requireAuth } from './services/auth.js';
 import {
   listProjects, createProject, getProject, updateProject, deleteProject,
   importSwagger,
@@ -30,6 +31,10 @@ function router(method, path, handler) {
 }
 
 const ROUTES = [
+  // ── HitAPI Platform Auth ──────────────────────────────────────────────────
+  router('POST', '/api/auth/signup', hitapiSignup),
+  router('POST', '/api/auth/login', hitapiLogin),
+  router('GET', '/api/auth/me', hitapiMe),
   // Flow Suites
   router('GET', '/api/projects/:id/flows', listFlowSuites),
   router('POST', '/api/projects/:id/flows', createFlowSuite),
@@ -122,9 +127,20 @@ export default {
     for (const route of ROUTES) {
       if (route.method !== method) continue;
       const { matched, params } = matchRoute(route.pattern, urlPath);
-      if (matched) {
-        return route.handler(request, env, { params, ctx });
+      if (!matched) continue;
+
+      // Public routes — no auth required
+      const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/health', '/api/health'];
+      const isPublic = PUBLIC.some(p => urlPath === p || urlPath.startsWith(p));
+
+      if (!isPublic && urlPath.startsWith('/api/')) {
+        const payload = await requireAuth(request, env);
+        if (!payload) {
+          return json({ success: false, error: 'Unauthorized — please log in to HitAPI' }, 401, env);
+        }
       }
+
+      return route.handler(request, env, { params, ctx });
     }
 
     // 404

@@ -4,12 +4,27 @@
 
 const BASE = import.meta.env.VITE_API_URL ?? 'https://services.hitapi.dev/api';
 
+export function getToken() { return localStorage.getItem('hitapi_token'); }
+export function setToken(t) { t ? localStorage.setItem('hitapi_token', t) : localStorage.removeItem('hitapi_token'); }
+
 async function request(path, options = {}) {
   const url = path.startsWith('http') ? path : `${BASE}${path}`;
+  const { headers: optHeaders, ...restOptions } = options;
+  const token = getToken();
   const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options
+    ...restOptions,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(optHeaders || {}),
+    },
   });
+
+  if (response.status === 401) {
+    setToken(null);
+    window.location.hash = '#/login';
+    throw new Error('Session expired — please log in again');
+  }
 
   const data = await response.json().catch(() => ({ error: 'Invalid response' }));
   if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
@@ -17,6 +32,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  // HitAPI Auth
+  auth: {
+    signup: (body) => request('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
+    login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+    me: () => request('/auth/me'),
+  },
   // Projects
   projects: {
     list: () => request('/projects'),
@@ -83,6 +104,37 @@ export const api = {
 import { create } from 'zustand';
 
 export const useStore = create((set, get) => ({
+  // Auth
+  user: null,
+  authLoading: true,
+  login: async (email, password) => {
+    const data = await api.auth.login({ email, password });
+    setToken(data.token);
+    set({ user: data.user });
+    return data.user;
+  },
+  signup: async (name, email, password) => {
+    const data = await api.auth.signup({ name, email, password });
+    setToken(data.token);
+    set({ user: data.user });
+    return data.user;
+  },
+  logout: () => {
+    setToken(null);
+    set({ user: null, projects: [], currentProject: null });
+    window.location.hash = '#/login';
+  },
+  loadMe: async () => {
+    const token = getToken();
+    if (!token) { set({ authLoading: false }); return; }
+    try {
+      const data = await api.auth.me();
+      set({ user: data.user, authLoading: false });
+    } catch {
+      setToken(null);
+      set({ user: null, authLoading: false });
+    }
+  },
   // Projects
   projects: [],
   currentProject: null,

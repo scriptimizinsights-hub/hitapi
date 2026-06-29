@@ -12,6 +12,7 @@ import { ProjectSettings } from './components/ui/ProjectSettings.jsx';
 import { PrivacyPage } from './components/ui/PrivacyPage.jsx';
 import { SupportPage } from './components/ui/SupportPage.jsx';
 import { FlowSuitesPage } from './components/flows/FlowSuitesPage.jsx';
+import { LoginPage } from './components/auth/LoginPage.jsx';
 import { useStore } from './store/index.js';
 import './styles/global.css';
 
@@ -122,12 +123,36 @@ function Landing({ onNewProject }) {
 
 export default function App() {
   const [showNewProject, setShowNewProject] = useState(false);
-  const { loadProjects, setCurrentProject, projects } = useStore();
+  const { loadProjects, setCurrentProject, user, authLoading, loadMe, logout } = useStore();
 
-  useEffect(() => { loadProjects(); }, []);
+  useEffect(() => { loadMe(); }, []);
+  useEffect(() => { if (user) loadProjects(); }, [user]);
 
   function handleNewProject() { setShowNewProject(true); }
   function handleProjectCreated(project) { setCurrentProject(project); }
+
+  // Show spinner while checking auth
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div className="spinner" style={{ width: 32, height: 32 }} />
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!user) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="*" element={<LoginPage onAuth={() => loadProjects()} />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
 
   return (
     <BrowserRouter>
