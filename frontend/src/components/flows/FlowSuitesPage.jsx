@@ -672,10 +672,12 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                 <tbody>
                                     {(() => {
                                         const rows = [];
-                                        let lastGroup = null;
+                                        let lastShownGroup = null;
                                         (lastRun.results || []).forEach((r, i) => {
                                             const group = getStepGroup(r);
-                                            if (group && group !== lastGroup && i > 1) {
+                                            // Show group header only when group changes AND it's not auth steps
+                                            if (group && group !== lastShownGroup && i > 1) {
+                                                lastShownGroup = group;
                                                 rows.push(
                                                     <tr key={`grp-${i}`}>
                                                         <td colSpan={9} style={{ padding: '5px 14px 2px', background: 'rgba(130,100,255,0.04)', borderTop: '1px solid rgba(130,100,255,0.15)' }}>
@@ -687,8 +689,10 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                                         </td>
                                                     </tr>
                                                 );
+                                            } else if (!group) {
+                                                // Reset tracking when we hit a non-grouped step
+                                                lastShownGroup = null;
                                             }
-                                            lastGroup = group;
                                             rows.push(
                                                 <StepResult
                                                     key={i}
