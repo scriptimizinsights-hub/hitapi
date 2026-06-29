@@ -1085,7 +1085,6 @@ async function runAllSubChecks(db, env, suite, allSteps, results, runId, project
 
   console.log(`[SubChecks] Starting sub-checks for ${results.length} steps`);
 
-  // Build context from results (token, extracted vars)
   const context = {};
   for (const r of results) {
     if (r.extracted_vars) {
@@ -1095,7 +1094,6 @@ async function runAllSubChecks(db, env, suite, allSteps, results, runId, project
     }
   }
 
-  // Process ONE step at a time — 4 sub-checks per step = 4 subrequests (safe)
   for (const result of results) {
     if (result.status === 'skipped') continue;
     const step = allSteps.find(s => s.id === result.step_id) || {};
@@ -1104,7 +1102,6 @@ async function runAllSubChecks(db, env, suite, allSteps, results, runId, project
       const subChecks = await runSubChecks(step, result, context, project);
       if (subChecks.length === 0) continue;
 
-      // Update the step result in DB with sub_checks
       await db.run(
         `UPDATE flow_step_results SET sub_checks = ? WHERE run_id = ? AND step_order = ?`,
         [JSON.stringify(subChecks), runId, result.step_order]
@@ -1113,7 +1110,36 @@ async function runAllSubChecks(db, env, suite, allSteps, results, runId, project
       const passed = subChecks.filter(c => c.status === 'passed').length;
       console.log(`[SubChecks] Step ${result.step_order}: ${passed}/${subChecks.length} passed`);
 
-      // Small delay between steps to avoid rate limits
+      // Save bugs for failed sub-checks
+      for (const check of subChecks.filter(c => c.status === 'failed')) {
+        const bugId = db.uuid();
+        const severity = check.check_type === 'auth' ? 'high'
+          : check.check_type === 'security' ? 'high' : 'medium';
+        const title = `${step.method || ''} ${step.endpoint_path || result.request_url || ''} — ${check.label}`;
+        await db.run(
+          `INSERT OR IGNORE INTO bugs (id, project_id, flow_run_id, flow_step_id, endpoint_id, severity, title, description, root_cause, suggested_fix, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+          [
+            bugId,
+            suite.project_id,
+            runId,
+            result.step_id || null,
+            step.endpoint_id || null,
+            severity,
+            title.slice(0, 200),
+            `Security check failed: ${check.label}. Expected ${check.expected_status}, got ${check.actual_status}.`,
+            check.check_type === 'auth' ? 'Endpoint does not require authentication — returns non-401/403 without token'
+              : check.check_type === 'security' ? 'Endpoint does not reject SQL injection payload'
+                : check.check_type === 'validation' ? 'Endpoint accepts empty body without validation error'
+                  : 'Wrong HTTP method not properly rejected',
+            check.check_type === 'auth' ? 'Add authentication middleware to this endpoint'
+              : check.check_type === 'security' ? 'Add input validation/sanitization for SQL injection'
+                : check.check_type === 'validation' ? 'Add required field validation returning 400/422'
+                  : 'Ensure unsupported methods return 404 or 405',
+          ]
+        ).catch(() => { });
+      }
+
       await new Promise(r => setTimeout(r, 200));
     } catch (err) {
       console.error(`[SubChecks] Step ${result.step_order} failed:`, err.message);
@@ -1153,8 +1179,8 @@ async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
 
       const bugId = db.uuid();
       await db.run(
-        `INSERT INTO bugs (id, project_id, execution_id, endpoint_id, severity, title, description, root_cause, suggested_fix, flow_run_id, flow_step_id, status)
-         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+        `INSERT INTO bugs (id, project_id, endpoint_id, severity, title, description, root_cause, suggested_fix, flow_run_id, flow_step_id, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
         [
           bugId,
           suite.project_id,
@@ -1167,7 +1193,11 @@ async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
           runId,
           result.step_id || null,
         ]
-      );
+      ).then(() => {
+        console.log(`[BugAnalysis] ✓ Saved bug ${bugId}: ${bug.title}`);
+      }).catch(err => {
+        console.error(`[BugAnalysis] ✗ Failed to save bug:`, err.message);
+      });
 
       analyzed++;
       console.log(`[BugAnalysis] Saved bug ${bugId} — ${bug.severity}: ${bug.title}`);
