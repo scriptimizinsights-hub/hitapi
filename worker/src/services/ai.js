@@ -408,6 +408,15 @@ Output this exact JSON (no markdown, no extra text):
     const text = extractText(response);
     if (!text) return ruleBugFallback(stepContext);
     const parsed = parseJSON(text);
+    // Reject if AI echoed the prompt template literally
+    if (parsed && parsed.title && (
+      parsed.title.toLowerCase().includes('short title') ||
+      parsed.title.toLowerCase().includes('under 60 chars') ||
+      parsed.title.toLowerCase().includes('title here') ||
+      parsed.severity === 'high|medium|low'
+    )) {
+      return ruleBugFallback(stepContext);
+    }
     return parsed || ruleBugFallback(stepContext);
   } catch (err) {
     console.error(`[BugAnalysis] Failed for step ${step.step_order}:`, err.message);

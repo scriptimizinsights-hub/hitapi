@@ -24,7 +24,7 @@ const NAV = [
 export function Sidebar({ onNewProject }) {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { projects, currentProject, setCurrentProject, projectLoading } = useStore();
+  const { projects, currentProject, setCurrentProject, projectLoading, user, logout } = useStore();
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -186,26 +186,7 @@ export function Sidebar({ onNewProject }) {
           </a>
         </div>
 
-        {/* User */}
-        {(() => {
-          const { user, logout } = useStore();
-          return user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', marginBottom: 8, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                {user.name?.[0]?.toUpperCase() || '?'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
-              </div>
-              <button onClick={logout} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14, padding: '2px 4px', borderRadius: 4, flexShrink: 0 }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>
-                ⏻
-              </button>
-            </div>
-          ) : null;
-        })()}
+
 
         {/* CF services */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: '0 2px' }}>
@@ -224,7 +205,25 @@ export function Sidebar({ onNewProject }) {
             onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>Support</button>
         </div>
 
-        {/* User menu */}
+        {/* User */}
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', marginBottom: 8, borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+              {user.name?.[0]?.toUpperCase() || '?'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+              <div style={{ fontSize: 9, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+            </div>
+            <button onClick={logout} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14, padding: '2px 4px', borderRadius: 4, flexShrink: 0 }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>
+              ⏻
+            </button>
+          </div>
+        )}
+
+        {/* Settings menu */}
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setUserMenuOpen(o => !o)}
@@ -246,9 +245,9 @@ export function Sidebar({ onNewProject }) {
             </div>
             <div style={{ flex: 1, textAlign: 'left', overflow: 'hidden' }}>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                My workspace
+                Settings
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Free plan</div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>How it works · Support</div>
             </div>
             <ChevronDown size={12} color="var(--text-tertiary)"
               style={{ transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }} />
