@@ -689,7 +689,7 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
 
   // AI bug analysis for failed steps
   if (failed > 0 && env?.AI) {
-    analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
+    await analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
       console.error('[BugAnalysis] Failed:', err.message)
     );
   }
@@ -1041,7 +1041,7 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
     );
 
     if (summary.failed > 0 && env?.AI) {
-      analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
+      await analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
         console.error('[BugAnalysis] Failed:', err.message)
       );
     }
