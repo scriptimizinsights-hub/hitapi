@@ -616,9 +616,9 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
   }
 
   // Sub-checks (fire & forget)
-  runAllSubChecks(db, env, suite, allSteps, results, runId, { base_url: suite.base_url }).catch(err =>
-    console.error('[SubChecks] Failed:', err.message)
-  );
+  runAllSubChecks(db, env, suite, allSteps, results, runId,
+    await db.first(`SELECT * FROM projects WHERE id = ?`, [suite.project_id]).catch(() => null)
+  ).catch(err => console.error('[SubChecks] Failed:', err.message));
 
   // Report record
   const reportId = db.uuid();

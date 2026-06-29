@@ -359,7 +359,7 @@ async function runSubCheck(url, method, headers, body, expectedFailStatus, label
     }
 }
 
-async function runSubChecks(step, happyResult, context, project) {
+export async function runSubChecks(step, happyResult, context, project) {
     const checks = [];
     const method = step.method || happyResult.request_method || 'GET';
     const url = happyResult.request_url;
