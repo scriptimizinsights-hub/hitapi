@@ -188,56 +188,183 @@ export function BugsPage() {
 export function ReportsPage() {
   const { projectId } = useParams();
   const [reports, setReports] = useState([]);
-  const { addToast } = useStore();
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
     import('../../store/index.js').then(({ api }) => {
-      api.reports.list(projectId).then(setReports).catch(() => { });
+      api.reports.list(projectId).then(data => {
+        setReports(Array.isArray(data) ? data : []);
+      }).catch(() => setReports([])).finally(() => setLoading(false));
     });
-  }, [projectId]);
+  }
+
+  useEffect(() => { load(); }, [projectId]);
+
+  const passRate = (r) => {
+    const total = r.run_total || 0;
+    if (!total) return null;
+    return Math.round(((r.run_passed || 0) / total) * 100);
+  };
+
+  const duration = (r) => {
+    if (!r.run_started || !r.run_finished) return null;
+    const secs = r.run_finished - r.run_started;
+    return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${secs % 60}s`;
+  };
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Reports</h1>
-        <p className="page-subtitle">Download execution reports from Cloudflare R2 storage</p>
+        <div>
+          <h1 className="page-title">Reports</h1>
+          <p className="page-subtitle">Flow suite run history and results</p>
+        </div>
+        <button onClick={load} className="btn btn-ghost btn-sm">↻ Refresh</button>
       </div>
-      {reports.length === 0 ? (
+
+      {loading ? (
+        <div className="card"><div className="empty-state"><div className="spinner" /><p>Loading reports...</p></div></div>
+      ) : reports.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <BarChart3 size={40} />
             <h3>No reports yet</h3>
-            <p>Run a test suite to generate an HTML report stored in R2</p>
+            <p>Run a flow suite to generate reports automatically</p>
           </div>
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <table className="table">
-            <thead>
-              <tr><th>Format</th><th>Size</th><th>Generated</th><th /></tr>
-            </thead>
-            <tbody>
-              {reports.map(r => (
-                <tr key={r.id}>
-                  <td><span className="badge badge-accent">{r.format.toUpperCase()}</span></td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {r.size_bytes ? `${Math.round(r.size_bytes / 1024)}KB` : '—'}
-                  </td>
-                  <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {new Date(r.created_at * 1000).toLocaleString()}
-                  </td>
-                  <td>
-                    <a href={`/api/reports/${r.id}/download`} target="_blank" rel="noopener noreferrer"
-                      className="btn btn-ghost btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <ExternalLink size={12} /> Open
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', gap: 16 }}>
+
+          {/* Report list */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {reports.map(r => {
+              const rate = passRate(r);
+              const dur = duration(r);
+              const isSelected = selected?.id === r.id;
+              const statusColor = r.run_status === 'done' ? 'var(--green)'
+                : r.run_status === 'failed' ? 'var(--red)'
+                  : 'var(--amber)';
+
+              return (
+                <div key={r.id} onClick={() => setSelected(isSelected ? null : r)}
+                  className="card" style={{
+                    padding: '14px 18px', cursor: 'pointer', transition: 'border .12s',
+                    border: isSelected ? '1px solid rgba(130,100,255,0.4)' : '1px solid var(--border)',
+                    background: isSelected ? 'rgba(130,100,255,0.04)' : 'var(--bg-card)',
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+
+                    {/* Pass rate ring */}
+                    <div style={{ flexShrink: 0, position: 'relative', width: 40, height: 40 }}>
+                      <svg width="40" height="40" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+                        <circle cx="20" cy="20" r="16" fill="none"
+                          stroke={rate === 100 ? 'var(--green)' : rate > 50 ? 'var(--amber)' : 'var(--red)'}
+                          strokeWidth="4" strokeDasharray={`${(rate || 0) * 1.005} 100.5`}
+                          strokeLinecap="round" transform="rotate(-90 20 20)" />
+                      </svg>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: rate === 100 ? 'var(--green)' : 'var(--text-secondary)' }}>
+                        {rate != null ? `${rate}%` : '—'}
+                      </div>
+                    </div>
+
+                    {/* Suite name + date */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>
+                        {r.suite_name || 'Flow Suite Run'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                        {new Date(r.created_at * 1000).toLocaleString()}
+                        {dur && <span style={{ marginLeft: 8 }}>⏱ {dur}</span>}
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                      {r.run_total && (
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{r.run_total}</div>
+                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Steps</div>
+                        </div>
+                      )}
+                      {r.run_passed != null && (
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--green)' }}>{r.run_passed}</div>
+                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Passed</div>
+                        </div>
+                      )}
+                      {r.run_failed != null && r.run_failed > 0 && (
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--red)' }}>{r.run_failed}</div>
+                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Failed</div>
+                        </div>
+                      )}
+                      {r.run_bugs > 0 && (
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--amber)' }}>{r.run_bugs}</div>
+                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Bugs</div>
+                        </div>
+                      )}
+                      <div style={{ padding: '3px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: r.run_status === 'done' ? 'var(--green-bg)' : r.run_status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)', color: statusColor, border: `1px solid ${statusColor}33` }}>
+                        {r.run_status || 'unknown'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  {r.run_total > 0 && (
+                    <div style={{ marginTop: 10, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 2, background: rate === 100 ? 'var(--green)' : 'linear-gradient(90deg, var(--green), var(--amber))', width: `${rate || 0}%`, transition: 'width .3s' }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Detail panel */}
+          {selected && (
+            <div style={{ width: 320, flexShrink: 0 }}>
+              <div className="card" style={{ padding: '16px', position: 'sticky', top: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Run Details</span>
+                  <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16, padding: 0 }}>×</button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <Detail label="Suite" value={selected.suite_name || '—'} />
+                  <Detail label="Status" value={selected.run_status || '—'} valueColor={selected.run_status === 'done' ? 'var(--green)' : selected.run_status === 'failed' ? 'var(--red)' : 'var(--amber)'} />
+                  <Detail label="Pass rate" value={`${passRate(selected) ?? '—'}%`} />
+                  <Detail label="Steps" value={`${selected.run_passed || 0} passed / ${selected.run_failed || 0} failed / ${selected.run_total || 0} total`} />
+                  {selected.run_bugs > 0 && <Detail label="Bugs found" value={`${selected.run_bugs} bug${selected.run_bugs > 1 ? 's' : ''}`} valueColor="var(--amber)" />}
+                  <Detail label="Duration" value={duration(selected) || '—'} />
+                  <Detail label="Started" value={selected.run_started ? new Date(selected.run_started * 1000).toLocaleString() : '—'} />
+                  <Detail label="Format" value={(selected.format || 'json').toUpperCase()} />
+                  <Detail label="Size" value={selected.size_bytes ? `${Math.round(selected.size_bytes / 1024)} KB` : '—'} />
+                </div>
+
+                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <a href={`/projects/${projectId}/flows`}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(130,100,255,0.08)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
+                    <ExternalLink size={12} /> View flow suite
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function Detail({ label, value, valueColor }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
+      <span style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>{label}</span>
+      <span style={{ color: valueColor || 'var(--text-secondary)', fontWeight: 500, textAlign: 'right' }}>{value}</span>
     </div>
   );
 }

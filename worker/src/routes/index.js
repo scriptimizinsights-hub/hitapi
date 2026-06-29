@@ -413,8 +413,22 @@ export async function detectApiWorkflows(request, env, { params }) {
 
 export async function listReports(request, env, { params }) {
   const db = new DatabaseAdapter(env.DB);
+  // Join with flow_runs and flow_suites to get rich report data
   const reports = await db.all(
-    'SELECT * FROM reports WHERE project_id = ? ORDER BY created_at DESC LIMIT 10',
+    `SELECT r.*,
+            fr.status       as run_status,
+            fr.passed       as run_passed,
+            fr.failed       as run_failed,
+            fr.total_steps  as run_total,
+            fr.started_at   as run_started,
+            fr.finished_at  as run_finished,
+            fr.bug_count    as run_bugs,
+            fs.name         as suite_name
+     FROM reports r
+     LEFT JOIN flow_runs fr ON fr.id = r.execution_id
+     LEFT JOIN flow_suites fs ON fs.id = fr.suite_id
+     WHERE r.project_id = ?
+     ORDER BY r.created_at DESC LIMIT 20`,
     [params.id]
   );
   return json(success(reports));
