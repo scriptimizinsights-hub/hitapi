@@ -487,15 +487,8 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
         // Execute step normally
         const result = await executeStep(step, context, project);
 
-        // ── Run sub-checks on every step (auth, validation, security, method) ──
-        // Sub-checks use context from previous steps so {{token}} is injected
-        // They don't affect cascade — sub-check failures never block next step
-        const subChecks = await runSubChecks(step, result, context, project);
-        result.sub_checks = subChecks;
-        if (subChecks.length > 0) {
-            const subPassed = subChecks.filter(c => c.status === 'passed').length;
-            console.log(`[Flow] Sub-checks step ${step.step_order}: ${subPassed}/${subChecks.length} passed`);
-        }
+        // Note: sub-checks run separately after all steps complete
+        // to avoid multiplying subrequests (25 steps × 5 checks = 125 requests)
 
         // After signup — extract credentials + check for token
         if (isSignupStep) {

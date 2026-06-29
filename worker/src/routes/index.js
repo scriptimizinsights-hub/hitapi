@@ -712,7 +712,7 @@ export async function runFlowSuiteRoute(request, env, { params, ctx }) {
 
 
 // ── Chunked runner — splits 80+ steps into batches of 40 ─────────────────────
-const CHUNK_SIZE = 25; // safely under 50 subrequest limit
+const CHUNK_SIZE = 45; // safe: 1 subrequest per step, no inline sub-checks
 
 export async function runFlowSuiteInline(db, env, suite, allSteps, project, runId, skipStepIds = []) {
   const { runFlowSuite } = await import('../services/flow.js');
@@ -811,6 +811,12 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
       );
     }
 
+    // Run sub-checks AFTER all steps complete — one step at a time
+    // This avoids multiplying subrequests during the main run
+    runAllSubChecks(db, env, suite, allSteps, results, runId, project).catch(err =>
+      console.error('[SubChecks] Failed:', err.message)
+    );
+
     const reportId = db.uuid();
     await db.run(
       `INSERT OR IGNORE INTO reports (id, execution_id, project_id, format, r2_key, size_bytes)
@@ -828,11 +834,62 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
 
 
 
+
 /**
  * analyzeFlowRunBugs
  * Processes failed steps one by one after suite run.
  * Calls AI sequentially — one step at a time.
  */
+
+/**
+ * runAllSubChecks
+ * Runs security/validation sub-checks for each step AFTER the main suite completes.
+ * Processes ONE step at a time to stay under subrequest limits.
+ * Each step gets its own mini-invocation via queue if available.
+ */
+async function runAllSubChecks(db, env, suite, allSteps, results, runId, project) {
+  const { runSubChecks } = await import('../services/flow.js');
+
+  console.log(`[SubChecks] Starting sub-checks for ${results.length} steps`);
+
+  // Build context from results (token, extracted vars)
+  const context = {};
+  for (const r of results) {
+    if (r.extracted_vars) {
+      const vars = typeof r.extracted_vars === 'string'
+        ? JSON.parse(r.extracted_vars) : r.extracted_vars;
+      Object.assign(context, vars);
+    }
+  }
+
+  // Process ONE step at a time — 4 sub-checks per step = 4 subrequests (safe)
+  for (const result of results) {
+    if (result.status === 'skipped') continue;
+    const step = allSteps.find(s => s.id === result.step_id) || {};
+
+    try {
+      const subChecks = await runSubChecks(step, result, context, project);
+      if (subChecks.length === 0) continue;
+
+      // Update the step result in DB with sub_checks
+      await db.run(
+        `UPDATE flow_step_results SET sub_checks = ? WHERE run_id = ? AND step_order = ?`,
+        [JSON.stringify(subChecks), runId, result.step_order]
+      );
+
+      const passed = subChecks.filter(c => c.status === 'passed').length;
+      console.log(`[SubChecks] Step ${result.step_order}: ${passed}/${subChecks.length} passed`);
+
+      // Small delay between steps to avoid rate limits
+      await new Promise(r => setTimeout(r, 200));
+    } catch (err) {
+      console.error(`[SubChecks] Step ${result.step_order} failed:`, err.message);
+    }
+  }
+
+  console.log(`[SubChecks] Done`);
+}
+
 async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
   const { analyzeFlowStepBug } = await import('../services/ai.js');
 
