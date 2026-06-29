@@ -577,7 +577,72 @@ export async function handleQueue(batch, env) {
         continue;
       }
 
-      // ── Legacy: test execution jobs ───────────────────────────────────────
+      // ── Sub-check job — runs 4 checks for ONE step, pushes next step ──────
+      if (msg.type === 'flow_sub_checks') {
+        const { runId, projectId, stepIndex } = msg;
+
+        const results = await db.all(
+          `SELECT * FROM flow_step_results WHERE run_id = ? ORDER BY step_order`, [runId]
+        ).catch(() => []);
+
+        const activeResults = results.filter(r => r.status !== 'skipped' && r.request_url);
+
+        if (stepIndex >= activeResults.length) {
+          console.log(`[SubChecks] All steps done for run ${runId}`);
+          message.ack();
+          continue;
+        }
+
+        const result = activeResults[stepIndex];
+        const suite = await db.first(`SELECT * FROM flow_suites WHERE id = (SELECT suite_id FROM flow_runs WHERE id = ?)`, [runId]);
+        const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [projectId]);
+        const allSteps = suite ? await db.all(
+          `SELECT fs.*, e.path as endpoint_path, e.method as endpoint_method
+           FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+           WHERE fs.suite_id = ? ORDER BY fs.step_order`, [suite.id]
+        ).catch(() => []) : [];
+
+        // Build context from all results (token etc.)
+        const context = {};
+        for (const r of results) {
+          if (r.extracted_vars) {
+            try { Object.assign(context, JSON.parse(r.extracted_vars)); } catch { }
+          }
+        }
+
+        const step = allSteps.find(s => s.id === result.step_id) || {};
+
+        try {
+          const { runSubChecks } = await import('../services/flow.js');
+          const subChecks = await runSubChecks(step, result, context, project);
+
+          if (subChecks.length > 0) {
+            await db.run(
+              `UPDATE flow_step_results SET sub_checks = ? WHERE run_id = ? AND step_order = ?`,
+              [JSON.stringify(subChecks), runId, result.step_order]
+            );
+            const passed = subChecks.filter(c => c.status === 'passed').length;
+            console.log(`[SubChecks] Step ${result.step_order}: ${passed}/${subChecks.length} passed`);
+          }
+        } catch (err) {
+          console.error(`[SubChecks] Step ${result.step_order} error:`, err.message);
+        }
+
+        // Push next step as new queue job — fresh subrequest budget
+        if (stepIndex + 1 < activeResults.length) {
+          await queue.send({
+            type: 'flow_sub_checks',
+            runId,
+            projectId,
+            stepIndex: stepIndex + 1,
+          });
+        } else {
+          console.log(`[SubChecks] All ${activeResults.length} steps completed for run ${runId}`);
+        }
+
+        message.ack();
+        continue;
+      }
       if (msg.executionId) {
         await runExecutionInline(msg.executionId, msg.projectId, env, null);
         message.ack();
@@ -615,10 +680,22 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
     );
   }
 
-  // Sub-checks (fire & forget)
-  runAllSubChecks(db, env, suite, allSteps, results, runId,
-    await db.first(`SELECT * FROM projects WHERE id = ?`, [suite.project_id]).catch(() => null)
-  ).catch(err => console.error('[SubChecks] Failed:', err.message));
+  // Sub-checks — push as separate queue job to get fresh subrequest budget
+  // Each step needs 4 sub-checks, so we process one step per queue job
+  const queue = env.QUEUE || env.TEST_QUEUE;
+  if (queue) {
+    await queue.send({
+      type: 'flow_sub_checks',
+      runId,
+      projectId: suite.project_id,
+      stepIndex: 0,  // start from first step
+    });
+  } else {
+    // Fallback: run inline (may hit limits)
+    const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [suite.project_id]).catch(() => null);
+    runAllSubChecks(db, env, suite, allSteps, results, runId, project)
+      .catch(err => console.error('[SubChecks] Failed:', err.message));
+  }
 
   // Report record
   const reportId = db.uuid();
