@@ -137,14 +137,25 @@ export default {
       const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/api/auth/accept-terms', '/health', '/api/health'];
       const isPublic = PUBLIC.some(p => urlPath === p || urlPath.startsWith(p));
 
+      let authUser = null;
       if (!isPublic && urlPath.startsWith('/api/')) {
-        const payload = await requireAuth(request, env);
-        if (!payload) {
+        authUser = await requireAuth(request, env);
+        if (!authUser) {
           return json({ success: false, error: 'Unauthorized — please log in to HitAPI' }, 401, env);
+        }
+
+        // CRITICAL: verify project ownership for any /api/projects/:id/* route
+        // params.id is always the project ID in this routing scheme
+        if (params?.id && urlPath.startsWith('/api/projects/')) {
+          const { assertProjectOwner } = await import('./routes/index.js');
+          const owns = await assertProjectOwner(env, params.id, authUser.sub);
+          if (!owns) {
+            return json({ success: false, error: 'Project not found' }, 404, env);
+          }
         }
       }
 
-      return route.handler(request, env, { params, ctx });
+      return route.handler(request, env, { params, ctx, user: authUser });
     }
 
     // 404

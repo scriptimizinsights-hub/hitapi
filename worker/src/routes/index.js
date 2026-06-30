@@ -24,38 +24,64 @@ function repos(env) {
 
 // ─── Projects ────────────────────────────────────────────────────────────────
 
-export async function listProjects(request, env) {
-  const { projects } = repos(env);
-  const data = await projects.list();
+export async function listProjects(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const data = await db.all(
+    `SELECT p.*, (SELECT COUNT(*) FROM endpoints e WHERE e.project_id = p.id) as endpoint_count
+     FROM projects p WHERE p.user_id = ? ORDER BY p.created_at DESC`,
+    [user.sub]
+  );
   return json(success(data));
 }
 
-export async function createProject(request, env) {
+export async function createProject(request, env, { user }) {
   const body = await parseBody(request);
   if (!body?.name || !body?.base_url) return error('name and base_url are required');
-  const { projects } = repos(env);
-  const project = await projects.create(body);
+  const db = new DatabaseAdapter(env.DB);
+  const id = db.uuid();
+  await db.run(
+    `INSERT INTO projects (id, user_id, name, description, swagger_url, base_url, environment, auth_type, auth_config)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, user.sub, body.name, body.description || null, body.swagger_url || null,
+      body.base_url, body.environment || 'development', body.auth_type || 'none',
+      body.auth_config ? JSON.stringify(body.auth_config) : null]
+  );
+  const project = await db.first('SELECT * FROM projects WHERE id = ?', [id]);
   return json(success(project), 201);
 }
 
-export async function getProject(request, env, { params }) {
-  const { projects } = repos(env);
-  const project = await projects.get(params.id);
+export async function getProject(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const project = await db.first('SELECT * FROM projects WHERE id = ? AND user_id = ?', [params.id, user.sub]);
   if (!project) return error('Project not found', 404);
   return json(success(project));
 }
 
-export async function updateProject(request, env, { params }) {
+export async function updateProject(request, env, { params, user }) {
   const body = await parseBody(request);
+  const db = new DatabaseAdapter(env.DB);
+  // Verify ownership before allowing update
+  const existing = await db.first('SELECT id FROM projects WHERE id = ? AND user_id = ?', [params.id, user.sub]);
+  if (!existing) return error('Project not found', 404);
   const { projects } = repos(env);
   const project = await projects.update(params.id, body);
   return json(success(project));
 }
 
-export async function deleteProject(request, env, { params }) {
-  const { projects } = repos(env);
-  await projects.delete(params.id);
+export async function deleteProject(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const existing = await db.first('SELECT id FROM projects WHERE id = ? AND user_id = ?', [params.id, user.sub]);
+  if (!existing) return error('Project not found', 404);
+  await db.run('DELETE FROM projects WHERE id = ?', [params.id]);
   return json(success({ deleted: true }));
+}
+
+// ── Ownership guard: verify the authenticated user owns this project ──────────
+// Use this at the top of every handler that operates on params.id (project id)
+export async function assertProjectOwner(env, projectId, userId) {
+  const db = new DatabaseAdapter(env.DB);
+  const project = await db.first('SELECT id FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]);
+  return !!project;
 }
 
 // ─── Swagger Import ──────────────────────────────────────────────────────────
