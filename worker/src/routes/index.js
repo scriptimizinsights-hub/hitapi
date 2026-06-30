@@ -1294,6 +1294,63 @@ export async function listFlowRuns(request, env, { params }) {
   return json(success(runs));
 }
 
+// ── Add a single step to an existing flow suite (used by browser extension) ──
+export async function addFlowStep(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const suite = await db.first(
+    `SELECT fs.id FROM flow_suites fs JOIN projects p ON p.id = fs.project_id
+     WHERE fs.id = ? AND p.id = ? AND p.user_id = ?`,
+    [params.flowId, params.id, user.sub]
+  );
+  if (!suite) return error('Flow suite not found', 404);
+
+  const body = await parseBody(request);
+  if (!body.method || !body.name) return error('name and method are required', 400);
+
+  const maxOrder = await db.first(`SELECT MAX(step_order) as m FROM flow_steps WHERE suite_id = ?`, [params.flowId]);
+  const nextOrder = (maxOrder?.m ?? -1) + 1;
+
+  const sid = db.uuid();
+  await db.run(
+    `INSERT INTO flow_steps (id, suite_id, step_order, name, method, url_override, input_payload, input_headers, input_params, expected_status, skip_if_failed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      sid, params.flowId, nextOrder, body.name, body.method,
+      body.url_override || null,
+      body.input_payload ? await encryptField(env, JSON.stringify(body.input_payload)) : null,
+      body.input_headers ? JSON.stringify(body.input_headers) : null,
+      body.input_params ? JSON.stringify(body.input_params) : null,
+      body.expected_status || null,
+      0,
+    ]
+  );
+
+  const step = await db.first('SELECT * FROM flow_steps WHERE id = ?', [sid]);
+  console.log(`[Extension] Step added to suite ${params.flowId} via browser extension`);
+  return json(success(step), 201);
+}
+
+// ── Manual bug report (used by browser extension "Report bug" action) ────────
+export async function createManualBug(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const project = await db.first('SELECT id FROM projects WHERE id = ? AND user_id = ?', [params.id, user.sub]);
+  if (!project) return error('Project not found', 404);
+
+  const body = await parseBody(request);
+  if (!body.title) return error('title is required', 400);
+
+  const bugId = db.uuid();
+  await db.run(
+    `INSERT INTO bugs (id, project_id, severity, title, description, status)
+     VALUES (?, ?, ?, ?, ?, 'open')`,
+    [bugId, params.id, body.severity || 'medium', body.title.slice(0, 200), body.description || '']
+  );
+
+  const bug = await db.first('SELECT * FROM bugs WHERE id = ?', [bugId]);
+  console.log(`[Extension] Manual bug reported for project ${params.id} via browser extension`);
+  return json(success(bug), 201);
+}
+
 export async function updateFlowStep(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const body = await parseBody(request);
