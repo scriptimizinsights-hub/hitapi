@@ -219,11 +219,25 @@ export function PrivacyPage() {
                     <Li>We do not use advertising cookies, third-party tracking pixels, or behavioural analytics.</Li>
                 </Section>
 
-                <Section title="11. Children's Privacy">
+                <Section title="11. Browser Extension">
+                    <p style={{ marginBottom: 10 }}>
+                        HitAPI offers an optional Chrome browser extension that lets you capture API requests, detect authentication tokens, and run test suites without leaving the page you are testing. The extension collects and stores the following:
+                    </p>
+                    <Li><strong>Login credentials</strong> — Your email address and password are sent to HitAPI's servers to authenticate you, using the same login flow as the web dashboard. Your session token is then stored in the extension's local browser storage to keep you signed in.</Li>
+                    <Li><strong>Captured request metadata</strong> — While you browse a website with the extension active, it observes outgoing API requests made by that page (URL, HTTP method, headers, and request body) using the Chrome <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>webRequest</code> API. This data is held temporarily in local browser storage, scoped to the current tab, and is only sent to HitAPI's servers if you explicitly choose to add a captured request to a test suite or report it as a bug.</Li>
+                    <Li><strong>Detected authentication tokens</strong> — If the extension observes a Bearer token in a request made by the page you are viewing, it stores that token locally so you can copy it for use in a test configuration. Detected tokens are not automatically transmitted to HitAPI's servers.</Li>
+                    <Note>
+                        The extension requires broad host permissions (access to all websites) because it is a general-purpose API testing tool — it cannot know in advance which site you intend to test. It does not read page content, text, images, or DOM elements; it only observes network request metadata.
+                    </Note>
+                    <Li>Data captured by the extension is cleared automatically when you close the browser tab it was captured on.</Li>
+                    <Li>You can review the extension's full source code and permissions in the Chrome Web Store listing before installing.</Li>
+                </Section>
+
+                <Section title="12. Children's Privacy">
                     HitAPI is a developer tool intended for professional use by adults. We do not knowingly collect personal information from anyone under 18 years of age. If you believe a minor has registered, contact us at {EMAIL} and we will delete the account promptly.
                 </Section>
 
-                <Section title="12. Changes to This Policy">
+                <Section title="13. Changes to This Policy">
                     <p>
                         We may update this Privacy Policy to reflect changes in our practices, the features we implement, or legal requirements. The "Last updated" date at the top will always reflect the most recent version. For significant changes, we will make reasonable efforts to notify registered users by email or via an in-app notice. Continued use of {PRODUCT} after changes are posted constitutes acceptance of the updated policy.
                     </p>
@@ -233,7 +247,7 @@ export function PrivacyPage() {
                 <div className="card" style={{ padding: '24px 28px', borderColor: 'rgba(130,100,255,0.25)', background: 'rgba(130,100,255,0.04)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                         <Mail size={17} color="var(--accent)" />
-                        <h2 style={{ fontSize: 15, fontWeight: 600 }}>13. Contact Us</h2>
+                        <h2 style={{ fontSize: 15, fontWeight: 600 }}>14. Contact Us</h2>
                     </div>
                     <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.7 }}>
                         For any questions, concerns, data requests, or to exercise your rights under this Privacy Policy:
