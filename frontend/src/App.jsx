@@ -164,33 +164,35 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public pages — no sidebar */}
-        <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/support" element={<SupportPage />} />
+      <TermsGate>
+        <Routes>
+          {/* Public pages — no sidebar */}
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/support" element={<SupportPage />} />
 
-        <Route path="/" element={
-          <AppLayout onNewProject={handleNewProject}>
-            <Landing onNewProject={handleNewProject} />
-          </AppLayout>
-        } />
-        <Route path="/projects/:projectId/*" element={
-          <AppLayout onNewProject={handleNewProject}>
-            <ProjectRoutes />
-          </AppLayout>
-        } />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+          <Route path="/" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <Landing onNewProject={handleNewProject} />
+            </AppLayout>
+          } />
+          <Route path="/projects/:projectId/*" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <ProjectRoutes />
+            </AppLayout>
+          } />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
 
-      {showNewProject && (
-        <NewProjectModal
-          onClose={() => setShowNewProject(false)}
-          onCreated={handleProjectCreated}
-        />
-      )}
-      <ToastContainer />
+        {showNewProject && (
+          <NewProjectModal
+            onClose={() => setShowNewProject(false)}
+            onCreated={handleProjectCreated}
+          />
+        )}
+        <ToastContainer />
+      </TermsGate>
     </BrowserRouter>
   );
 }
