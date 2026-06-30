@@ -43,7 +43,7 @@ const STAGES = [
     },
     {
         step: '06', icon: BarChart3, color: '#c084fc', bg: 'rgba(192,132,252,0.1)', border: 'rgba(192,132,252,0.25)',
-        title: 'Reports & monitoring',
+        title: 'Reports &amp; monitoring',
         subtitle: 'Full run history, always available.',
         description: 'Every flow suite run generates a report with pass rate, step-by-step results, timing, and bug counts. Set up monitors to re-run on a schedule.',
         details: ['Pass rate and step breakdown', 'Per-step security check results', 'AI bug analysis per failure', 'Scheduled monitoring'],

@@ -84,7 +84,7 @@ export function PrivacyPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                             <thead>
                                 <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-                                    {['Data Type', 'Destination', 'Retention', 'Risk Level & Mitigation'].map(h => (
+                                    {['Data Type', 'Destination', 'Retention', 'Risk Level &amp; Mitigation'].map(h => (
                                         <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase', fontSize: 10, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                                     ))}
                                 </tr>
@@ -161,10 +161,10 @@ export function PrivacyPage() {
                     <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Account Information</p>
                     <Li>Name and email address provided during registration.</Li>
                     <Li>Password stored as a salted one-way cryptographic hash using PBKDF2-SHA256 with 100,000 iterations. We cannot recover your password.</Li>
-                    <Li>Account creation timestamp and the version of our Terms & Conditions you accepted at registration.</Li>
+                    <Li>Account creation timestamp and the version of our Terms &amp; Conditions you accepted at registration.</Li>
 
                     <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '14px 0 6px' }}>Terms Acceptance Records</p>
-                    <Li>Each time you accept our Terms & Conditions, we record: your user ID, the terms version accepted, a timestamp, your IP address, and your browser user-agent string. This is required for legal compliance and is stored in an audit table.</Li>
+                    <Li>Each time you accept our Terms &amp; Conditions, we record: your user ID, the terms version accepted, a timestamp, your IP address, and your browser user-agent string. This is required for legal compliance and is stored in an audit table.</Li>
 
                     <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '14px 0 6px' }}>Project Configuration</p>
                     <Li>API base URLs and Swagger/OpenAPI spec URLs you provide.</Li>
@@ -207,7 +207,7 @@ export function PrivacyPage() {
 
                 <Section title="3. How We Use Your Information">
                     <Li>To create and manage your account.</Li>
-                    <Li>To record your acceptance of our Terms & Conditions with a timestamp and IP address for legal compliance.</Li>
+                    <Li>To record your acceptance of our Terms &amp; Conditions with a timestamp and IP address for legal compliance.</Li>
                     <Li>To execute API test suites and flow suites on your behalf.</Li>
                     <Li>To store and display test results, execution history, reports, and detected bugs within your account.</Li>
                     <Li>To generate AI-powered bug analysis for failed test steps.</Li>
@@ -239,7 +239,7 @@ export function PrivacyPage() {
                     <Li><strong>Transit encryption</strong> — All data between your browser and our services is encrypted using TLS 1.3 (HTTPS).</Li>
                     <Li><strong>API response bodies</strong> — Stored as plain text in our database. Protected by the infrastructure-level security controls provided by Cloudflare D1, but not individually encrypted at the application layer.</Li>
                     <Li><strong>Access controls</strong> — Customer data is accessible only to your account through authenticated API requests. Authorised personnel may access data only when required for maintenance, support, or security incident response.</Li>
-                    <Li><strong>Terms acceptance</strong> — Each acceptance is recorded server-side with a timestamp, IP address, and user-agent string, and is tied to a specific version of our Terms & Conditions.</Li>
+                    <Li><strong>Terms acceptance</strong> — Each acceptance is recorded server-side with a timestamp, IP address, and user-agent string, and is tied to a specific version of our Terms &amp; Conditions.</Li>
                     <Li>No method of transmission or storage is 100% secure. We take reasonable technical measures but cannot guarantee absolute security.</Li>
                 </Section>
 

@@ -178,7 +178,7 @@ export function SupportPage() {
                             { step: '2', title: 'Create a project', desc: 'Enter your API\'s base URL and Swagger spec URL. Choose your auth type.' },
                             { step: '3', title: 'Import Swagger', desc: 'Click "Import Swagger" — all endpoints are discovered and stored automatically.' },
                             { step: '4', title: 'Generate AI tests', desc: 'Click "Generate tests" — choose scope (all, by tag, by method) and limit.' },
-                            { step: '5', title: 'Run & see results', desc: 'Click "Run Tests" — pass/fail results appear instantly with HTTP status and response time.' },
+                            { step: '5', title: 'Run &amp; see results', desc: 'Click "Run Tests" — pass/fail results appear instantly with HTTP status and response time.' },
                         ].map(({ step, title, desc }) => (
                             <div key={step} style={{ display: 'flex', gap: 14, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                 <div style={{
@@ -217,7 +217,7 @@ export function SupportPage() {
                                 </div>
                                 <div style={{ fontSize: 18, fontWeight: 600 }}>Scriptimiz Insight LLP</div>
                                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-                                    Custom Software Solutions & Web Development · Mumbai, India
+                                    Custom Software Solutions &amp; Web Development · Mumbai, India
                                 </div>
                             </div>
                             <a href="https://scriptimiz.com" target="_blank" rel="noopener noreferrer"
@@ -233,12 +233,12 @@ export function SupportPage() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
                                 {[
-                                    { title: 'Web Development', desc: 'Custom web apps with React, Spring Boot & Microservices' },
-                                    { title: 'Software Training', desc: 'Java, Spring Boot, Microservices — for individuals & teams' },
+                                    { title: 'Web Development', desc: 'Custom web apps with React, Spring Boot &amp; Microservices' },
+                                    { title: 'Software Training', desc: 'Java, Spring Boot, Microservices — for individuals &amp; teams' },
                                     { title: 'Application Support', desc: 'Ongoing maintenance and support for enterprise apps' },
                                     { title: 'IT Consulting', desc: 'Architecture, code reviews, and technology strategy' },
                                     { title: 'B2B Software Products', desc: 'End-to-end product development for businesses' },
-                                    { title: 'E-Commerce Solutions', desc: 'Online stores, payment integration & fulfilment systems' },
+                                    { title: 'E-Commerce Solutions', desc: 'Online stores, payment integration &amp; fulfilment systems' },
                                 ].map(({ title, desc }) => (
                                     <div key={title} style={{ padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border)' }}>
                                         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{title}</div>
