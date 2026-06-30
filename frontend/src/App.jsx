@@ -13,6 +13,8 @@ import { PrivacyPage } from './components/ui/PrivacyPage.jsx';
 import { SupportPage } from './components/ui/SupportPage.jsx';
 import { FlowSuitesPage } from './components/flows/FlowSuitesPage.jsx';
 import { LoginPage } from './components/auth/LoginPage.jsx';
+import { TermsGate } from './components/ui/TermsGate.jsx';
+import { TermsPage } from './components/ui/TermsPage.jsx';
 import { useStore } from './store/index.js';
 import './styles/global.css';
 
@@ -145,10 +147,16 @@ export default function App() {
     return (
       <BrowserRouter>
         <Routes>
+          {/* Always public — no auth or terms required */}
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
-          <Route path="*" element={<LoginPage onAuth={() => loadProjects()} />} />
+          <Route path="*" element={
+            <TermsGate>
+              <LoginPage onAuth={() => loadProjects()} />
+            </TermsGate>
+          } />
         </Routes>
       </BrowserRouter>
     );
@@ -160,6 +168,7 @@ export default function App() {
         {/* Public pages — no sidebar */}
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/support" element={<SupportPage />} />
 
         <Route path="/" element={

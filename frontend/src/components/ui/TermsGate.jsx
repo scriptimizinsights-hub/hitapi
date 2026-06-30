@@ -45,6 +45,10 @@ export function TermsGate({ children }) {
     // Not logged in — no gate needed (handled by LoginPage)
     if (!user) return children;
 
+    // Always allow terms and privacy pages through — users must be able to read them
+    const path = window.location.pathname;
+    if (path === '/terms' || path === '/privacy') return children;
+
     // Terms accepted for current version
     if (!showGate) return children;
 
@@ -235,4 +239,3 @@ export function TermsGate({ children }) {
         </>
     );
 }
-
