@@ -711,12 +711,23 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
 
   console.log(`[Queue] Run ${runId} complete: ${passed}/${total} passed`);
 
+  // Report record — written FIRST so it always exists even if bug analysis
+  // below runs long and the worker gets cut off by Cloudflare's time limit.
+  const reportId = db.uuid();
+  await db.run(
+    `INSERT OR IGNORE INTO reports (id, flow_run_id, project_id, format, r2_key, size_bytes)
+     VALUES (?, ?, ?, 'json', ?, ?)`,
+    [reportId, runId, suite.project_id, `flow-runs/${runId}.json`,
+      JSON.stringify({ run_id: runId, passed, failed }).length]
+  ).catch(err => console.error('[Report] Failed to create report record:', err.message));
+
   // Load all results for post-processing
   const results = await db.all(
     `SELECT * FROM flow_step_results WHERE run_id = ? ORDER BY step_order`, [runId]
   ).catch(() => []);
 
-  // AI bug analysis for failed steps — AWAITED so it completes before worker exits
+  // AI bug analysis for failed steps — AWAITED so it completes before worker exits.
+  // Runs AFTER the report is saved so a slow/long analysis can't starve report creation.
   if (failed > 0 && env?.AI) {
     await analyzeFlowRunBugs(db, env, suite, allSteps, results, runId).catch(err =>
       console.error('[BugAnalysis] Failed:', err.message)
@@ -739,15 +750,6 @@ async function finalizeRun(db, env, suite, allSteps, runId, passed, failed, cont
     runAllSubChecks(db, env, suite, allSteps, results, runId, project)
       .catch(err => console.error('[SubChecks] Failed:', err.message));
   }
-
-  // Report record
-  const reportId = db.uuid();
-  await db.run(
-    `INSERT OR IGNORE INTO reports (id, flow_run_id, project_id, format, r2_key, size_bytes)
-     VALUES (?, ?, ?, 'json', ?, ?)`,
-    [reportId, runId, suite.project_id, `flow-runs/${runId}.json`,
-      JSON.stringify({ run_id: runId, passed, failed }).length]
-  ).catch(() => { });
 }
 
 // ─── Test login proxy (avoids browser CORS) ──────────────────────────────────
@@ -1277,7 +1279,7 @@ async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
 
       analyzed++;
       console.log(`[BugAnalysis] Saved bug ${bugId} — ${bug.severity}: ${bug.title}`);
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 150));
     } catch (err) {
       console.error(`[BugAnalysis] Step ${result.step_order} failed:`, err.message);
     }
