@@ -1297,6 +1297,91 @@ export async function listFlowRuns(request, env, { params }) {
 }
 
 // ── Add a single step to an existing flow suite (used by browser extension) ──
+// ── Quick-create from a browser-extension captured request ───────────────────
+// Always creates a real endpoint record (visible in Endpoints tab), then either
+// adds it as a step to an existing suite or creates a brand-new suite for it.
+export async function quickCreateFromCapture(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const project = await db.first('SELECT id FROM projects WHERE id = ? AND user_id = ?', [params.id, user.sub]);
+  if (!project) return error('Project not found', 404);
+
+  const body = await parseBody(request);
+  const { method, url, headers, requestBody, suiteId, newSuiteName, stepName } = body;
+
+  if (!method || !url) return error('method and url are required', 400);
+  if (!suiteId && !newSuiteName) return error('Either suiteId or newSuiteName is required', 400);
+
+  let path;
+  try { path = new URL(url).pathname; } catch { path = url; }
+
+  // 1. Create the endpoint record — visible in Endpoints tab, tagged as extension-sourced
+  const endpointId = db.uuid();
+  await db.run(
+    `INSERT INTO endpoints (id, project_id, path, method, summary, request_body, tags, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
+    [
+      endpointId, params.id, path, method.toUpperCase(),
+      `Captured via browser extension`,
+      requestBody ? JSON.stringify(typeof requestBody === 'string' ? safeParse(requestBody) : requestBody) : null,
+      JSON.stringify(['extension-captured']),
+    ]
+  );
+
+  // 2. Resolve target suite — either existing or newly created
+  let targetSuiteId = suiteId;
+  let suiteCreated = false;
+  if (!targetSuiteId) {
+    targetSuiteId = db.uuid();
+    await db.run(
+      `INSERT INTO flow_suites (id, project_id, name, description) VALUES (?, ?, ?, ?)`,
+      [targetSuiteId, params.id, newSuiteName, 'Created from browser extension capture']
+    );
+    suiteCreated = true;
+  } else {
+    const suite = await db.first(`SELECT id FROM flow_suites WHERE id = ? AND project_id = ?`, [targetSuiteId, params.id]);
+    if (!suite) return error('Flow suite not found', 404);
+  }
+
+  // 3. Add step referencing the new endpoint
+  const maxOrder = await db.first(`SELECT MAX(step_order) as m FROM flow_steps WHERE suite_id = ?`, [targetSuiteId]);
+  const nextOrder = (maxOrder?.m ?? -1) + 1;
+  const stepId = db.uuid();
+  await db.run(
+    `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, url_override, input_payload, input_headers, expected_status, skip_if_failed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      stepId, targetSuiteId, nextOrder,
+      stepName || `${method.toUpperCase()} ${path}`,
+      endpointId, method.toUpperCase(), url,
+      requestBody ? await encryptField(env, typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)) : null,
+      headers ? JSON.stringify(sanitizeExtHeaders(headers)) : null,
+      null, 0,
+    ]
+  );
+
+  console.log(`[Extension] Quick-created endpoint ${endpointId} + step in suite ${targetSuiteId} (new suite: ${suiteCreated})`);
+
+  return json(success({
+    endpoint_id: endpointId,
+    suite_id: targetSuiteId,
+    step_id: stepId,
+    suite_created: suiteCreated,
+  }), 201);
+}
+
+function safeParse(str) {
+  try { return JSON.parse(str); } catch { return str; }
+}
+
+function sanitizeExtHeaders(headers) {
+  const skip = ['cookie', 'host', 'content-length', 'connection', 'origin', 'referer'];
+  const result = {};
+  for (const [k, v] of Object.entries(headers || {})) {
+    if (!skip.includes(k.toLowerCase())) result[k] = v;
+  }
+  return result;
+}
+
 export async function addFlowStep(request, env, { params, user }) {
   const db = new DatabaseAdapter(env.DB);
   const suite = await db.first(
