@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Github, Globe } from 'lucide-react';
 import { useState } from 'react';
 
@@ -304,6 +305,7 @@ export function SupportPage() {
                     © 2026 {COMPANY} · <a href="/privacy" style={{ color: 'var(--accent)' }}>Privacy Policy</a> · <a href="/support" style={{ color: 'var(--accent)' }}>Support</a>
                 </div>
             </div>
+            <PublicFooter />
         </div>
     );
 }

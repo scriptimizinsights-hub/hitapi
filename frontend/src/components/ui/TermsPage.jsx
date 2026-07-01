@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, FileText } from 'lucide-react';
 
 const LAST_UPDATED = 'June 30, 2026';
@@ -203,6 +204,7 @@ export function TermsPage() {
                     © 2026 {COMPANY} · <a href="/support" style={{ color: 'var(--accent)' }}>Support</a> · <a href="/privacy" style={{ color: 'var(--accent)' }}>Privacy</a> · <a href="/terms" style={{ color: 'var(--accent)' }}>Terms</a>
                 </div>
             </div>
+            <PublicFooter />
         </div>
     );
 }

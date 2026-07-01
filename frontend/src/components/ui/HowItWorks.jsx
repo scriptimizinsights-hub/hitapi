@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PublicFooter } from './PublicFooter.jsx';
 import { useNavigate } from 'react-router-dom';
 import {
     Zap, Upload, Globe, Cpu, Play, Bug, BarChart3,
@@ -265,6 +266,7 @@ export function HowItWorks() {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Powered by Workers AI · D1 · KV · R2 · Queues</div>
             </div>
+            <PublicFooter />
         </div>
     );
 }

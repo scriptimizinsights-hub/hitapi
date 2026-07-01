@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PublicFooter } from './PublicFooter.jsx';
 import {
     Zap, ArrowRight, CheckCircle2, Play, Bug, BarChart3,
     Shield, Globe, Cpu, Upload, ChevronDown, ExternalLink,
@@ -338,20 +339,6 @@ export function LandingPage({ onGetStarted }) {
                 </div>
             </section>
 
-            {/* ── Powered by Cloudflare ── */}
-            <section style={{ padding: '60px 40px', background: 'rgba(255,255,255,0.015)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
-                <div style={{ maxWidth: 700, margin: '0 auto' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 20 }}>Powered by Cloudflare</div>
-                    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10 }}>
-                        {['Workers', 'D1 Database', 'Workers AI', 'Queues', 'R2 Storage', 'KV'].map(s => (
-                            <span key={s} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>{s}</span>
-                        ))}
-                    </div>
-                    <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginTop: 20 }}>
-                        Every test runs on Cloudflare's global edge network. No servers. No cold starts. No ops.
-                    </p>
-                </div>
-            </section>
 
             {/* ── Pricing ── */}
             <section style={{ padding: '80px 40px 100px' }}>
@@ -407,26 +394,7 @@ export function LandingPage({ onGetStarted }) {
                 </div>
             </section>
 
-            {/* ── Footer ── */}
-            <footer style={{ borderTop: '1px solid var(--border)', padding: '28px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 22, height: 22, borderRadius: 6, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Zap size={11} color="#fff" />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>HitAPI</span>
-                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>by Scriptimiz Insight LLP</span>
-                </div>
-                <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'var(--text-tertiary)' }}>
-                    <button onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>How it works</button>
-                    <button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>Privacy</button>
-                    <button onClick={() => navigate('/terms')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>Terms</button>
-                    <button onClick={() => navigate('/support')} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 12 }}>Support</button>
-                    <a href="https://chromewebstore.google.com/search/HitAPI" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-tertiary)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        Chrome Extension <ExternalLink size={11} />
-                    </a>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>© 2026 Scriptimiz Insight LLP · Mumbai, India</div>
-            </footer>
+            <PublicFooter />
         </div>
     );
 }
