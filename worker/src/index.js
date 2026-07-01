@@ -23,6 +23,7 @@ import {
   runFlowSuiteRoute, runFlowSuiteInline, listFlowRuns, getFlowRun,
   autoGenerateFlowSuite, updateFlowStep, deleteFlowRun, deleteAllFlowRuns,
   addFlowStep, createManualBug, quickCreateFromCapture,
+  deleteFlowStep, reorderFlowSteps,
 } from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -51,6 +52,8 @@ const ROUTES = [
   router('GET', '/api/projects/:id/flows/:flowId/runs', listFlowRuns),
   router('GET', '/api/projects/:id/flows/:flowId/runs/:runId', getFlowRun),
   router('PATCH', '/api/projects/:id/flows/:flowId/steps/:stepId', updateFlowStep),
+  router('DELETE', '/api/projects/:id/flows/:flowId/steps/:stepId', deleteFlowStep),
+  router('PUT', '/api/projects/:id/flows/:flowId/steps/reorder', reorderFlowSteps),
   router('POST', '/api/projects/:id/flows/:flowId/steps', addFlowStep),
   router('POST', '/api/projects/:id/flows/quick-create', quickCreateFromCapture),
   router('POST', '/api/projects/:id/bugs/manual', createManualBug),

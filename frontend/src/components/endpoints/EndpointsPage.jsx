@@ -212,6 +212,13 @@ export function EndpointsPage() {
 
   useEffect(() => { loadEndpoints(projectId); }, [projectId]);
 
+  // Refresh when user switches back to this tab (e.g. after adding via extension)
+  useEffect(() => {
+    const onFocus = () => loadEndpoints(projectId);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [projectId]);
+
   const filtered = endpoints.filter(ep => {
     const matchSearch = !search || ep.path.toLowerCase().includes(search.toLowerCase()) || (ep.summary || '').toLowerCase().includes(search.toLowerCase());
     const matchMethod = methodFilter === 'ALL' || ep.method === methodFilter;

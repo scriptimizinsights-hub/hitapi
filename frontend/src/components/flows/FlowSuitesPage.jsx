@@ -169,7 +169,7 @@ function StatusIcon({ status }) {
     return <Clock size={14} color="var(--text-tertiary)" />;
 }
 
-function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved }) {
+function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved, isFirst, isLast, onMoveUp, onMoveDown, onDeleteStep }) {
     const [expanded, setExpanded] = useState(false);
     const [editing, setEditing] = useState(false);
     const body = safeJSON(result.actual_body);
@@ -209,15 +209,28 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved 
                 <td style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                     {result.response_time_ms ? `${result.response_time_ms}ms` : '—'}
                 </td>
-                <td onClick={e => e.stopPropagation()}>
-                    <button onClick={() => { setEditing(e => !e); setExpanded(true); }} style={{
-                        fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
-                        background: editing ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
-                        color: editing ? 'var(--accent)' : 'var(--text-tertiary)',
-                        border: `1px solid ${editing ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`,
-                    }}>
-                        {editing ? '✕ Close' : '✎ Edit'}
-                    </button>
+                <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {/* Reorder buttons */}
+                        <button onClick={onMoveUp} disabled={isFirst} title="Move up"
+                            style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: isFirst ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isFirst ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                            ↑
+                        </button>
+                        <button onClick={onMoveDown} disabled={isLast} title="Move down"
+                            style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: isLast ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isLast ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                            ↓
+                        </button>
+                        {/* Edit button */}
+                        <button onClick={() => { setEditing(e => !e); setExpanded(true); }}
+                            style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: editing ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)', color: editing ? 'var(--accent)' : 'var(--text-tertiary)', border: `1px solid ${editing ? 'rgba(130,100,255,0.3)' : 'var(--border)'}` }}>
+                            {editing ? '✕' : '✎'}
+                        </button>
+                        {/* Delete button */}
+                        <button onClick={onDeleteStep} title="Delete step"
+                            style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
+                            ✕
+                        </button>
+                    </div>
                 </td>
             </tr>
 
@@ -796,6 +809,29 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                                     stepDef={steps?.find(s => s.id === r.step_id)}
                                                     context={lastRun.context || {}}
                                                     onStepSaved={() => { loadSteps(); }}
+                                                    isFirst={i === 0}
+                                                    isLast={i === (lastRun?.results?.length || 0) - 1}
+                                                    onMoveUp={async () => {
+                                                        if (i === 0 || !steps) return;
+                                                        const ids = lastRun.results.map(x => x.step_id).filter(Boolean);
+                                                        const newOrder = [...ids];
+                                                        [newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]];
+                                                        await api.flows.reorderSteps(projectId, suite.id, newOrder);
+                                                        loadSteps(); loadRuns();
+                                                    }}
+                                                    onMoveDown={async () => {
+                                                        if (i === (lastRun?.results?.length || 0) - 1 || !steps) return;
+                                                        const ids = lastRun.results.map(x => x.step_id).filter(Boolean);
+                                                        const newOrder = [...ids];
+                                                        [newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]];
+                                                        await api.flows.reorderSteps(projectId, suite.id, newOrder);
+                                                        loadSteps(); loadRuns();
+                                                    }}
+                                                    onDeleteStep={async () => {
+                                                        if (!window.confirm(`Delete step "${r.step_name}"? This cannot be undone.`)) return;
+                                                        await api.flows.deleteStep(projectId, suite.id, r.step_id);
+                                                        loadSteps(); loadRuns();
+                                                    }}
                                                 />
                                             );
                                         });

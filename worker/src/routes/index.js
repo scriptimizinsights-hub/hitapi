@@ -1438,6 +1438,62 @@ export async function createManualBug(request, env, { params, user }) {
   return json(success(bug), 201);
 }
 
+// ── Delete a single flow step ─────────────────────────────────────────────────
+export async function deleteFlowStep(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  // Verify step belongs to a suite owned by this user's project
+  const step = await db.first(
+    `SELECT fs.id, fs.suite_id, fs.step_order FROM flow_steps fs
+     JOIN flow_suites fsu ON fsu.id = fs.suite_id
+     WHERE fs.id = ? AND fsu.id = ? AND fsu.project_id = ?`,
+    [params.stepId, params.flowId, params.id]
+  );
+  if (!step) return error('Step not found', 404);
+
+  await db.run('DELETE FROM flow_steps WHERE id = ?', [params.stepId]);
+
+  // Renumber remaining steps to keep order contiguous
+  const remaining = await db.all(
+    'SELECT id FROM flow_steps WHERE suite_id = ? ORDER BY step_order ASC',
+    [params.flowId]
+  );
+  for (let i = 0; i < remaining.length; i++) {
+    await db.run('UPDATE flow_steps SET step_order = ? WHERE id = ?', [i + 1, remaining[i].id]);
+  }
+
+  console.log(`[Suite] Step ${params.stepId} deleted from suite ${params.flowId}`);
+  return json(success({ deleted: true }));
+}
+
+// ── Reorder flow steps ────────────────────────────────────────────────────────
+// Body: { order: ["stepId1", "stepId2", ...] } — full ordered array of step IDs
+export async function reorderFlowSteps(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const suite = await db.first(
+    'SELECT id FROM flow_suites WHERE id = ? AND project_id = ?',
+    [params.flowId, params.id]
+  );
+  if (!suite) return error('Suite not found', 404);
+
+  const body = await parseBody(request);
+  const { order } = body; // array of step IDs in the new desired order
+  if (!Array.isArray(order) || order.length === 0) return error('order array is required', 400);
+
+  for (let i = 0; i < order.length; i++) {
+    await db.run(
+      'UPDATE flow_steps SET step_order = ? WHERE id = ? AND suite_id = ?',
+      [i + 1, order[i], params.flowId]
+    );
+  }
+
+  const steps = await db.all(
+    'SELECT * FROM flow_steps WHERE suite_id = ? ORDER BY step_order ASC',
+    [params.flowId]
+  );
+  console.log(`[Suite] Reordered ${steps.length} steps in suite ${params.flowId}`);
+  return json(success({ steps }));
+}
+
 export async function updateFlowStep(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const body = await parseBody(request);
