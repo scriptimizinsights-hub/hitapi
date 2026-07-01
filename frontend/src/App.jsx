@@ -15,6 +15,7 @@ import { FlowSuitesPage } from './components/flows/FlowSuitesPage.jsx';
 import { LoginPage } from './components/auth/LoginPage.jsx';
 import { TermsGate } from './components/ui/TermsGate.jsx';
 import { TermsPage } from './components/ui/TermsPage.jsx';
+import { LandingPage } from './components/ui/LandingPage.jsx';
 import { useStore } from './store/index.js';
 import './styles/global.css';
 
@@ -147,11 +148,21 @@ export default function App() {
     return (
       <BrowserRouter>
         <Routes>
-          {/* Always public — no auth or terms required */}
+          {/* Always public */}
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
+          {/* Marketing landing page — root for unauthenticated visitors */}
+          <Route path="/" element={
+            <LandingPage onGetStarted={() => window.location.href = '/login'} />
+          } />
+          {/* Login / signup */}
+          <Route path="/login" element={
+            <TermsGate>
+              <LoginPage onAuth={() => loadProjects()} />
+            </TermsGate>
+          } />
           <Route path="*" element={
             <TermsGate>
               <LoginPage onAuth={() => loadProjects()} />
