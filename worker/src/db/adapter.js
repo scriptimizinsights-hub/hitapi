@@ -181,7 +181,7 @@ export class TestCaseRepo {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         this.db.uuid(), suiteId, endpointId,
-        n(tc.name), n(tc.type),
+        n(tc.name), n(tc.test_type),
         tc.input_payload ? JSON.stringify(tc.input_payload) : null,
         tc.input_headers ? JSON.stringify(tc.input_headers) : null,
         tc.input_params ? JSON.stringify(tc.input_params) : null,
