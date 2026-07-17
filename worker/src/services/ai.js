@@ -61,306 +61,108 @@ async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
 export async function generateTestCases(ai, endpoint) {
   if (!ai) throw new Error('AI binding missing in wrangler.toml');
 
-  // Extract real field names from schema
-  const schema = endpoint.request_body;
-  let fields = schema?.properties ? Object.keys(schema.properties) : [];
-  let requiredFields = schema?.required || [];
-
-  // Use example from Swagger spec if available and schema has no properties
-  const swaggerExample = schema?._example;
-
-  console.log(`[TestGen] ${endpoint.method} ${endpoint.path} — schema fields: [${fields.join(', ')}], has example: ${!!swaggerExample}`);
-
-  // If schema has example, use it directly as the valid payload
-  if (fields.length === 0 && swaggerExample) {
-    console.log(`[TestGen] Using Swagger example as payload`);
-    const validPayload = swaggerExample;
-    // Missing: remove one key from example
-    const exampleKeys = Object.keys(swaggerExample);
-    const missingPayload = exampleKeys.length > 0
-      ? Object.fromEntries(exampleKeys.slice(1).map(k => [k, swaggerExample[k]]))
-      : {};
-    // Injection: put SQL injection in first string value
-    const injectionPayload = { ...swaggerExample };
-    const firstKey = exampleKeys.find(k => typeof swaggerExample[k] === 'string' || typeof swaggerExample[k] === 'object');
-    if (firstKey && typeof swaggerExample[firstKey] === 'string') {
-      injectionPayload[firstKey] = "'; DROP TABLE users; --";
-    }
-    return [
-      { name: 'Valid request', type: 'positive', input_payload: validPayload, input_params: null, expected_status: endpoint.method === 'POST' ? 201 : 200, ai_reasoning: 'Happy path using Swagger example' },
-      { name: 'Missing required field', type: 'negative', input_payload: missingPayload, input_params: null, expected_status: 400, ai_reasoning: `Missing first required field` },
-      { name: 'Empty values', type: 'boundary', input_payload: Object.fromEntries(exampleKeys.map(k => [k, typeof swaggerExample[k] === 'object' ? {} : ''])), input_params: null, expected_status: 400, ai_reasoning: 'Empty values should be rejected' },
-      { name: 'SQL injection attempt', type: 'security', input_payload: injectionPayload, input_params: null, expected_status: 400, ai_reasoning: 'SQL injection should be rejected' },
-    ];
-  }
-
-  // If schema has no properties — ask AI to understand the schema and infer payload
-  if (fields.length === 0 && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
-
-    // Check if endpoint already has a cached AI-inferred payload
-    if (endpoint.ai_inferred_payload) {
-      try {
-        const cached = typeof endpoint.ai_inferred_payload === 'string'
-          ? JSON.parse(endpoint.ai_inferred_payload)
-          : endpoint.ai_inferred_payload;
-        console.log(`[TestGen] Using cached AI payload for ${endpoint.path}`);
-        return buildTestCasesFromPayload(cached, endpoint);
-      } catch { /* ignore bad cache */ }
-    }
-
-    // Ask AI with full schema context
-    const schemaStr = JSON.stringify(endpoint.request_body || {}).slice(0, 800);
-    const prompt = `You are an API testing expert. Generate a realistic JSON request body for this API endpoint.
-
-Endpoint: ${endpoint.method} ${endpoint.path}
-Summary: ${endpoint.summary || ''}
-Schema: ${schemaStr}
-
-Instructions:
-- Read the schema carefully including any $ref names like "CreateUserRequest", "LoginRequest" etc
-- Infer field names and types from the schema name and structure
-- Return ONLY a valid JSON object with realistic values
-- Use real emails, proper names, valid data — not placeholder strings like "string"
-- If schema is wrapped like {"user": {...}}, keep that wrapper
-
-Return ONLY the JSON object, nothing else.`;
-
-    console.log(`[TestGen] Asking AI to infer payload for ${endpoint.method} ${endpoint.path}`);
-
-    try {
-      const response = await runAI(ai, prompt, 400, 15000);
-      const text = extractText(response);
-
-      if (text) {
-        const aiPayload = parseJSON(text);
-        if (aiPayload && typeof aiPayload === 'object' && !Array.isArray(aiPayload)) {
-          console.log(`[TestGen] AI inferred payload: ${JSON.stringify(aiPayload).slice(0, 150)}`);
-
-          // Store back on endpoint so caller can persist it
-          endpoint._ai_inferred_payload = aiPayload;
-
-          return buildTestCasesFromPayload(aiPayload, endpoint);
-        }
-      }
-    } catch (err) {
-      console.warn(`[TestGen] AI payload inference failed for ${endpoint.path}: ${err.message}`);
-    }
-
-    // AI failed — fall back to path-name inference
-    const path = endpoint.path.toLowerCase();
-    if (path.includes('login') || path.includes('signin')) {
-      fields = ['email', 'password']; requiredFields = ['email', 'password'];
-    } else if (path.includes('signup') || path.includes('register')) {
-      fields = ['email', 'password', 'name']; requiredFields = ['email', 'password', 'name'];
-    } else if (path.includes('user')) {
-      fields = ['email', 'name', 'role']; requiredFields = ['email', 'name'];
-    } else if (path.includes('project')) {
-      fields = ['name', 'description']; requiredFields = ['name'];
-    } else if (path.includes('task')) {
-      fields = ['title', 'description', 'status']; requiredFields = ['title'];
-    } else if (path.includes('auth')) {
-      fields = ['email', 'password']; requiredFields = ['email', 'password'];
-    } else {
-      fields = ['name', 'description']; requiredFields = ['name'];
-    }
-    console.log(`[TestGen] AI failed — inferred from path: [${fields.join(', ')}]`);
-  }
-
-  // Use schema properties for types if available, otherwise guess from field name
-  const schemaProps = schema?.properties || {};
-
-  // Build realistic example values based on field names
-  function exampleValue(fieldName, fieldSchema) {
-    const name = fieldName.toLowerCase();
-    if (fieldSchema?.example !== undefined) return fieldSchema.example;
-    if (fieldSchema?.enum) return fieldSchema.enum[0];
-    if (name.includes('email')) return 'test@example.com';
-    if (name.includes('password')) return 'Test@123456';
-    if (name === 'username' || name === 'user_name' || (name.includes('username'))) return 'testuser';
-    if (name.includes('name') && name.includes('user')) return 'testuser';
-    if (name.includes('referral') || name.includes('referrer') || name.includes('coupon') || name.includes('promo')) return '';
-    if (name.includes('org') || name.includes('organization') || name.includes('company')) return 'Test Org';
-    if (name.includes('website') || name.includes('url')) return 'https://example.com';
-    if (name.includes('firstname') || name === 'first_name') return 'John';
-    if (name.includes('lastname') || name === 'last_name') return 'Doe';
-    if (name.includes('name')) return 'Test Name';
-    if (name.includes('phone')) return '+919876543210';
-    if (name.includes('url')) return 'https://example.com';
-    if (name.includes('title')) return 'Test Title';
-    if (name.includes('description') || name.includes('desc')) return 'Test description';
-    if (name.includes('age')) return 25;
-    if (name.includes('count') || name.includes('qty') || name.includes('quantity')) return 1;
-    if (name.includes('price') || name.includes('amount')) return 100;
-    if (name.includes('date')) return '2024-01-01';
-    if (name.includes('id')) return '123';
-    if (name.includes('status')) return 'active';
-    if (name.includes('token')) return 'test-token-123';
-    if (fieldSchema?.type === 'boolean') return true;
-    if (fieldSchema?.type === 'integer' || fieldSchema?.type === 'number') return 1;
-    return 'test_value';
-  }
-
-  // Build valid payload from real schema
-  let validPayload = null;
-  let missingPayload = null;
-  let emptyPayload = null;
-  let injectionPayload = null;
-
-  if (fields.length > 0) {
-    // Valid: all fields with realistic values
-    validPayload = {};
-    fields.forEach(f => {
-      validPayload[f] = exampleValue(f, schemaProps[f] || {});
-    });
-
-    // Missing required: omit one required field
-    if (requiredFields.length > 0) {
-      missingPayload = { ...validPayload };
-      delete missingPayload[requiredFields[0]];
-    } else {
-      missingPayload = {};
-    }
-
-    // Empty/invalid values: use invalid formats not just empty strings
-    emptyPayload = {};
-    fields.forEach(f => {
-      const name = f.toLowerCase();
-      if (name.includes('email')) emptyPayload[f] = 'notanemail';
-      else if (name.includes('password')) emptyPayload[f] = '123'; // too short
-      else if (name.includes('phone')) emptyPayload[f] = 'abc';
-      else if (name.includes('url')) emptyPayload[f] = 'not-a-url';
-      else emptyPayload[f] = '';
-    });
-
-    // SQL injection in first string field
-    injectionPayload = { ...validPayload };
-    const firstStrField = fields.find(f => !schemaProps[f]?.type || schemaProps[f]?.type === 'string');
-    if (firstStrField) injectionPayload[firstStrField] = "'; DROP TABLE users; --";
-  }
-
-  // Path param handling
-  const pathParams = (endpoint.parameters || []).filter(p => p.in === 'path');
-  const queryParams = (endpoint.parameters || []).filter(p => p.in === 'query');
-
-  const validParams = {};
-  pathParams.forEach(p => { validParams[p.name] = p.example || '1'; });
-  queryParams.forEach(p => { validParams[p.name] = p.example || p.default || 'test'; });
-
   const method = endpoint.method;
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
 
-  // Return rule-based test cases using real schema — no AI needed for this
-  return [
-    {
-      name: 'Valid request',
-      type: 'positive',
-      input_payload: hasBody ? validPayload : null,
-      input_params: Object.keys(validParams).length ? validParams : null,
-      expected_status: method === 'POST' ? 201 : 200,
-      ai_reasoning: `Happy path — valid inputs with realistic values should return ${method === 'POST' ? '201 Created' : '200 OK'}`
-    },
-    {
-      name: requiredFields.length > 0 ? `Missing required field: ${requiredFields[0]}` : 'Missing required field',
-      type: 'negative',
-      input_payload: hasBody ? missingPayload : null,
-      input_params: Object.keys(validParams).length ? validParams : null,
-      expected_status: method === 'GET' ? 404 : 400,
-      ai_reasoning: `Omitting required field "${requiredFields[0] || 'field'}" should return 400 Bad Request`
-    },
-    {
-      name: 'Empty / null values',
-      type: 'boundary',
-      input_payload: hasBody ? emptyPayload : null,
-      input_params: pathParams.length ? Object.fromEntries(pathParams.map(p => [p.name, ''])) : null,
-      expected_status: 400,
-      ai_reasoning: 'Edge case: empty string values should be rejected with 400'
-    },
-    {
-      name: 'SQL injection attempt',
-      type: 'security',
-      input_payload: hasBody ? injectionPayload : null,
-      input_params: Object.keys(validParams).length ? validParams : null,
-      expected_status: 400,
-      ai_reasoning: 'Security: SQL injection payload should be sanitized and rejected'
+  // Ask AI to generate structured test cases based on full endpoint context
+  const schemaStr = JSON.stringify(endpoint.request_body || {}).slice(0, 1000);
+  const paramsStr = JSON.stringify(endpoint.parameters || []);
+
+  const prompt = `You are an API testing expert. Generate exactly 4 realistic test cases for this API endpoint.
+  
+Endpoint: ${method} ${endpoint.path}
+Summary: ${endpoint.summary || ''}
+Schema: ${schemaStr}
+Parameters: ${paramsStr}
+
+Each test case MUST include ALL of these fields:
+{
+  "name": "descriptive test name",
+  "type": "positive" | "negative" | "boundary" | "security",
+  "input_payload": { ... } or null (if no body is expected),
+  "input_params": { ... } or null (if no query/path params exist),
+  "expected_status": number,
+  "ai_reasoning": "brief explanation"
+}
+
+Ensure you generate cases representing:
+1. "positive": A successful request with valid data.
+2. "negative": A bad request missing a required field, or using invalid data.
+3. "boundary": A test with empty, null, or extreme values.
+4. "security": A test containing SQL/XSS/Command injection payloads.
+
+Return ONLY a valid JSON array of these 4 test case objects, nothing else.`;
+
+  console.log(`[TestGen] Querying AI to generate test cases for ${method} ${endpoint.path}`);
+
+  try {
+    const response = await runAI(ai, prompt, 1000, 20000);
+    const text = extractText(response);
+
+    if (text) {
+      const generatedCases = parseJSON(text);
+      if (Array.isArray(generatedCases) && generatedCases.length > 0) {
+        console.log(`[TestGen] Successfully generated ${generatedCases.length} test cases via AI.`);
+        return generatedCases;
+      }
     }
-  ];
+  } catch (err) {
+    console.warn(`[TestGen] AI generation failed for ${endpoint.path}: ${err.message}`);
+  }
+
+  // AI failed — fall back to structured fallback test cases without rule guesses
+  return fallbackTestCases(endpoint);
 }
 
 /**
- * Build 4 test cases from a known valid payload
- */
-function buildTestCasesFromPayload(validPayload, endpoint) {
-  const method = endpoint.method;
-  const keys = Object.keys(validPayload);
-
-  const missingPayload = keys.length > 1
-    ? Object.fromEntries(keys.slice(1).map(k => [k, validPayload[k]]))
-    : {};
-
-  const emptyPayload = Object.fromEntries(
-    keys.map(k => [k, typeof validPayload[k] === 'object' ? {} : ''])
-  );
-
-  const injectionPayload = { ...validPayload };
-  const firstStrKey = keys.find(k => typeof validPayload[k] === 'string');
-  if (firstStrKey) injectionPayload[firstStrKey] = "'; DROP TABLE users; --";
-
-  return [
-    { name: 'Valid request', type: 'positive', input_payload: validPayload, input_params: null, expected_status: method === 'POST' ? 201 : 200, ai_reasoning: 'Valid payload — should succeed' },
-    { name: 'Missing required field', type: 'negative', input_payload: missingPayload, input_params: null, expected_status: 400, ai_reasoning: 'Omitting a required field should return 400' },
-    { name: 'Empty values', type: 'boundary', input_payload: emptyPayload, input_params: null, expected_status: 400, ai_reasoning: 'Empty values should be rejected' },
-    { name: 'SQL injection attempt', type: 'security', input_payload: injectionPayload, input_params: null, expected_status: 400, ai_reasoning: 'SQL injection should be sanitized' },
-  ];
-}
-
-/**
- * Rule-based fallback — always works, no AI needed.
- * Used when AI times out or returns garbage.
+ * Clean fallback test cases when AI fails or times out
  */
 function fallbackTestCases(endpoint) {
   const method = endpoint.method;
-  const hasBody = method === 'POST' || method === 'PUT' || method === 'PATCH';
-  const params = (endpoint.parameters || []);
+  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+  const params = endpoint.parameters || [];
   const pathParams = params.filter(p => p.in === 'path');
-  const sampleId = pathParams.length ? { [pathParams[0].name]: '123' } : null;
 
-  const cases = [
+  const sampleParams = pathParams.length
+    ? { [pathParams[0].name]: '123' }
+    : null;
+
+  console.log(`[TestGen] Falling back to default structural test cases for ${method} ${endpoint.path}`);
+
+  return [
     {
-      name: 'Valid request',
+      name: 'Valid request (Fallback)',
       type: 'positive',
-      input_payload: hasBody ? { sample: 'value' } : null,
-      input_params: sampleId,
-      expected_status: method === 'POST' ? 201 : 200,
-      ai_reasoning: 'Happy path — valid inputs should return success'
-    },
-    {
-      name: method === 'GET' ? 'Non-existent resource' : 'Missing required field',
-      type: 'negative',
       input_payload: hasBody ? {} : null,
-      input_params: method === 'GET' && sampleId ? { [pathParams[0]?.name]: 'nonexistent-999' } : sampleId,
-      expected_status: method === 'GET' ? 404 : 400,
-      ai_reasoning: 'Invalid input should return 4xx error'
+      input_params: sampleParams,
+      expected_status: method === 'POST' ? 201 : 200,
+      ai_reasoning: 'Fallback: Basic structural positive test verification.'
     },
     {
-      name: 'Empty / null values',
+      name: 'Empty body / Invalid request (Fallback)',
+      type: 'negative',
+      input_payload: hasBody ? null : null,
+      input_params: sampleParams,
+      expected_status: 400,
+      ai_reasoning: 'Fallback: Testing behavior with an empty request body payload.'
+    },
+    {
+      name: 'Empty parameter boundaries (Fallback)',
       type: 'boundary',
-      input_payload: hasBody ? { sample: '' } : null,
-      input_params: sampleId ? { [pathParams[0]?.name]: '' } : null,
+      input_payload: hasBody ? {} : null,
+      input_params: pathParams.length ? { [pathParams[0].name]: '' } : null,
       expected_status: 400,
-      ai_reasoning: 'Edge case: empty string / null should be rejected'
+      ai_reasoning: 'Fallback: Parameter boundary evaluation using empty string input.'
     },
     {
-      name: 'SQL injection attempt',
+      name: 'SQL injection attempt (Fallback)',
       type: 'security',
-      input_payload: hasBody ? { sample: "'; DROP TABLE users; --" } : null,
-      input_params: sampleId ? { [pathParams[0]?.name]: "1' OR '1'='1" } : null,
+      input_payload: hasBody ? { input: "'; DROP TABLE users; --" } : null,
+      input_params: sampleParams,
       expected_status: 400,
-      ai_reasoning: 'Security: SQL injection payload should be rejected'
+      ai_reasoning: 'Fallback: Security check verifying sanitization against injection payloads.'
     }
   ];
-
-  console.log(`Fallback test cases generated for ${endpoint.method} ${endpoint.path}`);
-  return cases;
 }
 
 /**
