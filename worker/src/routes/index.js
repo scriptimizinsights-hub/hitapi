@@ -148,20 +148,16 @@ export async function generateTests(request, env, { params }) {
   const body = await parseBody(request);
   const r = repos(env);
 
-  const project = await db.first(
-    `SELECT spec_url FROM projects WHERE id = ?`,
-    [params.id]
-  );
+
+  const project = await r.projects.get(params.id);
+  if (!project) return error('Project not found', 404);
+
 
   let fullSpec = {};
   if (project.spec_url) {
     const res = await fetch(project.spec_url);
     fullSpec = await res.json();
   }
-
-
-  const project = await r.projects.get(params.id);
-  if (!project) return error('Project not found', 404);
 
   // ── Flexible selection: single, multiple IDs, tag, method, or all ──
   let endpointsList = await r.endpoints.listByProject(params.id);
