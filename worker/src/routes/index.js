@@ -148,6 +148,18 @@ export async function generateTests(request, env, { params }) {
   const body = await parseBody(request);
   const r = repos(env);
 
+  const project = await db.first(
+    `SELECT spec_url FROM projects WHERE id = ?`,
+    [params.id]
+  );
+
+  let fullSpec = {};
+  if (project.spec_url) {
+    const res = await fetch(project.spec_url);
+    fullSpec = await res.json();
+  }
+
+
   const project = await r.projects.get(params.id);
   if (!project) return error('Project not found', 404);
 
@@ -191,7 +203,9 @@ export async function generateTests(request, env, { params }) {
         security: endpoint.security ? JSON.parse(endpoint.security) : []
       };
 
-      const cases = await generateTestCases(env.AI, ep);
+
+
+      const cases = await generateTestCases(env.AI, ep, fullSpec);
       if (!cases?.length) continue;
 
       // If AI inferred a payload, cache it on the endpoint for next time
