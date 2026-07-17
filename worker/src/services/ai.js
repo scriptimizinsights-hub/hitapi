@@ -58,6 +58,40 @@ async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
   return Promise.race([call, timeout]);
 }
 
+function resolveSchema(schema, fullSpec = {}) {
+  if (!schema) return {};
+
+  // Handle $ref
+  if (schema.$ref) {
+    const refPath = schema.$ref.replace('#/', '').replace(/^\//, '').split('/');
+    let resolved = fullSpec;
+    for (const part of refPath) {
+      resolved = resolved?.[part];
+      if (!resolved) return {};
+    }
+    return resolveSchema(resolved, fullSpec);
+  }
+
+  // Handle allOf — merge all schemas
+  if (schema.allOf) {
+    return schema.allOf.reduce((merged, sub) => {
+      const resolved = resolveSchema(sub, fullSpec);
+      return {
+        ...merged,
+        properties: { ...(merged.properties || {}), ...(resolved.properties || {}) },
+        required: [...(merged.required || []), ...(resolved.required || [])],
+      };
+    }, {});
+  }
+
+  // Handle oneOf / anyOf — pick first option
+  if (schema.oneOf || schema.anyOf) {
+    return resolveSchema((schema.oneOf || schema.anyOf)[0], fullSpec);
+  }
+
+  return schema;
+}
+
 function buildEndpointContext(endpoint, fullSpec) {
   // Resolve $ref in request body
   const resolvedSchema = resolveSchema(endpoint.request_body, fullSpec);
