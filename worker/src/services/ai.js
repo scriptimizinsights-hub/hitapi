@@ -58,112 +58,262 @@ async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
   return Promise.race([call, timeout]);
 }
 
-export async function generateTestCases(ai, endpoint) {
-  if (!ai) throw new Error('AI binding missing in wrangler.toml');
+function buildEndpointContext(endpoint, fullSpec) {
+  // Resolve $ref in request body
+  const resolvedSchema = resolveSchema(endpoint.request_body, fullSpec);
 
-  const method = endpoint.method;
-  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+  // Separate path, query, header params
+  const params = endpoint.parameters || [];
+  const pathParams = params.filter(p => p.in === 'path');
+  const queryParams = params.filter(p => p.in === 'query');
+  const headerParams = params.filter(p => p.in === 'header');
 
-  // Ask AI to generate structured test cases based on full endpoint context
-  const schemaStr = JSON.stringify(endpoint.request_body || {}).slice(0, 1000);
-  const paramsStr = JSON.stringify(endpoint.parameters || []);
-
-  const prompt = `You are an API testing expert. Generate exactly 4 realistic test cases for this API endpoint.
-  
-Endpoint: ${method} ${endpoint.path}
-Summary: ${endpoint.summary || ''}
-Schema: ${schemaStr}
-Parameters: ${paramsStr}
-
-Each test case MUST include ALL of these fields:
-{
-  "name": "descriptive test name",
-  "type": "positive" | "negative" | "boundary" | "security",
-  "input_payload": { ... } or null (if no body is expected),
-  "input_params": { ... } or null (if no query/path params exist),
-  "expected_status": number,
-  "ai_reasoning": "brief explanation"
-}
-
-Ensure you generate cases representing:
-1. "positive": A successful request with valid data.
-2. "negative": A bad request missing a required field, or using invalid data.
-3. "boundary": A test with empty, null, or extreme values.
-4. "security": A test containing SQL/XSS/Command injection payloads.
-
-Return ONLY a valid JSON array of these 4 test case objects, nothing else.`;
-
-  console.log(`[TestGen] Querying AI to generate test cases for ${method} ${endpoint.path}`);
-
-  try {
-    const response = await runAI(ai, prompt, 1000, 20000);
-    const text = extractText(response);
-
-    if (text) {
-      const generatedCases = parseJSON(text);
-      if (Array.isArray(generatedCases) && generatedCases.length > 0) {
-        console.log(`[TestGen] Successfully generated ${generatedCases.length} test cases via AI.`);
-        return generatedCases;
-      }
-    }
-  } catch (err) {
-    console.warn(`[TestGen] AI generation failed for ${endpoint.path}: ${err.message}`);
+  // Extract all enum values from path params
+  const pathEnums = {};
+  for (const p of pathParams) {
+    if (p.schema?.enum) pathEnums[p.name] = p.schema.enum;
   }
 
-  // AI failed — fall back to structured fallback test cases without rule guesses
-  return fallbackTestCases(endpoint);
+  // Extract expected status codes from Swagger responses
+  const responses = endpoint.responses || {};
+  const statusCodes = Object.entries(responses).map(([code, resp]) => ({
+    code: parseInt(code),
+    description: resp.description || '',
+  }));
+
+  // Detect content type
+  const contentTypes = Object.keys(endpoint.request_body_content || {});
+  const primaryContentType = contentTypes[0] || 'application/json';
+
+  return {
+    method: endpoint.method,
+    path: endpoint.path,
+    summary: endpoint.summary || '',
+    description: endpoint.description || '',
+    contentType: primaryContentType,
+    schema: resolvedSchema,
+    pathParams,
+    queryParams,
+    headerParams,
+    pathEnums,
+    statusCodes,
+    hasBody: ['POST', 'PUT', 'PATCH'].includes(endpoint.method),
+  };
 }
+
+
+function buildPrompt(ctx) {
+  const pathParamSection = ctx.pathParams.length > 0 ? `
+PATH PARAMETERS:
+${ctx.pathParams.map(p => `
+  - name: "${p.name}"
+    required: ${p.required}
+    description: "${p.description || ''}"
+    ${p.schema?.enum ? `enum values (ONLY use these): ${JSON.stringify(p.schema.enum)}` : `type: ${p.schema?.type || 'string'}`}
+    ${p.schema?.example ? `example: "${p.schema.example}"` : ''}
+`).join('')}` : 'PATH PARAMETERS: none';
+
+  const queryParamSection = ctx.queryParams.length > 0 ? `
+QUERY PARAMETERS:
+${ctx.queryParams.map(p => `
+  - name: "${p.name}"
+    required: ${p.required || false}
+    ${p.schema?.enum ? `enum values: ${JSON.stringify(p.schema.enum)}` : `type: ${p.schema?.type || 'string'}`}
+    ${p.default !== undefined ? `default: ${p.default}` : ''}
+`).join('')}` : 'QUERY PARAMETERS: none';
+
+  const schemaSection = ctx.hasBody ? `
+REQUEST BODY (${ctx.contentType}):
+${JSON.stringify(ctx.schema, null, 2)}` : 'REQUEST BODY: none (GET/DELETE endpoint)';
+
+  const statusSection = ctx.statusCodes.length > 0 ? `
+KNOWN RESPONSE CODES FROM SPEC:
+${ctx.statusCodes.map(s => `  ${s.code}: ${s.description}`).join('\n')}` : '';
+
+  const enumWarning = Object.keys(ctx.pathEnums).length > 0 ? `
+CRITICAL RULES FOR PATH PARAMETERS:
+${Object.entries(ctx.pathEnums).map(([name, values]) =>
+    `- "${name}" MUST be one of: ${JSON.stringify(values)}
+   Do NOT use any other value except when specifically testing invalid enum (use "invalid_format_xyz" for that)`
+  ).join('\n')}` : '';
+
+  const contentTypeRules = ctx.contentType === 'text/plain' ? `
+CONTENT TYPE RULES:
+- This endpoint accepts text/plain — request_body must be a RAW STRING, not a JSON object
+- The string content must match the source format specified in the path parameter` : '';
+
+  return `You are an expert API test engineer. Generate comprehensive test cases for this endpoint.
+
+ENDPOINT: ${ctx.method} ${ctx.path}
+SUMMARY: ${ctx.summary}
+${ctx.description ? `DESCRIPTION: ${ctx.description}` : ''}
+
+${pathParamSection}
+${queryParamSection}
+${schemaSection}
+${statusSection}
+${enumWarning}
+${contentTypeRules}
+
+INSTRUCTIONS:
+1. Generate between 6 and 12 test cases covering all important scenarios
+2. For each path parameter with enum values, use DIFFERENT valid enum combinations across test cases
+3. The "request_body" content must be semantically correct for the format — e.g. if testing json-to-csv, the input must be valid JSON
+4. Use realistic data — not placeholder strings like "test_value" or "string"
+5. Cover these test types:
+   - positive: valid inputs, expect 2xx
+   - negative: missing required fields, invalid values, expect 4xx
+   - boundary: empty values, edge cases, expect 4xx
+   - security: SQL injection, XSS, oversized input
+6. expected_status must come from the KNOWN RESPONSE CODES if available, otherwise use standard HTTP codes
+7. query_params must always be present (use {} if none)
+8. path_params must always be present for every test case
+
+OUTPUT FORMAT — return ONLY a raw JSON array, no markdown, no explanation:
+[
+  {
+    "name": "descriptive name of what this test verifies",
+    "test_type": "positive|negative|boundary|security",
+    "path_params": { "paramName": "value" },
+    "query_params": {},
+    "request_body": "string or object or null",
+    "expected_status": 200,
+    "reasoning": "one sentence explaining why this status is expected"
+  }
+]`;
+}
+
+
+function validateTestCases(cases, ctx) {
+  if (!Array.isArray(cases)) return false;
+  if (cases.length === 0) return false;
+
+  for (const tc of cases) {
+    // Must have all required fields
+    if (!tc.name) return false;
+    if (!tc.test_type) return false;
+    if (!tc.expected_status) return false;
+    if (tc.path_params === undefined) return false;
+    if (tc.query_params === undefined) return false;
+
+    // test_type must be valid
+    const validTypes = ['positive', 'negative', 'boundary', 'security'];
+    if (!validTypes.includes(tc.test_type)) return false;
+
+    // Path params must contain all required param names
+    for (const p of ctx.pathParams) {
+      if (p.required && tc.path_params?.[p.name] === undefined) return false;
+    }
+
+    // Enum values must be valid (except for negative/boundary tests
+    // that intentionally use invalid values)
+    if (tc.test_type === 'positive') {
+      for (const [name, values] of Object.entries(ctx.pathEnums)) {
+        const val = tc.path_params?.[name];
+        if (val && !values.includes(val) && val !== 'invalid_format_xyz') {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+export async function generateTestCases(ai, endpoint, fullSpec = {}) {
+  if (!ai) throw new Error('AI binding missing in wrangler.toml');
+
+  // Stage 1: Build rich context
+  const ctx = buildEndpointContext(endpoint, fullSpec);
+
+  console.log(`[TestGen] ${ctx.method} ${ctx.path} — contentType: ${ctx.contentType}, pathEnums: ${JSON.stringify(ctx.pathEnums)}`);
+
+  // Stage 2: Build prompt
+  const prompt = buildPrompt(ctx);
+
+  // Stage 3: Call AI with retry
+  let cases = null;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`[TestGen] AI attempt ${attempt}`);
+
+      const response = await runAI(
+        ai,
+        attempt === 1 ? prompt : prompt + '\n\nIMPORTANT: Return ONLY the JSON array. No text before or after it.',
+        1500,   // enough tokens for 8-10 test cases
+        25000   // 25s timeout — worth it for quality
+      );
+
+      const text = extractText(response);
+      if (!text) throw new Error('Empty AI response');
+
+      const parsed = parseJSON(text);
+      if (!parsed) throw new Error('Could not parse AI response as JSON');
+
+      if (!validateTestCases(parsed, ctx)) {
+        throw new Error(`Validation failed — got ${parsed.length} cases but structure is wrong`);
+      }
+
+      // Normalize field names — AI sometimes uses slightly different names
+      cases = parsed.map(tc => ({
+        name: tc.name || tc.test_name || 'Unnamed test',
+        test_type: tc.test_type || tc.type || 'positive',
+        path_params: tc.path_params || tc.pathParams || tc.path_parameters || {},
+        query_params: tc.query_params || tc.queryParams || tc.query_parameters || {},
+        request_body: tc.request_body ?? tc.body ?? tc.payload ?? null,
+        expected_status: tc.expected_status || tc.expectedStatus || tc.status || 200,
+        reasoning: tc.reasoning || tc.ai_reasoning || '',
+        // Keep content type for executor
+        content_type: ctx.contentType,
+      }));
+
+      console.log(`[TestGen] ✓ ${cases.length} test cases generated on attempt ${attempt}`);
+      break;
+
+    } catch (err) {
+      lastError = err;
+      console.warn(`[TestGen] Attempt ${attempt} failed: ${err.message}`);
+    }
+  }
+
+  // Stage 4: If AI failed both attempts, use minimal rule-based fallback
+  // (keep it tiny — just enough to not crash, not a full replacement)
+  if (!cases) {
+    console.error(`[TestGen] AI failed after 2 attempts: ${lastError?.message} — using minimal fallback`);
+    cases = minimalFallback(ctx);
+  }
+
+  return cases;
+}
+
+// Minimal fallback — only used if AI completely fails both attempts
+// Not trying to be smart, just returning something rather than nothing
+function minimalFallback(ctx) {
+  const firstEnumValues = {};
+  for (const [name, values] of Object.entries(ctx.pathEnums)) {
+    firstEnumValues[name] = values[0];
+  }
+
+  return [
+    {
+      name: 'Valid request (fallback)',
+      test_type: 'positive',
+      path_params: firstEnumValues,
+      query_params: {},
+      request_body: ctx.hasBody ? { input: 'test' } : null,
+      expected_status: ctx.method === 'POST' ? 200 : 200,
+      reasoning: 'AI unavailable — minimal fallback',
+      content_type: ctx.contentType,
+    }
+  ];
+}
+
 
 /**
  * Clean fallback test cases when AI fails or times out
  */
-function fallbackTestCases(endpoint) {
-  const method = endpoint.method;
-  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
-  const params = endpoint.parameters || [];
-  const pathParams = params.filter(p => p.in === 'path');
-
-  const sampleParams = pathParams.length
-    ? { [pathParams[0].name]: '123' }
-    : null;
-
-  console.log(`[TestGen] Falling back to default structural test cases for ${method} ${endpoint.path}`);
-
-  return [
-    {
-      name: 'Valid request (Fallback)',
-      type: 'positive',
-      input_payload: hasBody ? {} : null,
-      input_params: sampleParams,
-      expected_status: method === 'POST' ? 201 : 200,
-      ai_reasoning: 'Fallback: Basic structural positive test verification.'
-    },
-    {
-      name: 'Empty body / Invalid request (Fallback)',
-      type: 'negative',
-      input_payload: hasBody ? null : null,
-      input_params: sampleParams,
-      expected_status: 400,
-      ai_reasoning: 'Fallback: Testing behavior with an empty request body payload.'
-    },
-    {
-      name: 'Empty parameter boundaries (Fallback)',
-      type: 'boundary',
-      input_payload: hasBody ? {} : null,
-      input_params: pathParams.length ? { [pathParams[0].name]: '' } : null,
-      expected_status: 400,
-      ai_reasoning: 'Fallback: Parameter boundary evaluation using empty string input.'
-    },
-    {
-      name: 'SQL injection attempt (Fallback)',
-      type: 'security',
-      input_payload: hasBody ? { input: "'; DROP TABLE users; --" } : null,
-      input_params: sampleParams,
-      expected_status: 400,
-      ai_reasoning: 'Fallback: Security check verifying sanitization against injection payloads.'
-    }
-  ];
-}
 
 /**
  * analyzeFlowStepBug
