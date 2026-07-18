@@ -153,7 +153,9 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
     const [endpoints, setEndpoints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [generating, setGenerating] = useState(false);
     const [error, setError] = useState('');
+    const [aiHint, setAiHint] = useState('');
     const [form, setForm] = useState({
         endpoint_id: '',
         method: 'GET',
@@ -195,6 +197,47 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
             name: `${ep.method} ${ep.path}`,
             expected_status: ep.method === 'POST' ? '201' : '200',
         }));
+    }
+
+    // Auto-clear AI-generated fields when endpoint changes
+    function handleEndpointChange(e) {
+        const ep = endpoints.find(x => x.id === e.target.value);
+        if (!ep) return;
+        setAiHint('');
+        setForm(f => ({
+            ...f,
+            endpoint_id: ep.id,
+            method: ep.method || 'GET',
+            name: `${ep.method} ${ep.path}`,
+            expected_status: ep.method === 'POST' ? '201' : '200',
+            input_payload: '',
+            input_params: '',
+            extract_vars: '',
+        }));
+    }
+
+    async function handleAIGenerate() {
+        const ep = endpoints.find(x => x.id === form.endpoint_id);
+        if (!ep) return;
+        setGenerating(true);
+        setError('');
+        setAiHint('');
+        try {
+            const result = await api.flows.generateStep(projectId, ep.id);
+            if (result.input_params) setForm(f => ({ ...f, input_params: JSON.stringify(result.input_params, null, 2) }));
+            if (result.input_payload || result.request_body) {
+                const body = result.input_payload || result.request_body;
+                setForm(f => ({ ...f, input_payload: JSON.stringify(body, null, 2) }));
+            }
+            if (result.expected_status) setForm(f => ({ ...f, expected_status: String(result.expected_status) }));
+            if (result.name) setForm(f => ({ ...f, name: result.name }));
+            if (result.extract_vars?.length) setForm(f => ({ ...f, extract_vars: JSON.stringify(result.extract_vars, null, 2) }));
+            if (result.reasoning) setAiHint(result.reasoning);
+        } catch (e) {
+            setError(`AI generation failed: ${e.message}`);
+        } finally {
+            setGenerating(false);
+        }
     }
 
     async function handleSave() {
@@ -252,13 +295,39 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
             border: '1px solid rgba(130,100,255,0.25)',
             borderRadius: 10,
         }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Plus size={14} /> Add New Step
+            {/* Header with AI button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Plus size={14} /> Add New Step
+                </div>
+                <button
+                    onClick={handleAIGenerate}
+                    disabled={generating || !form.endpoint_id}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 7, fontSize: 12,
+                        cursor: generating || !form.endpoint_id ? 'not-allowed' : 'pointer',
+                        background: generating ? 'rgba(130,100,255,0.1)' : 'linear-gradient(135deg, rgba(130,100,255,0.2), rgba(92,168,255,0.2))',
+                        color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.35)',
+                        opacity: !form.endpoint_id ? 0.5 : 1, transition: 'all .15s',
+                    }}
+                >
+                    {generating
+                        ? <><div className="spinner" style={{ width: 11, height: 11 }} /> Generating…</>
+                        : <>✨ AI Fill Fields</>}
+                </button>
             </div>
 
             {error && (
                 <div style={{ padding: '8px 10px', background: 'var(--red-bg)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 6, fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>
                     {error}
+                </div>
+            )}
+
+            {/* AI reasoning hint */}
+            {aiHint && (
+                <div style={{ padding: '8px 10px', background: 'rgba(130,100,255,0.08)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--accent)', marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <span style={{ flexShrink: 0 }}>✨</span> <span>{aiHint}</span>
                 </div>
             )}
 
@@ -279,13 +348,16 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
 
                 {/* Step name */}
                 <div style={{ gridColumn: '1/-1' }}>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Step name</label>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                        Step name
+                        {generating && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--accent)' }}>✨ filling…</span>}
+                    </label>
                     <input
                         type="text"
                         value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                        placeholder="e.g. Create user"
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}
+                        placeholder="e.g. Convert JSON to CSV"
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: generating ? 'rgba(130,100,255,0.05)' : 'var(--bg-card)', border: `1px solid ${generating ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`, color: 'var(--text-primary)', fontSize: 12, transition: 'all .2s' }}
                     />
                 </div>
 

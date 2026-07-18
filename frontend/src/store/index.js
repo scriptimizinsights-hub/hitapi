@@ -89,6 +89,7 @@ export const api = {
     reorderSteps: (id, flowId, order) => request(`/projects/${id}/flows/${flowId}/steps/reorder`, { method: 'PUT', body: JSON.stringify({ order }) }),
     addStep: (projectId, flowId, data) =>
       post(`/projects/${projectId}/flows/${flowId}/steps`, data),
+    generateStep: (projectId, endpointId) => post(`/projects/${projectId}/endpoints/${endpointId}/generate-step`),
   },
   // Bugs
   bugs: {

@@ -45,7 +45,7 @@ function extractText(response) {
   return '';
 }
 
-async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
+export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
   );

@@ -10,6 +10,8 @@ import { storeReport, getReport } from '../services/reports.js';
 import { json, error, parseBody, success } from '../middleware/cors.js';
 import { encryptField, decryptField } from '../services/encryption.js';
 
+import { runAI, extractText, parseJSON } from '../services/ai.js';
+
 function repos(env) {
   const db = new DatabaseAdapter(env.DB);
   return {
@@ -1860,3 +1862,63 @@ function buildPathParams(ep) {
   } catch { return null; }
 }
 
+export async function generateFlowStep(request, env, { params }) {
+  const db = new DatabaseAdapter(env.DB);
+
+  const endpoint = await db.first(
+    `SELECT * FROM endpoints WHERE id = ? AND project_id = ?`,
+    [params.endpointId, params.id]
+  );
+  if (!endpoint) return error('Endpoint not found', 404);
+
+  const parameters = endpoint.parameters ? JSON.parse(endpoint.parameters) : [];
+  const pathParams = parameters.filter(p => p.in === 'path');
+  const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
+
+  const prompt = `You are an API test engineer. Generate a single realistic flow step for this endpoint.
+
+ENDPOINT: ${endpoint.method} ${endpoint.path}
+SUMMARY: ${endpoint.summary || ''}
+DESCRIPTION: ${endpoint.description || ''}
+
+PATH PARAMETERS:
+${pathParams.length ? pathParams.map(p =>
+    `  name: "${p.name}", description: "${p.description || ''}", ${p.schema?.enum ? `enum: ${JSON.stringify(p.schema.enum)}` : `type: ${p.schema?.type || 'string'}`}`
+  ).join('\n') : 'none'}
+
+REQUEST BODY SCHEMA:
+${schema ? JSON.stringify(schema, null, 2) : 'none (GET endpoint)'}
+
+Generate ONE realistic test step. The input must be semantically correct for what the endpoint does.
+Infer this from the path, summary, description and parameter names.
+
+Return ONLY this JSON object:
+{
+  "name": "descriptive step name",
+  "path_params": { "param": "value" },
+  "request_body": { ... } or null,
+  "expected_status": 200,
+  "extract_vars": [],
+  "reasoning": "one sentence explaining what this step tests"
+}`;
+
+  try {
+    const response = await runAI(env.AI, prompt, 600, 20000);
+    const text = extractText(response);
+    const parsed = parseJSON(text);
+
+    if (!parsed) return error('AI could not generate step');
+
+    // Map to consistent field names
+    return json(success({
+      name: parsed.name || `${endpoint.method} ${endpoint.path}`,
+      input_params: parsed.path_params || parsed.input_params || null,
+      input_payload: parsed.request_body || parsed.input_payload || null,
+      expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
+      extract_vars: parsed.extract_vars || [],
+      reasoning: parsed.reasoning || '',
+    }));
+  } catch (err) {
+    return error(`AI generation failed: ${err.message}`, 500);
+  }
+}

@@ -24,7 +24,9 @@ import {
   autoGenerateFlowSuite, updateFlowStep, deleteFlowRun, deleteAllFlowRuns,
   addFlowStep, createManualBug, quickCreateFromCapture,
   deleteFlowStep, reorderFlowSteps,
-} from './routes/index.js';
+  generateFlowStep,
+}
+  from './routes/index.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
 
@@ -82,7 +84,7 @@ const ROUTES = [
   // AI Test Generation
   router('POST', '/api/projects/:id/generate', generateTests),
   router('GET', '/api/projects/:id/tests', listTestCases),
-
+  router('POST', '/api/projects/:id/endpoints/:endpointId/generate-step', generateFlowStep),
   // Executions
   router('POST', '/api/projects/:id/run', runExecution),
   router('POST', '/api/projects/:id/run-single', runSingleResult),
