@@ -1552,230 +1552,171 @@ export async function getFlowRun(request, env, { params }) {
   return json(success({ run, stepResults }));
 }
 
-// ─── Auto-generate a flow suite from project endpoints ───────────────────────
 export async function autoGenerateFlowSuite(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
 
-  // Get all endpoints for this project
   const endpoints = await db.all(
     `SELECT * FROM endpoints WHERE project_id = ? ORDER BY path, method`,
     [params.id]
   );
-
   if (!endpoints.length) return error('No endpoints found. Import Swagger first.');
 
-  console.log(`[Flow] Auto-generate: ${endpoints.length} endpoints found`);
-  console.log(`[Flow] Paths:`, endpoints.map(e => `${e.method} ${e.path}`).join(', '));
+  const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
 
-  // Find signup endpoint — flexible matching
+  // Detect auth endpoints
   const signupEp = endpoints.find(e =>
     e.method === 'POST' && (
       e.path.toLowerCase().includes('signup') ||
       e.path.toLowerCase().includes('register') ||
-      e.summary?.toLowerCase().includes('sign up') ||
-      e.summary?.toLowerCase().includes('register')
+      e.summary?.toLowerCase().includes('sign up')
     )
   );
-
-  // Find login endpoint — flexible matching
   const loginEp = endpoints.find(e =>
     e.method === 'POST' && (
       e.path.toLowerCase().includes('login') ||
       e.path.toLowerCase().includes('signin') ||
-      e.path.toLowerCase().includes('sign-in') ||
-      e.path.toLowerCase().includes('token') ||
-      e.path.toLowerCase().includes('auth/login') ||
       e.summary?.toLowerCase().includes('login') ||
-      e.summary?.toLowerCase().includes('sign in') ||
       e.summary?.toLowerCase().includes('authenticate')
     )
   );
 
-  console.log(`[Flow] signupEp: ${signupEp ? signupEp.path : 'NOT FOUND'}`);
-  console.log(`[Flow] loginEp: ${loginEp ? loginEp.path : 'NOT FOUND'}`);
-
-  // Find secured endpoints — try security field first, fall back to all non-auth endpoints
-  let securedEndpoints = endpoints.filter(e => {
-    if (!e.security) return false;
-    try {
-      const sec = JSON.parse(e.security);
-      return Array.isArray(sec) && sec.length > 0;
-    } catch { return false; }
-  }).filter(e => e.id !== loginEp?.id && e.id !== signupEp?.id);
-
-  console.log(`[Flow] securedEndpoints (from security field): ${securedEndpoints.length}`);
-
-  // If no endpoints have security field set, include ALL non-auth endpoints
-  if (securedEndpoints.length === 0) {
-    securedEndpoints = endpoints.filter(e => {
-      const path = e.path.toLowerCase();
-      const isAuthEndpoint = path.includes('login') || path.includes('signup') ||
-        path.includes('register') || path.includes('signin') || path.includes('token') ||
-        path.includes('/auth/') || path.includes('password/reset') || path.includes('logout');
-      return !isAuthEndpoint && e.id !== loginEp?.id && e.id !== signupEp?.id;
-    });
-    console.log(`[Flow] securedEndpoints (fallback — all non-auth): ${securedEndpoints.length}`);
-  }
-
+  const isAuthAPI = !!(signupEp || loginEp);
   const steps = [];
   let order = 1;
 
-  // Step 1: Signup (if found)
-  if (signupEp) {
-    const schema = signupEp.request_body ? JSON.parse(signupEp.request_body) : null;
-    const fields = schema?.properties ? Object.keys(schema.properties) : ['email', 'password', 'name'];
-    const payload = {};
-    fields.forEach(f => {
-      const n = f.toLowerCase();
-      if (n.includes('email')) payload[f] = 'test@example.com';
-      else if (n.includes('password')) payload[f] = 'Test@123456';
-      else if (n === 'username' || n === 'user_name' || n.includes('username')) payload[f] = 'testuser';
-      else if (n.includes('firstname') || n === 'first_name') payload[f] = 'Test';
-      else if (n.includes('lastname') || n === 'last_name') payload[f] = 'User';
-      else if (n.includes('name')) payload[f] = 'Test User';
-      else if (n.includes('phone')) payload[f] = '+919876543210';
-      else if (n.includes('org') || n.includes('organization') || n.includes('company')) payload[f] = 'Test Org';
-      else if (n.includes('referral') || n.includes('code')) payload[f] = '';
-      else payload[f] = 'test_value';
-    });
+  if (isAuthAPI) {
+    // ── Auth flow — existing logic works fine ──────────────────────────────
+    if (signupEp) {
+      steps.push({
+        step_order: order++,
+        name: 'Sign up',
+        endpoint_id: signupEp.id,
+        method: 'POST',
+        input_payload: buildPayloadFromSchema(signupEp),
+        input_params: null,
+        expected_status: 201,
+        extract_vars: [{ var: 'userId', path: 'data.id' }, { var: 'userId', path: 'id' }],
+        skip_if_failed: 0,
+      });
+    }
+    if (loginEp) {
+      steps.push({
+        step_order: order++,
+        name: 'Login',
+        endpoint_id: loginEp.id,
+        method: 'POST',
+        input_payload: buildPayloadFromSchema(loginEp),
+        input_params: null,
+        expected_status: 200,
+        extract_vars: [
+          { var: 'token', path: 'token' },
+          { var: 'token', path: 'data.token' },
+          { var: 'token', path: 'access_token' },
+        ],
+        skip_if_failed: 0,
+      });
+    }
 
-    steps.push({
-      step_order: order++,
-      name: 'Sign up',
-      endpoint_id: signupEp.id,
-      method: 'POST',
-      input_payload: payload,
-      expected_status: 201,
-      extract_vars: [{ var: 'userId', path: 'data.id' }, { var: 'userId', path: 'id' }],
-      skip_if_failed: 0
-    });
-  }
+    const skipIds = new Set([signupEp?.id, loginEp?.id].filter(Boolean));
+    const secured = endpoints.filter(e => !skipIds.has(e.id)).slice(0, 28);
 
-  // Step 2: Login (required)
-  if (loginEp) {
-    const schema = loginEp.request_body ? JSON.parse(loginEp.request_body) : null;
-    const fields = schema?.properties ? Object.keys(schema.properties) : ['email', 'password'];
-    const payload = {};
-    fields.forEach(f => {
-      const n = f.toLowerCase();
-      if (n.includes('email')) payload[f] = 'test@example.com';
-      else if (n.includes('password') || n.includes('pass')) payload[f] = 'Test@123456';
-      else if (n.includes('username') || n.includes('user')) payload[f] = 'testuser';
-      else payload[f] = 'test_value';
-    });
-
-    steps.push({
-      step_order: order++,
-      name: 'Login',
-      endpoint_id: loginEp.id,
-      method: 'POST',
-      input_payload: payload,
-      expected_status: 200,
-      // Extract token — try multiple common paths
-      extract_vars: [
-        { var: 'token', path: 'token' },
-        { var: 'token', path: 'data.token' },
-        { var: 'token', path: 'access_token' },
-        { var: 'token', path: 'data.access_token' },
-        { var: 'token', path: 'result.token' }
-      ],
-      skip_if_failed: 0
-    });
-  }
-
-  // Step 3+: Secured endpoints — cap at 28 (leaving 2 slots for signup + login = 30 total)
-  // Sort secured endpoints: POST/GET/PUT/PATCH first, DELETE last
-  const METHOD_SORT = { POST: 0, GET: 1, PUT: 2, PATCH: 3, DELETE: 99 };
-  securedEndpoints.sort((a, b) => {
-    const aO = METHOD_SORT[a.method] ?? 5;
-    const bO = METHOD_SORT[b.method] ?? 5;
-    if (aO !== bO) return aO - bO;
-    return (a.path.split('/').length) - (b.path.split('/').length);
-  });
-
-  for (const ep of securedEndpoints.slice(0, 28)) {
-    const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
-    const hasBody = ['POST', 'PUT', 'PATCH'].includes(ep.method);
-    let payload = null;
-
-    if (hasBody) {
-      // Priority 1: use swagger example directly
-      if (schema?._example) {
-        payload = schema._example;
-      }
-      // Priority 2: build from properties
-      else if (schema?.properties) {
-        payload = {};
-        Object.keys(schema.properties).forEach(f => {
-          const n = f.toLowerCase();
-          if (n.includes('email')) payload[f] = 'test@example.com';
-          else if (n.includes('password')) payload[f] = 'Test@123456';
-          else if (n === 'username' || n.includes('username')) payload[f] = 'testuser';
-          else if (n.includes('id')) payload[f] = '{{userId}}';
-          else if (n.includes('title') || n.includes('name')) payload[f] = 'Test Item';
-          else if (n.includes('desc')) payload[f] = 'Test description';
-          else if (n.includes('status')) payload[f] = 'active';
-          else payload[f] = 'test_value';
+    for (const ep of secured) {
+      const epSteps = await generateStepsForEndpoint(env, ep);
+      for (const s of epSteps) {
+        steps.push({
+          step_order: order++,
+          name: s.name,
+          endpoint_id: ep.id,
+          method: ep.method,
+          input_payload: s.request_body,
+          input_params: s.path_params,
+          expected_status: s.expected_status,
+          extract_vars: [],
+          skip_if_failed: 1,
         });
-      }
-      // Priority 3: empty object (better than null)
-      else {
-        payload = {};
       }
     }
 
-    // Extract path params from URL template
-    const pathParams = (ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1));
-    const inputParams = pathParams.length
-      ? Object.fromEntries(pathParams.map(p => [p, p.toLowerCase().includes('id') ? '{{userId}}' : '1']))
-      : null;
+  } else {
+    // ── No-auth flow — AI decides everything ───────────────────────────────
 
-    steps.push({
-      step_order: order++,
-      name: `${ep.method} ${ep.path}`,
-      endpoint_id: ep.id,
-      method: ep.method,
-      input_payload: payload,
-      input_params: inputParams,
-      swagger_example: !payload && ep.request_body
-        ? (() => { try { const rb = JSON.parse(ep.request_body); return rb._example || null; } catch { return null; } })()
-        : null,
-      expected_status: ep.method === 'DELETE' ? 204 : ep.method === 'POST' ? 201 : 200,
-      extract_vars: [],
-      skip_if_failed: 1
-    });
+    // GET endpoints first — no AI needed, just run them
+    const getEndpoints = endpoints.filter(e => e.method === 'GET');
+    for (const ep of getEndpoints) {
+      steps.push({
+        step_order: order++,
+        name: ep.summary || `${ep.method} ${ep.path}`,
+        endpoint_id: ep.id,
+        method: 'GET',
+        input_payload: null,
+        input_params: buildPathParams(ep),
+        expected_status: 200,
+        extract_vars: [],
+        skip_if_failed: 0,
+      });
+    }
+
+    // Write endpoints — AI generates meaningful combinations
+    const writeEndpoints = endpoints.filter(e =>
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(e.method)
+    );
+
+    for (const ep of writeEndpoints) {
+      const aiSteps = await generateStepsForEndpoint(env, ep);
+      for (const s of aiSteps) {
+        steps.push({
+          step_order: order++,
+          name: s.name,
+          endpoint_id: ep.id,
+          method: ep.method,
+          input_payload: s.request_body,
+          input_params: { ...s.path_params, ...s.query_params },
+          expected_status: s.expected_status || 200,
+          extract_vars: [],
+          skip_if_failed: 1,
+        });
+      }
+    }
   }
 
-  if (!steps.length) return error(
-    `Could not generate steps. Found: signup=${signupEp?.path || 'none'}, login=${loginEp?.path || 'none'}, secured=${securedEndpoints.length} endpoints. Total endpoints: ${endpoints.length}. Paths: ${endpoints.slice(0, 5).map(e => e.method + ' ' + e.path).join(', ')}`
-  );
+  if (!steps.length) return error('Could not generate any steps.');
 
-  // Create the suite
-  const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
+  // Persist
   const suiteId = db.uuid();
   await db.run(
     `INSERT INTO flow_suites (id, project_id, name, description) VALUES (?, ?, ?, ?)`,
-    [suiteId, params.id, `${project?.name || 'API'} — Full Auth Flow`, `Auto-generated: signup → login → ${securedEndpoints.length} secured endpoints`]
+    [
+      suiteId, params.id,
+      `${project?.name || 'API'} — ${isAuthAPI ? 'Auth Flow' : 'Functional Coverage'}`,
+      `Auto-generated: ${steps.length} steps`,
+    ]
   );
 
   for (const step of steps) {
-    const sid = db.uuid();
     await db.run(
-      `INSERT INTO flow_steps (id, suite_id, step_order, name, endpoint_id, method, input_payload, input_params, expected_status, extract_vars, skip_if_failed, swagger_example)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [sid, suiteId, step.step_order, step.name, step.endpoint_id || null, step.method,
+      `INSERT INTO flow_steps
+         (id, suite_id, step_order, name, endpoint_id, method,
+          input_payload, input_params, expected_status,
+          extract_vars, skip_if_failed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        db.uuid(), suiteId, step.step_order, step.name,
+        step.endpoint_id || null, step.method,
         step.input_payload ? JSON.stringify(step.input_payload) : null,
         step.input_params ? JSON.stringify(step.input_params) : null,
-        step.expected_status || null,
+        step.expected_status ?? null,
         step.extract_vars?.length ? JSON.stringify(step.extract_vars) : null,
         step.skip_if_failed ? 1 : 0,
-        step.swagger_example ? JSON.stringify(step.swagger_example) : null]
+      ]
     );
   }
 
   const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
   const createdSteps = await db.all(
-    `SELECT fs.*, e.path as endpoint_path FROM flow_steps fs LEFT JOIN endpoints e ON e.id = fs.endpoint_id WHERE fs.suite_id = ? ORDER BY fs.step_order`,
+    `SELECT fs.*, e.path as endpoint_path
+     FROM flow_steps fs
+     LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+     WHERE fs.suite_id = ? ORDER BY fs.step_order`,
     [suiteId]
   );
 
@@ -1799,3 +1740,123 @@ export async function healthCheck(request, env) {
     }
   });
 }
+
+// ─── Helper: AI generates meaningful steps for one endpoint ──────────────────
+async function generateStepsForEndpoint(env, ep) {
+  const parameters = ep.parameters ? JSON.parse(ep.parameters) : [];
+  const pathParams = parameters.filter(p => p.in === 'path');
+  const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
+
+  const prompt = `You are an API test engineer designing a functional test flow.
+
+ENDPOINT: ${ep.method} ${ep.path}
+SUMMARY: ${ep.summary || ''}
+DESCRIPTION: ${ep.description || ''}
+
+PATH PARAMETERS:
+${pathParams.length ? pathParams.map(p => `
+  name: "${p.name}"
+  description: "${p.description || ''}"
+  ${p.schema?.enum ? `valid values: ${JSON.stringify(p.schema.enum)}` : `type: ${p.schema?.type || 'string'}`}
+`).join('') : 'none'}
+
+REQUEST BODY SCHEMA:
+${schema ? JSON.stringify(schema, null, 2) : 'none'}
+
+YOUR TASK:
+Generate 4-6 meaningful test steps for a flow suite.
+Each step should use DIFFERENT parameter combinations that make real-world sense.
+The request body must contain realistic data that matches what the endpoint expects.
+
+Infer what the API does from the path, summary, description and parameter names/values.
+Examples of good thinking:
+- Path has {{from}} and {{to}} with format enum → use different format pairs, input must match source format
+- Path has {{from}} and {{to}} with currency codes → use real currency amounts as input
+- Path has {{lang}} with language codes → use real text in that language as input
+- Path has {{unit}} with measurement units → use numeric values as input
+
+Return ONLY a raw JSON array, no markdown:
+[
+  {
+    "name": "descriptive step name explaining what this tests",
+    "path_params": { "paramName": "value" },
+    "query_params": {},
+    "request_body": { "field": "value" } or null,
+    "expected_status": 200,
+    "reasoning": "why this combination makes sense"
+  }
+]`;
+
+  try {
+    const aiResponse = await runAI(env.AI, prompt, 1000, 20000);
+    const text = extractText(aiResponse);
+    if (!text) throw new Error('Empty AI response');
+
+    const parsed = parseJSON(text);
+    if (Array.isArray(parsed) && parsed.length) {
+      console.log(`[Flow] AI generated ${parsed.length} steps for ${ep.method} ${ep.path}`);
+      return parsed;
+    }
+    throw new Error('AI did not return a valid array');
+  } catch (err) {
+    console.warn(`[Flow] AI failed for ${ep.path}: ${err.message} — using fallback`);
+
+    // Fallback — one step using first enum value of each path param
+    const fallbackParams = {};
+    for (const p of pathParams) {
+      fallbackParams[p.name] = p.example
+        || p.schema?.example
+        || p.schema?.enum?.[0]
+        || (p.name.toLowerCase().includes('id') ? '{{userId}}' : '1');
+    }
+
+    return [{
+      name: `${ep.method} ${ep.path}`,
+      path_params: fallbackParams,
+      query_params: {},
+      request_body: buildPayloadFromSchema(ep),
+      expected_status: ep.method === 'POST' ? 201 : 200,
+      reasoning: 'Fallback — AI unavailable',
+    }];
+  }
+}
+
+// ─── Helper: build payload from schema properties ────────────────────────────
+function buildPayloadFromSchema(ep) {
+  try {
+    const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
+    if (!schema?.properties) return null;
+    const payload = {};
+    for (const [f, fSchema] of Object.entries(schema.properties)) {
+      const n = f.toLowerCase();
+      if (fSchema?.example !== undefined) payload[f] = fSchema.example;
+      else if (fSchema?.enum) payload[f] = fSchema.enum[0];
+      else if (n.includes('email')) payload[f] = 'test@example.com';
+      else if (n.includes('password')) payload[f] = 'Test@123456';
+      else if (n.includes('name')) payload[f] = 'Test User';
+      else if (n.includes('id')) payload[f] = '{{userId}}';
+      else if (fSchema?.type === 'boolean') payload[f] = fSchema.default ?? true;
+      else if (fSchema?.type === 'integer') payload[f] = 1;
+      else payload[f] = 'test_value';
+    }
+    return payload;
+  } catch { return null; }
+}
+
+// ─── Helper: build path params using enum/example, never hardcoded "1" ───────
+function buildPathParams(ep) {
+  try {
+    const parameters = ep.parameters ? JSON.parse(ep.parameters) : [];
+    const pathParams = parameters.filter(p => p.in === 'path');
+    if (!pathParams.length) return null;
+    const result = {};
+    for (const p of pathParams) {
+      result[p.name] = p.example
+        || p.schema?.example
+        || p.schema?.enum?.[0]
+        || (p.name.toLowerCase().includes('id') ? '{{userId}}' : '1');
+    }
+    return result;
+  } catch { return null; }
+}
+
