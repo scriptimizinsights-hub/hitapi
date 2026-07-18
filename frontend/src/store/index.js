@@ -87,6 +87,8 @@ export const api = {
     updateStep: (id, flowId, stepId, body) => request(`/projects/${id}/flows/${flowId}/steps/${stepId}`, { method: 'PATCH', body: JSON.stringify(body) }),
     deleteStep: (id, flowId, stepId) => request(`/projects/${id}/flows/${flowId}/steps/${stepId}`, { method: 'DELETE' }),
     reorderSteps: (id, flowId, order) => request(`/projects/${id}/flows/${flowId}/steps/reorder`, { method: 'PUT', body: JSON.stringify({ order }) }),
+    addStep: (projectId, flowId, data) =>
+      post(`/projects/${projectId}/flows/${flowId}/steps`, data),
   },
   // Bugs
   bugs: {

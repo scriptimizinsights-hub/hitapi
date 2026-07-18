@@ -10,15 +10,11 @@ import {
 import { StepEditPanel } from './StepEditPanel.jsx';
 import { SuiteCreator } from './SuiteCreator.jsx';
 
-// Derive base group from step name for visual grouping
 function getStepGroup(result) {
-    // Use step_name which has the path template e.g. "POST /admin/users/{id}"
     const name = result.step_name || '';
     const path = name.includes(' ') ? name.split(' ').slice(1).join(' ') : name;
     if (!path || path.startsWith('/auth') || path.startsWith('/public')) return null;
-    // Strip path params to get base group
     const base = path.replace(/\/\{[^}]+\}.*$/, '');
-    // Skip very short paths
     if (!base || base === '/') return null;
     return base;
 }
@@ -44,18 +40,13 @@ function CopyBtn({ text }) {
     );
 }
 
-// ── cURL copy button ──────────────────────────────────────────────────────────
 function buildCurl(url, method, headers, body) {
     const h = headers || {};
     const parts = [`curl -X ${method || 'GET'} '${url}'`];
-    Object.entries(h).forEach(([k, v]) => {
-        if (k === 'Authorization') parts.push(`  -H '${k}: ${v}'`);
-        else parts.push(`  -H '${k}: ${v}'`);
-    });
+    Object.entries(h).forEach(([k, v]) => parts.push(`  -H '${k}: ${v}'`));
     if (!h['Content-Type']) parts.push(`  -H 'Content-Type: application/json'`);
-    if (body && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    if (body && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method))
         parts.push(`  -d '${JSON.stringify(body)}'`);
-    }
     return parts.join(' \\\n');
 }
 
@@ -80,26 +71,19 @@ function CurlButton({ url, method, headers, body }) {
     );
 }
 
-// ── Sub-check card with expandable request/response ───────────────────────────
 function SubCheckCard({ check, baseUrl, method }) {
     const [open, setOpen] = React.useState(false);
     const icon = check.check_type === 'auth' ? '🔒'
         : check.check_type === 'validation' ? '⚠'
-            : check.check_type === 'security' ? '🛡'
-                : '🔁';
+            : check.check_type === 'security' ? '🛡' : '🔁';
     const passed = check.status === 'passed';
     const color = passed ? 'var(--green)' : check.status === 'failed' ? 'var(--red)' : 'var(--amber)';
-
-    // Reconstruct the sub-check request for cURL
-    const checkMethod = check.check_type === 'method'
-        ? (method === 'GET' ? 'POST' : 'GET')
-        : method;
+    const checkMethod = check.check_type === 'method' ? (method === 'GET' ? 'POST' : 'GET') : method;
     const checkHeaders = check.check_type === 'auth'
         ? { 'Content-Type': 'application/json' }
         : { 'Content-Type': 'application/json', 'Authorization': '{{token}}' };
     const checkBody = check.check_type === 'validation' ? {}
-        : check.check_type === 'security' ? { "test": "'; DROP TABLE users; --" }
-            : null;
+        : check.check_type === 'security' ? { "test": "'; DROP TABLE users; --" } : null;
 
     return (
         <div style={{
@@ -108,10 +92,7 @@ function SubCheckCard({ check, baseUrl, method }) {
             border: `1px solid ${passed ? 'rgba(35,209,139,0.15)' : 'rgba(255,92,92,0.15)'}`,
             overflow: 'hidden',
         }}>
-            {/* Header row */}
-            <div onClick={() => setOpen(o => !o)} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer',
-            }}>
+            <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer' }}>
                 <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
                 <span style={{ fontSize: 11, color, fontWeight: 500, flex: 1 }}>
                     {passed ? '✓' : '✗'} {check.label}
@@ -123,8 +104,6 @@ function SubCheckCard({ check, baseUrl, method }) {
                 <CurlButton url={baseUrl} method={checkMethod} headers={checkHeaders} body={checkBody} />
                 <span style={{ color: 'var(--text-tertiary)', fontSize: 11, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
             </div>
-
-            {/* Expandable request/response */}
             {open && (
                 <div style={{ borderTop: `1px solid ${passed ? 'rgba(35,209,139,0.1)' : 'rgba(255,92,92,0.1)'}`, padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div>
@@ -169,7 +148,236 @@ function StatusIcon({ status }) {
     return <Clock size={14} color="var(--text-tertiary)" />;
 }
 
-function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved, isFirst, isLast, onMoveUp, onMoveDown, onDeleteStep }) {
+// ── Add Step Form ─────────────────────────────────────────────────────────────
+function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
+    const [endpoints, setEndpoints] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [form, setForm] = useState({
+        endpoint_id: '',
+        method: 'GET',
+        name: '',
+        input_payload: '',
+        input_params: '',
+        expected_status: '200',
+        extract_vars: '',
+        skip_if_failed: true,
+    });
+
+    useEffect(() => {
+        api.endpoints.list(projectId)
+            .then(data => {
+                const list = Array.isArray(data) ? data : (data?.endpoints || []);
+                setEndpoints(list);
+                if (list.length) {
+                    const ep = list[0];
+                    setForm(f => ({
+                        ...f,
+                        endpoint_id: ep.id,
+                        method: ep.method || 'GET',
+                        name: `${ep.method} ${ep.path}`,
+                        expected_status: ep.method === 'POST' ? '201' : '200',
+                    }));
+                }
+            })
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false));
+    }, [projectId]);
+
+    function handleEndpointChange(e) {
+        const ep = endpoints.find(x => x.id === e.target.value);
+        if (!ep) return;
+        setForm(f => ({
+            ...f,
+            endpoint_id: ep.id,
+            method: ep.method || 'GET',
+            name: `${ep.method} ${ep.path}`,
+            expected_status: ep.method === 'POST' ? '201' : '200',
+        }));
+    }
+
+    async function handleSave() {
+        if (!form.endpoint_id) { setError('Select an endpoint'); return; }
+        setSaving(true);
+        setError('');
+        try {
+            // Parse JSON fields safely
+            let input_payload = null;
+            let input_params = null;
+            let extract_vars = null;
+
+            if (form.input_payload.trim()) {
+                try { input_payload = JSON.parse(form.input_payload); }
+                catch { setError('Request body is not valid JSON'); setSaving(false); return; }
+            }
+            if (form.input_params.trim()) {
+                try { input_params = JSON.parse(form.input_params); }
+                catch { setError('Path params is not valid JSON'); setSaving(false); return; }
+            }
+            if (form.extract_vars.trim()) {
+                try { extract_vars = JSON.parse(form.extract_vars); }
+                catch { setError('Extract vars is not valid JSON'); setSaving(false); return; }
+            }
+
+            await api.flows.addStep(projectId, suiteId, {
+                endpoint_id: form.endpoint_id,
+                method: form.method,
+                name: form.name,
+                input_payload,
+                input_params,
+                expected_status: parseInt(form.expected_status) || 200,
+                extract_vars,
+                skip_if_failed: form.skip_if_failed ? 1 : 0,
+            });
+            onAdded();
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    if (loading) return (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+            <div className="spinner" style={{ width: 20, height: 20, margin: '0 auto' }} />
+        </div>
+    );
+
+    return (
+        <div style={{
+            margin: '0 18px 16px',
+            padding: '16px',
+            background: 'rgba(130,100,255,0.05)',
+            border: '1px solid rgba(130,100,255,0.25)',
+            borderRadius: 10,
+        }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Plus size={14} /> Add New Step
+            </div>
+
+            {error && (
+                <div style={{ padding: '8px 10px', background: 'var(--red-bg)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 6, fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>
+                    {error}
+                </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {/* Endpoint selector */}
+                <div style={{ gridColumn: '1/-1' }}>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Endpoint</label>
+                    <select
+                        value={form.endpoint_id}
+                        onChange={handleEndpointChange}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}
+                    >
+                        {endpoints.map(ep => (
+                            <option key={ep.id} value={ep.id}>{ep.method} {ep.path}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Step name */}
+                <div style={{ gridColumn: '1/-1' }}>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Step name</label>
+                    <input
+                        type="text"
+                        value={form.name}
+                        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="e.g. Create user"
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}
+                    />
+                </div>
+
+                {/* Path params */}
+                <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                        Path params <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(JSON)</span>
+                    </label>
+                    <textarea
+                        value={form.input_params}
+                        onChange={e => setForm(f => ({ ...f, input_params: e.target.value }))}
+                        placeholder={'{\n  "from": "json",\n  "to": "csv"\n}'}
+                        rows={4}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
+                    />
+                </div>
+
+                {/* Request body */}
+                <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                        Request body <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(JSON)</span>
+                    </label>
+                    <textarea
+                        value={form.input_payload}
+                        onChange={e => setForm(f => ({ ...f, input_payload: e.target.value }))}
+                        placeholder={'{\n  "input": "id,name\\n1,Ada"\n}'}
+                        rows={4}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
+                    />
+                </div>
+
+                {/* Expected status */}
+                <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Expected status</label>
+                    <input
+                        type="number"
+                        value={form.expected_status}
+                        onChange={e => setForm(f => ({ ...f, expected_status: e.target.value }))}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}
+                    />
+                </div>
+
+                {/* Extract vars */}
+                <div>
+                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                        Extract vars <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(JSON array, optional)</span>
+                    </label>
+                    <textarea
+                        value={form.extract_vars}
+                        onChange={e => setForm(f => ({ ...f, extract_vars: e.target.value }))}
+                        placeholder={'[\n  {"var": "token", "path": "data.token"}\n]'}
+                        rows={3}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
+                    />
+                </div>
+
+                {/* Skip if failed */}
+                <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                        type="checkbox"
+                        id="skip_if_failed"
+                        checked={form.skip_if_failed}
+                        onChange={e => setForm(f => ({ ...f, skip_if_failed: e.target.checked }))}
+                        style={{ width: 14, height: 14, cursor: 'pointer' }}
+                    />
+                    <label htmlFor="skip_if_failed" style={{ fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                        Skip following steps if this step fails
+                    </label>
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+                <button
+                    onClick={onCancel}
+                    style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', opacity: saving ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                    {saving ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Saving…</> : <><Plus size={12} /> Add Step</>}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved, isFirst, isLast, onMoveUp, onMoveDown, onDeleteStep, loadSteps, lastRun, setLastRun, steps }) {
     const [expanded, setExpanded] = useState(false);
     const [editing, setEditing] = useState(false);
     const body = safeJSON(result.actual_body);
@@ -211,7 +419,6 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                 </td>
                 <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        {/* Reorder buttons */}
                         <button onClick={onMoveUp} disabled={isFirst} title="Move up"
                             style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: isFirst ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isFirst ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                             ↑
@@ -220,12 +427,10 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                             style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: isLast ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isLast ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                             ↓
                         </button>
-                        {/* Edit button */}
                         <button onClick={() => { setEditing(e => !e); setExpanded(true); }}
                             style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: editing ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)', color: editing ? 'var(--accent)' : 'var(--text-tertiary)', border: `1px solid ${editing ? 'rgba(130,100,255,0.3)' : 'var(--border)'}` }}>
                             {editing ? '✕' : '✎'}
                         </button>
-                        {/* Delete button */}
                         <button onClick={onDeleteStep} title="Delete step"
                             style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
                             ✕
@@ -234,17 +439,16 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                 </td>
             </tr>
 
-            {/* Edit panel — shown above expanded result */}
             {editing && (
                 <tr>
                     <td colSpan={9} style={{ padding: 0 }}>
                         <StepEditPanel
                             step={stepDef || {
-                                id: r.step_id,
-                                name: r.step_name,
-                                method: r.request_method,
-                                endpoint_path: r.request_url?.replace(/^https?:\/\/[^/]+/, ''),
-                                input_payload: r.request_body ? JSON.stringify(r.request_body) : null,
+                                id: result.step_id,
+                                name: result.step_name,
+                                method: result.request_method,
+                                endpoint_path: result.request_url?.replace(/^https?:\/\/[^/]+/, ''),
+                                input_payload: result.request_body ? JSON.stringify(result.request_body) : null,
                                 extract_vars: null,
                                 expected_status: null,
                             }}
@@ -256,9 +460,7 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                             onClose={() => setEditing(false)}
                             onSaved={async () => {
                                 setEditing(false);
-                                // Reload steps so next run uses updated payloads
                                 await loadSteps();
-                                // Update the displayed result to reflect saved body
                                 const savedStep = steps?.find(s => s.id === result.step_id);
                                 if (savedStep && lastRun) {
                                     setLastRun(prev => ({
@@ -273,7 +475,6 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                 onStepSaved?.();
                             }}
                             onRunResult={res => {
-                                // Update the last run results inline so user sees new response
                                 if (res && lastRun) {
                                     setLastRun(prev => ({
                                         ...prev,
@@ -292,8 +493,6 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                 <tr>
                     <td colSpan={8} style={{ padding: 0, background: 'rgba(0,0,0,0.2)' }}>
                         <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-
-                            {/* ── Top: URL + status bar ── */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                                 {result.request_method && (
                                     <span className={`method-badge method-${result.request_method}`} style={{ fontSize: 9 }}>{result.request_method}</span>
@@ -325,14 +524,9 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                     ⊘ {result.failure_reason || 'Skipped'}
                                 </div>
                             ) : (
-                                /* ── 2-column: request left (narrow) | response right (wide) ── */
                                 <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 12 }}>
-
-                                    {/* Request — compact */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                         <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Request</div>
-
-                                        {/* Headers — collapsed by default, show only auth */}
                                         {reqHeaders && (
                                             <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 5, padding: '5px 8px' }}>
                                                 <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Headers</div>
@@ -345,8 +539,6 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                                 )}
                                             </div>
                                         )}
-
-                                        {/* Body */}
                                         {reqBody ? (
                                             <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 5, padding: '5px 8px' }}>
                                                 <div style={{ fontSize: 9, color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Body</div>
@@ -356,11 +548,9 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                             </div>
                                         ) : (
                                             <div style={{ padding: '5px 8px', background: 'rgba(255,92,92,0.06)', borderRadius: 5, border: '1px solid rgba(255,92,92,0.15)', fontSize: 9, color: 'var(--red)' }}>
-                                                ⚠ No body sent — schema not found in Swagger
+                                                ⚠ No body sent
                                             </div>
                                         )}
-
-                                        {/* Extracted vars */}
                                         {extracted && Object.entries(extracted).filter(([k]) => !k.startsWith('__')).length > 0 && (
                                             <div style={{ background: 'var(--accent-dim)', borderRadius: 5, padding: '5px 8px', borderLeft: '2px solid var(--accent)' }}>
                                                 <div style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Extracted</div>
@@ -372,8 +562,6 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* Response — wide and prominent */}
                                     <div>
                                         <div style={{ fontSize: 9, fontWeight: 600, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Response body</div>
                                         {body ? (
@@ -415,20 +603,132 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
     );
 }
 
+// ── Steps list (shown even before first run) ──────────────────────────────────
+function StepsList({ steps, suiteId, projectId, onAddedStep }) {
+    const [showAddForm, setShowAddForm] = useState(false);
+    const { addToast } = useStore();
+
+    if (!steps?.length && !showAddForm) return (
+        <div style={{ padding: '20px 18px' }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12, marginBottom: 14 }}>
+                No steps yet — add your first step below
+            </div>
+            <button
+                onClick={() => setShowAddForm(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 auto', padding: '8px 16px', borderRadius: 7, fontSize: 12, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none' }}
+            >
+                <Plus size={13} /> Add Step
+            </button>
+        </div>
+    );
+
+    return (
+        <div>
+            {/* Steps table */}
+            {steps?.length > 0 && (
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th style={{ width: 28 }}>#</th>
+                            <th style={{ width: 70 }}>Method</th>
+                            <th>Path</th>
+                            <th style={{ width: 80 }}>Expects</th>
+                            <th style={{ width: 100 }} />
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {steps.map((step, i) => (
+                            <tr key={step.id}>
+                                <td>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>
+                                        {step.step_order || i + 1}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span className={`method-badge method-${step.method}`}>{step.method}</span>
+                                </td>
+                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>
+                                    {step.endpoint_path || step.name}
+                                </td>
+                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)' }}>
+                                    {step.expected_status || '—'}
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={async () => {
+                                            if (!window.confirm(`Delete step "${step.name}"?`)) return;
+                                            try {
+                                                await api.flows.deleteStep(projectId, suiteId, step.id);
+                                                addToast('Step deleted', 'success');
+                                                onAddedStep();
+                                            } catch (e) { addToast(e.message, 'error'); }
+                                        }}
+                                        style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}
+                                    >
+                                        ✕
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+
+            {/* Add step form or button */}
+            {showAddForm ? (
+                <AddStepForm
+                    projectId={projectId}
+                    suiteId={suiteId}
+                    onAdded={() => { setShowAddForm(false); onAddedStep(); addToast('✓ Step added', 'success'); }}
+                    onCancel={() => setShowAddForm(false)}
+                />
+            ) : (
+                <div style={{ padding: '10px 18px 14px' }}>
+                    <button
+                        onClick={() => setShowAddForm(true)}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '7px 14px', borderRadius: 7, fontSize: 12,
+                            cursor: 'pointer', width: '100%', justifyContent: 'center',
+                            background: 'rgba(130,100,255,0.06)',
+                            color: 'var(--accent)',
+                            border: '1px dashed rgba(130,100,255,0.35)',
+                            transition: 'all .15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(130,100,255,0.12)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(130,100,255,0.06)'}
+                    >
+                        <Plus size={13} /> Add Step
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function SuiteCard({ suite, projectId, onDelete }) {
     const [running, setRunning] = useState(false);
     const [lastRun, setLastRun] = useState(null);
     const [expanded, setExpanded] = useState(false);
     const [steps, setSteps] = useState(null);
     const [loadingSteps, setLoadingSteps] = useState(false);
+    // 'steps' tab shows steps list (always), 'results' shows last run results
     const [activeTab, setActiveTab] = useState('steps');
     const { addToast } = useStore();
 
-    // Load last run AND steps from DB on mount
     useEffect(() => {
         loadLastRun();
         loadSteps();
     }, [suite.id]);
+
+    async function loadSteps() {
+        setLoadingSteps(true);
+        try {
+            const data = await api.flows.get(projectId, suite.id);
+            setSteps(data.steps || []);
+        } catch (err) { addToast(err.message, 'error'); }
+        finally { setLoadingSteps(false); }
+    }
 
     async function loadLastRun() {
         try {
@@ -456,62 +756,16 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         sub_checks: safeJSON(r.sub_checks) || [],
                     }))
                 });
+                if (detail.run.total_steps > 0) setActiveTab('results');
             }
         } catch { /* no previous runs */ }
-    }
-
-    async function loadSteps() {
-        if (steps) return;
-        setLoadingSteps(true);
-        try {
-            const data = await api.flows.get(projectId, suite.id);
-            setSteps(data.steps || []);
-        } catch (err) { addToast(err.message, 'error'); }
-        finally { setLoadingSteps(false); }
     }
 
     async function handleExpand() {
         const next = !expanded;
         setExpanded(next);
         if (next && !steps) loadSteps();
-        // Load last run from DB if we don't have one yet
         if (next && !lastRun) loadLastRun();
-    }
-
-    async function loadLastRun() {
-        try {
-            const runs = await api.flows.listRuns(projectId, suite.id);
-            if (runs?.length > 0) {
-                // Get full details of most recent run
-                const latest = runs[0];
-                const detail = await api.flows.getRun(projectId, suite.id, latest.id);
-                if (detail) {
-                    // Normalise to same shape as live run result
-                    setLastRun({
-                        summary: {
-                            total: detail.run.total_steps,
-                            passed: detail.run.passed,
-                            failed: detail.run.failed,
-                            pass_rate: detail.run.total_steps
-                                ? Math.round((detail.run.passed / detail.run.total_steps) * 100)
-                                : 0
-                        },
-                        context: detail.run.context ? JSON.parse(detail.run.context) : {},
-                        results: (detail.stepResults || []).map(r => ({
-                            ...r,
-                            // DB stores these as JSON strings — parse them
-                            actual_body: safeJSON(r.actual_body),
-                            actual_headers: safeJSON(r.actual_headers),
-                            request_body: safeJSON(r.request_body),
-                            request_headers: safeJSON(r.request_headers),
-                            extracted_vars: safeJSON(r.extracted_vars),
-                            sub_checks: safeJSON(r.sub_checks) || [],
-                        }))
-                    });
-                    if (detail.run.total_steps > 0) setActiveTab('results');
-                }
-            }
-        } catch { /* no previous runs */ }
     }
 
     const [skipStepIds, setSkipStepIds] = useState(new Set());
@@ -534,18 +788,12 @@ function SuiteCard({ suite, projectId, onDelete }) {
         setLastRun(null);
         if (!steps) await loadSteps();
         try {
-            const response = await api.flows.run(projectId, suite.id, {
-                skip_step_ids: [...skipStepIds]
-            });
-
-            // Queue-based: poll until done
+            const response = await api.flows.run(projectId, suite.id, { skip_step_ids: [...skipStepIds] });
             if (response.status === 'queued' && response.run_id) {
                 addToast('Suite queued — running steps…', 'info');
                 await pollForResults(response.run_id);
                 return;
             }
-
-            // Fallback: inline result (dev mode)
             setLastRun(response);
             const { passed, failed, total } = response.summary;
             addToast(`Suite: ${passed}/${total} passed`, failed > 0 ? 'error' : 'success');
@@ -557,29 +805,18 @@ function SuiteCard({ suite, projectId, onDelete }) {
     }
 
     async function pollForResults(runId) {
-        const MAX_POLLS = 120; // 4 minutes max
-        const INTERVAL = 2000; // poll every 2s
-
+        const MAX_POLLS = 120;
+        const INTERVAL = 2000;
         for (let i = 0; i < MAX_POLLS; i++) {
             await new Promise(r => setTimeout(r, INTERVAL));
             try {
                 const detail = await api.flows.getRun(projectId, suite.id, runId);
                 if (!detail) continue;
-
                 const run = detail.run || detail;
                 const status = run.status;
-
-                // Show partial results as they come in
                 if (detail.stepResults?.length) {
                     setLastRun({
-                        summary: {
-                            total: run.total_steps,
-                            passed: run.passed || 0,
-                            failed: run.failed || 0,
-                            pass_rate: run.total_steps
-                                ? Math.round(((run.passed || 0) / run.total_steps) * 100)
-                                : 0
-                        },
+                        summary: { total: run.total_steps, passed: run.passed || 0, failed: run.failed || 0, pass_rate: run.total_steps ? Math.round(((run.passed || 0) / run.total_steps) * 100) : 0 },
                         context: safeJSON(run.context) || {},
                         results: (detail.stepResults || []).map(r => ({
                             ...r,
@@ -592,21 +829,13 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         }))
                     });
                 }
-
                 if (status === 'done' || status === 'failed') {
-                    const passed = run.passed || 0;
-                    const total = run.total_steps || 0;
-                    addToast(
-                        `Suite: ${passed}/${total} passed`,
-                        status === 'done' ? 'success' : 'error'
-                    );
+                    addToast(`Suite: ${run.passed || 0}/${run.total_steps || 0} passed`, status === 'done' ? 'success' : 'error');
                     setRunning(false);
                     return;
                 }
             } catch { /* keep polling */ }
         }
-
-        // Timeout
         addToast('Suite run timed out — check results', 'error');
         setRunning(false);
     }
@@ -615,6 +844,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
 
     return (
         <div className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
+            {/* Suite header */}
             <div onClick={handleExpand} style={{ padding: '16px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <GitBranch size={16} color="var(--accent)" />
@@ -623,7 +853,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{suite.name}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{suite.description}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     {lastRun && (
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: 20, fontWeight: 700, color: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)' }}>
@@ -638,7 +868,21 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             ? <><div className="spinner" style={{ width: 12, height: 12 }} /> {lastRun ? 'Running…' : 'Queued…'}</>
                             : <><Play size={11} fill="currentColor" /> Run</>}
                     </button>
-                    {/* Skip steps button */}
+                    {/* ── NEW: Add Step button ── */}
+                    <button
+                        onClick={e => { e.stopPropagation(); setExpanded(true); setActiveTab('steps'); }}
+                        title="Add step to this suite"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '6px 10px', borderRadius: 6, fontSize: 11,
+                            cursor: 'pointer', whiteSpace: 'nowrap',
+                            background: 'rgba(130,100,255,0.08)',
+                            color: 'var(--accent)',
+                            border: '1px solid rgba(130,100,255,0.25)',
+                        }}
+                    >
+                        <Plus size={12} /> Add Step
+                    </button>
                     {lastRun?.results?.length > 0 && (
                         <button onClick={e => { e.stopPropagation(); setShowSkipPanel(s => !s); if (!steps) loadSteps(); }}
                             style={{
@@ -659,15 +903,14 @@ function SuiteCard({ suite, projectId, onDelete }) {
                 </div>
             </div>
 
+            {/* Skip panel */}
             {showSkipPanel && (
                 <div onClick={e => e.stopPropagation()} style={{ borderTop: '1px solid var(--border)', padding: '14px 18px', background: 'rgba(255,181,71,0.04)' }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>⊘ Select steps to skip in next run</span>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button onClick={() => {
-                                const failedIds = new Set((lastRun?.results || [])
-                                    .filter(r => r.status === 'failed' || r.status === 'error')
-                                    .map(r => r.step_id).filter(Boolean));
+                                const failedIds = new Set((lastRun?.results || []).filter(r => r.status === 'failed' || r.status === 'error').map(r => r.step_id).filter(Boolean));
                                 setSkipStepIds(failedIds);
                             }} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
                                 Select all failed
@@ -678,7 +921,6 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             </button>
                         </div>
                     </div>
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {(steps || lastRun?.results || []).map((step, i) => {
                             const stepId = step.step_id || step.id;
@@ -687,39 +929,20 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             const lastResult = lastRun?.results?.find(r => r.step_id === stepId || r.step_order === order);
                             const status = lastResult?.status;
                             const isChecked = skipStepIds.has(stepId);
-
                             return (
                                 <div key={stepId || i} onClick={() => stepId && toggleSkip(stepId)} style={{
-                                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                                    borderRadius: 7, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 7, cursor: 'pointer',
                                     background: isChecked ? 'rgba(255,181,71,0.08)' : 'rgba(255,255,255,0.02)',
                                     border: `1px solid ${isChecked ? 'rgba(255,181,71,0.3)' : 'var(--border)'}`,
-                                    transition: 'all 0.12s'
                                 }}>
-                                    <div style={{
-                                        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                                        border: `2px solid ${isChecked ? 'var(--amber)' : 'var(--border)'}`,
-                                        background: isChecked ? 'var(--amber)' : 'transparent',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
+                                    <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `2px solid ${isChecked ? 'var(--amber)' : 'var(--border)'}`, background: isChecked ? 'var(--amber)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {isChecked && <span style={{ fontSize: 9, color: '#000', fontWeight: 800 }}>✓</span>}
                                     </div>
-                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>
-                                        {order}
-                                    </div>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{order}</div>
                                     <div style={{ flex: 1, fontSize: 12 }}>{stepName}</div>
                                     {status && (
-                                        <span style={{
-                                            fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
-                                            background: status === 'passed' ? 'var(--green-bg)' : status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)',
-                                            color: status === 'passed' ? 'var(--green)' : status === 'failed' ? 'var(--red)' : 'var(--amber)'
-                                        }}>
-                                            {status === 'passed' ? '✓ Passed' : status === 'failed' ? '✗ Failed' : status === 'error' ? '⚠ Error' : '— Skipped'}
-                                        </span>
-                                    )}
-                                    {lastResult?.actual_status && (
-                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: lastResult.actual_status < 300 ? 'var(--green)' : 'var(--red)' }}>
-                                            {lastResult.actual_status}
+                                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: status === 'passed' ? 'var(--green-bg)' : status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)', color: status === 'passed' ? 'var(--green)' : status === 'failed' ? 'var(--red)' : 'var(--amber)' }}>
+                                            {status === 'passed' ? '✓ Passed' : status === 'failed' ? '✗ Failed' : '— Skipped'}
                                         </span>
                                     )}
                                     {isChecked && <span style={{ fontSize: 10, color: 'var(--amber)', fontStyle: 'italic', flexShrink: 0 }}>will skip</span>}
@@ -728,124 +951,157 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         })}
                     </div>
                     <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                        {skipStepIds.size > 0
-                            ? `${skipStepIds.size} step${skipStepIds.size > 1 ? 's' : ''} will be skipped · click Run to execute`
-                            : 'Click steps above to mark them for skipping'}
+                        {skipStepIds.size > 0 ? `${skipStepIds.size} step${skipStepIds.size > 1 ? 's' : ''} will be skipped · click Run to execute` : 'Click steps above to mark them for skipping'}
                     </div>
                 </div>
             )}
 
+            {/* Expanded body */}
             {expanded && (
                 <div style={{ borderTop: '1px solid var(--border)' }}>
-                    {running && (
-                        <div style={{ padding: '24px', textAlign: 'center' }}>
-                            <div className="spinner" style={{ width: 28, height: 28, margin: '0 auto 12px' }} />
-                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Executing steps in sequence…</div>
-                        </div>
+
+                    {/* ── Tabs: Steps | Results ── */}
+                    <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)' }}>
+                        {[
+                            { key: 'steps', label: `Steps${steps?.length ? ` (${steps.length})` : ''}` },
+                            { key: 'results', label: `Last Run${lastRun ? ` · ${lastRun.summary.passed}/${lastRun.summary.total}` : ''}` },
+                        ].map(tab => (
+                            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                                style={{
+                                    padding: '8px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                    background: 'transparent', border: 'none',
+                                    borderBottom: activeTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
+                                    color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-tertiary)',
+                                }}>
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* ── Steps tab ── always shows steps + Add Step button ── */}
+                    {activeTab === 'steps' && (
+                        loadingSteps
+                            ? <div style={{ padding: 20, textAlign: 'center' }}><div className="spinner" style={{ width: 20, height: 20, margin: '0 auto' }} /></div>
+                            : <StepsList
+                                steps={steps}
+                                suiteId={suite.id}
+                                projectId={projectId}
+                                onAddedStep={() => loadSteps()}
+                            />
                     )}
 
-                    {lastRun && !running && (
+                    {/* ── Results tab ── */}
+                    {activeTab === 'results' && (
                         <>
-                            {/* Summary */}
-                            <div style={{ padding: '10px 18px', background: 'rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>✓ {lastRun.summary.passed} passed</span>
-                                {lastRun.summary.failed > 0 && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>✗ {lastRun.summary.failed} failed</span>}
-                                <div style={{ flex: 1, minWidth: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${passRate}%`, background: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)', transition: 'width .4s' }} />
+                            {running && (
+                                <div style={{ padding: '24px', textAlign: 'center' }}>
+                                    <div className="spinner" style={{ width: 28, height: 28, margin: '0 auto 12px' }} />
+                                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Executing steps in sequence…</div>
                                 </div>
-                                {/* Context vars */}
-                                {lastRun.context && Object.entries(lastRun.context).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
-                                    <span key={k} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: 'JetBrains Mono, monospace' }}>
-                                        {`{{${k}}}`} ✓
-                                    </span>
-                                ))}
-                            </div>
+                            )}
 
-                            {/* Step results */}
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th style={{ width: 30 }} />
-                                        <th style={{ width: 28 }}>#</th>
-                                        <th style={{ width: 22 }} />
-                                        <th>Step</th>
-                                        <th style={{ width: 70 }}>Method</th>
-                                        <th>Path</th>
-                                        <th style={{ width: 60 }}>HTTP</th>
-                                        <th style={{ width: 70 }}>Time</th>
-                                        <th style={{ width: 70 }} />
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(() => {
-                                        const rows = [];
-                                        let lastShownGroup = null;
-                                        (lastRun.results || []).forEach((r, i) => {
-                                            const group = getStepGroup(r);
-                                            // Show group header only when group changes AND it's not auth steps
-                                            if (group && group !== lastShownGroup && i > 1) {
-                                                lastShownGroup = group;
-                                                rows.push(
-                                                    <tr key={`grp-${i}`}>
-                                                        <td colSpan={9} style={{ padding: '5px 14px 2px', background: 'rgba(130,100,255,0.04)', borderTop: '1px solid rgba(130,100,255,0.15)' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                                <div style={{ width: 3, height: 11, borderRadius: 2, background: 'var(--accent)', flexShrink: 0 }} />
-                                                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{group}</span>
-                                                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 2 }}>· CRUD group</span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            } else if (!group) {
-                                                // Reset tracking when we hit a non-grouped step
-                                                lastShownGroup = null;
-                                            }
-                                            rows.push(
-                                                <StepResult
-                                                    key={i}
-                                                    result={r}
-                                                    projectId={projectId}
-                                                    suiteId={suite.id}
-                                                    stepDef={steps?.find(s => s.id === r.step_id)}
-                                                    context={lastRun.context || {}}
-                                                    onStepSaved={() => { loadSteps(); }}
-                                                    isFirst={i === 0}
-                                                    isLast={i === (lastRun?.results?.length || 0) - 1}
-                                                    onMoveUp={async () => {
-                                                        if (i === 0 || !steps) return;
-                                                        const ids = lastRun.results.map(x => x.step_id).filter(Boolean);
-                                                        const newOrder = [...ids];
-                                                        [newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]];
-                                                        await api.flows.reorderSteps(projectId, suite.id, newOrder);
-                                                        loadSteps(); loadRuns();
-                                                    }}
-                                                    onMoveDown={async () => {
-                                                        if (i === (lastRun?.results?.length || 0) - 1 || !steps) return;
-                                                        const ids = lastRun.results.map(x => x.step_id).filter(Boolean);
-                                                        const newOrder = [...ids];
-                                                        [newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]];
-                                                        await api.flows.reorderSteps(projectId, suite.id, newOrder);
-                                                        loadSteps(); loadRuns();
-                                                    }}
-                                                    onDeleteStep={async () => {
-                                                        if (!window.confirm(`Delete step "${r.step_name}"? This cannot be undone.`)) return;
-                                                        await api.flows.deleteStep(projectId, suite.id, r.step_id);
-                                                        loadSteps(); loadRuns();
-                                                    }}
-                                                />
-                                            );
-                                        });
-                                        return rows;
-                                    })()}
-                                </tbody>
-                            </table>
+                            {lastRun && !running && (
+                                <>
+                                    <div style={{ padding: '10px 18px', background: 'rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>✓ {lastRun.summary.passed} passed</span>
+                                        {lastRun.summary.failed > 0 && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>✗ {lastRun.summary.failed} failed</span>}
+                                        <div style={{ flex: 1, minWidth: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${passRate}%`, background: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)', transition: 'width .4s' }} />
+                                        </div>
+                                        {lastRun.context && Object.entries(lastRun.context).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
+                                            <span key={k} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: 'JetBrains Mono, monospace' }}>
+                                                {`{{${k}}}`} ✓
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: 30 }} />
+                                                <th style={{ width: 28 }}>#</th>
+                                                <th style={{ width: 22 }} />
+                                                <th>Step</th>
+                                                <th style={{ width: 70 }}>Method</th>
+                                                <th>Path</th>
+                                                <th style={{ width: 60 }}>HTTP</th>
+                                                <th style={{ width: 70 }}>Time</th>
+                                                <th style={{ width: 70 }} />
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(() => {
+                                                const rows = [];
+                                                let lastShownGroup = null;
+                                                (lastRun.results || []).forEach((r, i) => {
+                                                    const group = getStepGroup(r);
+                                                    if (group && group !== lastShownGroup && i > 1) {
+                                                        lastShownGroup = group;
+                                                        rows.push(
+                                                            <tr key={`grp-${i}`}>
+                                                                <td colSpan={9} style={{ padding: '5px 14px 2px', background: 'rgba(130,100,255,0.04)', borderTop: '1px solid rgba(130,100,255,0.15)' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                        <div style={{ width: 3, height: 11, borderRadius: 2, background: 'var(--accent)', flexShrink: 0 }} />
+                                                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{group}</span>
+                                                                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 2 }}>· CRUD group</span>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    } else if (!group) {
+                                                        lastShownGroup = null;
+                                                    }
+                                                    rows.push(
+                                                        <StepResult
+                                                            key={i}
+                                                            result={r}
+                                                            projectId={projectId}
+                                                            suiteId={suite.id}
+                                                            stepDef={steps?.find(s => s.id === r.step_id)}
+                                                            context={lastRun.context || {}}
+                                                            loadSteps={loadSteps}
+                                                            lastRun={lastRun}
+                                                            setLastRun={setLastRun}
+                                                            steps={steps}
+                                                            onStepSaved={() => loadSteps()}
+                                                            isFirst={i === 0}
+                                                            isLast={i === (lastRun?.results?.length || 0) - 1}
+                                                            onMoveUp={async () => {
+                                                                if (i === 0 || !steps) return;
+                                                                const ids = lastRun.results.map(x => x.step_id).filter(Boolean);
+                                                                const newOrder = [...ids];
+                                                                [newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]];
+                                                                await api.flows.reorderSteps(projectId, suite.id, newOrder);
+                                                                loadSteps();
+                                                            }}
+                                                            onMoveDown={async () => {
+                                                                if (i === (lastRun?.results?.length || 0) - 1 || !steps) return;
+                                                                const ids = lastRun.results.map(x => x.step_id).filter(Boolean);
+                                                                const newOrder = [...ids];
+                                                                [newOrder[i], newOrder[i + 1]] = [newOrder[i + 1], newOrder[i]];
+                                                                await api.flows.reorderSteps(projectId, suite.id, newOrder);
+                                                                loadSteps();
+                                                            }}
+                                                            onDeleteStep={async () => {
+                                                                if (!window.confirm(`Delete step "${r.step_name}"?`)) return;
+                                                                await api.flows.deleteStep(projectId, suite.id, r.step_id);
+                                                                loadSteps();
+                                                            }}
+                                                        />
+                                                    );
+                                                });
+                                                return rows;
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </>
+                            )}
+
+                            {!lastRun && !running && (
+                                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>
+                                    No runs yet — click <strong style={{ color: 'var(--accent)' }}>Run</strong> to execute all steps
+                                </div>
+                            )}
                         </>
-                    )}
-
-                    {!lastRun && !running && (
-                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>
-                            Click <strong style={{ color: 'var(--accent)' }}>Run</strong> to execute all steps in sequence
-                        </div>
                     )}
                 </div>
             )}
@@ -912,7 +1168,6 @@ export function FlowSuitesPage() {
                 </div>
             </div>
 
-            {/* How it works */}
             <div style={{ padding: '14px 18px', background: 'var(--accent-dim)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 10, marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <GitBranch size={15} color="var(--accent)" />
