@@ -4,7 +4,7 @@
  * Fallback: @cf/meta/llama-3.2-1b-instruct — tiny, near-instant
  */
 
-const MODEL = '@cf/meta/llama-3.2-1b-instruct';   // ~1–3s, always available
+const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';   // ~1–3s, always available
 const MODEL_FALLBACK = '@hf/google/gemma-7b-it';           // better quality, use if 1B fails
 
 function parseJSON(text) {
