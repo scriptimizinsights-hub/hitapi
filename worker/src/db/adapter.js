@@ -175,6 +175,7 @@ export class TestCaseRepo {
   }
 
   async insertMany(suiteId, endpointId, cases) {
+
     const n = v => (v === undefined ? null : v);
     const stmts = cases.map(tc => ({
       sql: `INSERT INTO test_cases (id, suite_id, endpoint_id, name, type, input_payload, input_headers, input_params, expected_status, expected_schema, ai_reasoning)
@@ -185,9 +186,13 @@ export class TestCaseRepo {
         // AI returns "type", old code returned "test_type" — handle both
         n(tc.type || tc.test_type),
         // AI returns "request_body", old code used "input_payload" — handle both
-        (tc.request_body ?? tc.input_payload) != null
-          ? JSON.stringify(tc.request_body ?? tc.input_payload)
-          : null,
+        typeof tc.request_body === 'string'
+          ? tc.request_body  // already stringified — save as-is
+          : tc.request_body != null
+            ? JSON.stringify(tc.request_body)  // object — stringify once
+            : tc.input_payload != null
+              ? (typeof tc.input_payload === 'string' ? tc.input_payload : JSON.stringify(tc.input_payload))
+              : null,
         tc.input_headers ? JSON.stringify(tc.input_headers) : null,
         // AI returns path_params + query_params separately — merge into input_params
         // executor.js line 73 already splits them back correctly using endpoint.path
