@@ -88,8 +88,8 @@ export const api = {
     deleteStep: (id, flowId, stepId) => request(`/projects/${id}/flows/${flowId}/steps/${stepId}`, { method: 'DELETE' }),
     reorderSteps: (id, flowId, order) => request(`/projects/${id}/flows/${flowId}/steps/reorder`, { method: 'PUT', body: JSON.stringify({ order }) }),
     addStep: (projectId, flowId, data) =>
-      post(`/projects/${projectId}/flows/${flowId}/steps`, data),
-    generateStep: (projectId, endpointId) => post(`/projects/${projectId}/endpoints/${endpointId}/generate-step`),
+      request(`/projects/${projectId}/flows/${flowId}/steps`, data),
+    generateStep: (projectId, endpointId) => request(`/projects/${projectId}/endpoints/${endpointId}/generate-step`),
   },
   // Bugs
   bugs: {
