@@ -178,16 +178,25 @@ export class TestCaseRepo {
     const n = v => (v === undefined ? null : v);
     const stmts = cases.map(tc => ({
       sql: `INSERT INTO test_cases (id, suite_id, endpoint_id, name, type, input_payload, input_headers, input_params, expected_status, expected_schema, ai_reasoning)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         this.db.uuid(), suiteId, endpointId,
-        n(tc.name), n(tc.test_type),
-        tc.input_payload ? JSON.stringify(tc.input_payload) : null,
+        n(tc.name),
+        // AI returns "type", old code returned "test_type" — handle both
+        n(tc.type || tc.test_type),
+        // AI returns "request_body", old code used "input_payload" — handle both
+        (tc.request_body ?? tc.input_payload) != null
+          ? JSON.stringify(tc.request_body ?? tc.input_payload)
+          : null,
         tc.input_headers ? JSON.stringify(tc.input_headers) : null,
-        tc.input_params ? JSON.stringify(tc.input_params) : null,
+        // AI returns path_params + query_params separately — merge into input_params
+        // executor.js line 73 already splits them back correctly using endpoint.path
+        (tc.path_params || tc.query_params || tc.input_params)
+          ? JSON.stringify({ ...tc.input_params, ...tc.path_params, ...tc.query_params })
+          : null,
         n(tc.expected_status) ?? null,
         tc.expected_schema ? JSON.stringify(tc.expected_schema) : null,
-        n(tc.ai_reasoning)
+        n(tc.ai_reasoning || tc.reasoning),
       ]
     }));
     return this.db.batch(stmts);
