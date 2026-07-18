@@ -7,7 +7,7 @@
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';   // ~1–3s, always available
 const MODEL_FALLBACK = '@hf/google/gemma-7b-it';           // better quality, use if 1B fails
 
-function parseJSON(text) {
+export function parseJSON(text) {
   try {
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(clean);
@@ -34,7 +34,7 @@ function parseJSON(text) {
   }
 }
 
-function extractText(response) {
+export function extractText(response) {
   if (!response) return '';
   if (typeof response === 'string') return response;
   if (response.response) return response.response;
