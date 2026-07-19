@@ -1892,7 +1892,8 @@ ${schema ? JSON.stringify(schema, null, 2) : 'none (GET endpoint)'}
 Generate ONE realistic test step. The input must be semantically correct for what the endpoint does.
 Infer this from the path, summary, description and parameter names.
 
-Return ONLY this JSON object:
+
+OUTPUT FORMAT — return ONLY a raw JSON no markdown, no explanation:
 {
   "name": "descriptive step name",
   "path_params": { "param": "value" },
