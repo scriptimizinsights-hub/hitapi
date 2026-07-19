@@ -1886,7 +1886,7 @@ ${pathParams.map(p => `  ${p.name}: ${p.schema?.enum ? JSON.stringify(p.schema.e
 ${schema?.properties ? `Request body fields:
 ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
 
-Output this JSON and nothing else:
+Output this ONE JSON object and nothing else:
 {"name":"step name","path_params":{},"request_body":{},"expected_status":200,"reasoning":"why"}`;
 
   try {
