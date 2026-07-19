@@ -1875,33 +1875,19 @@ export async function generateFlowStep(request, env, { params }) {
   const pathParams = parameters.filter(p => p.in === 'path');
   const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
 
-  const prompt = `You are an API test engineer. Generate a single realistic flow step for this endpoint.
+  const prompt = `You must output ONLY a JSON object. No explanation. No markdown. No backticks.
 
-ENDPOINT: ${endpoint.method} ${endpoint.path}
-SUMMARY: ${endpoint.summary || ''}
-DESCRIPTION: ${endpoint.description || ''}
+API endpoint: ${endpoint.method} ${endpoint.path}
+Summary: ${endpoint.summary || ''}
 
-PATH PARAMETERS:
-${pathParams.length ? pathParams.map(p =>
-    `  name: "${p.name}", description: "${p.description || ''}", ${p.schema?.enum ? `enum: ${JSON.stringify(p.schema.enum)}` : `type: ${p.schema?.type || 'string'}`}`
-  ).join('\n') : 'none'}
+${pathParams.length ? `Path parameters (use ONLY these enum values):
+${pathParams.map(p => `  ${p.name}: ${p.schema?.enum ? JSON.stringify(p.schema.enum) : p.schema?.type || 'string'}`).join('\n')}` : ''}
 
-REQUEST BODY SCHEMA:
-${schema ? JSON.stringify(schema, null, 2) : 'none (GET endpoint)'}
+${schema?.properties ? `Request body fields:
+${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
 
-Generate ONE realistic test step. The input must be semantically correct for what the endpoint does.
-Infer this from the path, summary, description and parameter names.
-
-
-OUTPUT FORMAT — return ONLY a raw JSON no markdown, no explanation:
-{
-  "name": "descriptive step name",
-  "path_params": { "param": "value" },
-  "request_body": { ... } or null,
-  "expected_status": 200,
-  "extract_vars": [],
-  "reasoning": "one sentence explaining what this step tests"
-}`;
+Output this JSON and nothing else:
+{"name":"step name","path_params":{},"request_body":{},"expected_status":200,"reasoning":"why"}`;
 
   try {
     const response = await runAI(env.AI, prompt, 600, 20000);
