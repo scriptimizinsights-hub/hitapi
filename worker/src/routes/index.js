@@ -1902,7 +1902,7 @@ JSON Schema:
 API endpoint: ${endpoint.method} ${endpoint.path}
 Summary: ${endpoint.summary || ''}
 
-${pathParams.length ? `Path parameters (use ONLY this enum value):
+${endpoint.input_params ? `Path parameters (use ONLY this enum value):
 ${endpoint.input_params ? JSON.stringify(endpoint.input_params) : JSON.stringify(endpoint?.pathParams || {})}` : 'No path parameters'}
 
 ${schema?.properties ? `Request body fields:
