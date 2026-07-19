@@ -1876,7 +1876,7 @@ export async function generateFlowStep(request, env, { params }) {
   const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
 
   const prompt = `
-  
+
 You are generating API test cases.
 Generate EXACTLY ONE test case.
 
@@ -1929,5 +1929,4 @@ try {
   }));
 } catch (err) {
   return error(`AI generation failed: ${err.message}`, 500);
-}
 }
