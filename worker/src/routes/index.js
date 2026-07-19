@@ -1891,7 +1891,7 @@ Output this ONE JSON object and nothing else:
 
   try {
     const response = await runAI(env.AI, prompt, 800, 40000);
-    console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${response} `);
+    console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
     const text = extractText(response);
     const parsed = parseJSON(text);
 
