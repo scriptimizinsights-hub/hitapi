@@ -1910,7 +1910,7 @@ ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string
 `;
 
   try {
-    const response = await runAI(env.AI, prompt, 600, 40000);
+    const response = await runAI(env.AI, prompt, 600, 40000, '@cf/meta/llama-3.2-1b-instruct');
     console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
     const text = extractText(response);
     const parsed = parseJSON(text);

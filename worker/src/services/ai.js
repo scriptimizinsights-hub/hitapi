@@ -45,12 +45,12 @@ export function extractText(response) {
   return '';
 }
 
-export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
+export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, model = MODEL) {
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
   );
   console.log(`[AI] Prompt (${prompt.length} chars, max_tokens=${maxTokens}):`, prompt);
-  const call = ai.run(MODEL, {
+  const call = ai.run(model, {
     prompt,
     max_tokens: maxTokens,
     temperature: 0.1,
