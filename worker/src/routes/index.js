@@ -1886,7 +1886,6 @@ Rules:
 - Do NOT return multiple JSON objects.
 - Do NOT include markdown.
 - Do NOT include explanations.
-- Stop immediately after the closing `} `.
 - The response must be valid JSON that can be parsed with JSON.parse().
 
 JSON Schema:
@@ -1910,23 +1909,24 @@ ${schema?.properties ? `Request body fields:
 ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
 `;
 
-try {
-  const response = await runAI(env.AI, prompt, 600, 40000);
-  console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
-  const text = extractText(response);
-  const parsed = parseJSON(text);
+  try {
+    const response = await runAI(env.AI, prompt, 600, 40000);
+    console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
+    const text = extractText(response);
+    const parsed = parseJSON(text);
 
-  if (!parsed) return error('AI could not generate step');
+    if (!parsed) return error('AI could not generate step');
 
-  // Map to consistent field names
-  return json(success({
-    name: parsed.name || `${endpoint.method} ${endpoint.path}`,
-    input_params: parsed.path_params || parsed.input_params || null,
-    input_payload: parsed.request_body || parsed.input_payload || null,
-    expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
-    extract_vars: parsed.extract_vars || [],
-    reasoning: parsed.reasoning || '',
-  }));
-} catch (err) {
-  return error(`AI generation failed: ${err.message}`, 500);
+    // Map to consistent field names
+    return json(success({
+      name: parsed.name || `${endpoint.method} ${endpoint.path}`,
+      input_params: parsed.path_params || parsed.input_params || null,
+      input_payload: parsed.request_body || parsed.input_payload || null,
+      expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
+      extract_vars: parsed.extract_vars || [],
+      reasoning: parsed.reasoning || '',
+    }));
+  } catch (err) {
+    return error(`AI generation failed: ${err.message}`, 500);
+  }
 }
