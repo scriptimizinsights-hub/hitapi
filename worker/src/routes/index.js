@@ -1872,7 +1872,7 @@ export async function generateFlowStep(request, env, { params }) {
   if (!endpoint) return error('Endpoint not found', 404);
 
   const parameters = endpoint.parameters ? JSON.parse(endpoint.parameters) : [];
-  const pathParams = parameters.filter(p => p.in === 'path');
+
   const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
 
   const prompt = `
@@ -1903,7 +1903,7 @@ API endpoint: ${endpoint.method} ${endpoint.path}
 Summary: ${endpoint.summary || ''}
 
 ${pathParams.length ? `Path parameters (use ONLY this enum value):
-${pathParams.map(p => `  ${p.name}: ${p.schema?.enum ? JSON.stringify(p.schema.enum) : p.schema?.type || 'string'}`).join('\n')}` : ''}
+${endpoint.input_params ? JSON.stringify(endpoint.input_params) : JSON.stringify(endpoint?.pathParams || {})}` : 'No path parameters'}
 
 ${schema?.properties ? `Request body fields:
 ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
