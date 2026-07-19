@@ -1890,7 +1890,7 @@ Output this JSON and nothing else:
 {"name":"step name","path_params":{},"request_body":{},"expected_status":200,"reasoning":"why"}`;
 
   try {
-    const response = await runAI(env.AI, prompt, 800, 20000);
+    const response = await runAI(env.AI, prompt, 800, 40000);
     console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${response} `);
     const text = extractText(response);
     const parsed = parseJSON(text);
