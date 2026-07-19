@@ -49,6 +49,7 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000) {
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
   );
+  console.log(`[AI] Prompt (${prompt.length} chars, max_tokens=${maxTokens}):`, prompt);
   const call = ai.run(MODEL, {
     prompt,
     max_tokens: maxTokens,
