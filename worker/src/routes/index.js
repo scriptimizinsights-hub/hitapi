@@ -1880,13 +1880,16 @@ export async function generateFlowStep(request, env, { params }) {
 API endpoint: ${endpoint.method} ${endpoint.path}
 Summary: ${endpoint.summary || ''}
 
-${pathParams.length ? `Path parameters (use ONLY these enum values):
+${pathParams.length ? `Path parameters (use ONLY this enum value):
 ${pathParams.map(p => `  ${p.name}: ${p.schema?.enum ? JSON.stringify(p.schema.enum) : p.schema?.type || 'string'}`).join('\n')}` : ''}
 
 ${schema?.properties ? `Request body fields:
 ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
 
-Output this ONE JSON object and nothing else:
+Rule:
+1. Output this ONLY AND ONLY ONE JSON object and nothing else.
+2. No explanation. No markdown. No backticks:
+
 {"name":"step name","path_params":{},"request_body":{},"expected_status":200,"reasoning":"why"}`;
 
   try {
