@@ -1875,7 +1875,30 @@ export async function generateFlowStep(request, env, { params }) {
   const pathParams = parameters.filter(p => p.in === 'path');
   const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
 
-  const prompt = `You must output ONLY a JSON object. No explanation. No markdown. No backticks.
+  const prompt = `
+  
+You are generating API test cases.
+Generate EXACTLY ONE test case.
+
+Rules:
+- Return ONLY one JSON object.
+- Do NOT return an array.
+- Do NOT return multiple JSON objects.
+- Do NOT include markdown.
+- Do NOT include explanations.
+- Stop immediately after the closing `} `.
+- The response must be valid JSON that can be parsed with JSON.parse().
+
+JSON Schema:
+{
+  "name": "string",
+  "path_params": {},
+  "query_params": {},
+  "headers": {},
+  "request_body": {},
+  "expected_status": 200,
+  "reasoning": "string"
+}
 
 API endpoint: ${endpoint.method} ${endpoint.path}
 Summary: ${endpoint.summary || ''}
@@ -1885,31 +1908,26 @@ ${pathParams.map(p => `  ${p.name}: ${p.schema?.enum ? JSON.stringify(p.schema.e
 
 ${schema?.properties ? `Request body fields:
 ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
+`;
 
-Rule:
-1. Output this ONLY AND ONLY ONE JSON object and nothing else.
-2. No explanation. No markdown. No backticks:
+try {
+  const response = await runAI(env.AI, prompt, 600, 40000);
+  console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
+  const text = extractText(response);
+  const parsed = parseJSON(text);
 
-{"name":"step name","path_params":{},"request_body":{},"expected_status":200,"reasoning":"why"}`;
+  if (!parsed) return error('AI could not generate step');
 
-  try {
-    const response = await runAI(env.AI, prompt, 800, 40000);
-    console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
-    const text = extractText(response);
-    const parsed = parseJSON(text);
-
-    if (!parsed) return error('AI could not generate step');
-
-    // Map to consistent field names
-    return json(success({
-      name: parsed.name || `${endpoint.method} ${endpoint.path}`,
-      input_params: parsed.path_params || parsed.input_params || null,
-      input_payload: parsed.request_body || parsed.input_payload || null,
-      expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
-      extract_vars: parsed.extract_vars || [],
-      reasoning: parsed.reasoning || '',
-    }));
-  } catch (err) {
-    return error(`AI generation failed: ${err.message}`, 500);
-  }
+  // Map to consistent field names
+  return json(success({
+    name: parsed.name || `${endpoint.method} ${endpoint.path}`,
+    input_params: parsed.path_params || parsed.input_params || null,
+    input_payload: parsed.request_body || parsed.input_payload || null,
+    expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
+    extract_vars: parsed.extract_vars || [],
+    reasoning: parsed.reasoning || '',
+  }));
+} catch (err) {
+  return error(`AI generation failed: ${err.message}`, 500);
+}
 }
