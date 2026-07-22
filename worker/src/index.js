@@ -25,6 +25,9 @@ import {
   addFlowStep, createManualBug, quickCreateFromCapture,
   deleteFlowStep, reorderFlowSteps,
   generateFlowStep,
+  adminErrorStats,
+  listAdminErrors, listProjectErrors,
+  addAdmin, listAdmins, removeAdmin,
 }
   from './routes/index.js';
 
@@ -101,6 +104,14 @@ const ROUTES = [
   // Reports
   router('GET', '/api/projects/:id/reports', listReports),
   router('GET', '/api/reports/:reportId/download', downloadReport),
+
+  router('GET', '/api/admin/errors', listAdminErrors),
+  router('GET', '/api/admin/errors/stats', adminErrorStats),
+  router('GET', '/api/projects/:id/errors', listProjectErrors),
+
+  router('GET', '/api/admin/admins', listAdmins),
+  router('POST', '/api/admin/admins', addAdmin),
+  router('DELETE', '/api/admin/admins/:adminId', removeAdmin),
 ];
 
 /**
@@ -127,59 +138,73 @@ function matchRoute(pattern, urlPath) {
  * Main fetch handler
  */
 export default {
+
   async fetch(request, env, ctx) {
-    // CORS preflight
-    const corsResponse = handleCORS(request, env);
-    if (corsResponse) return corsResponse;
+    try {
+      // CORS preflight
+      const corsResponse = handleCORS(request, env);
+      if (corsResponse) return corsResponse;
 
-    const url = new URL(request.url);
-    const method = request.method.toUpperCase();
-    let urlPath = url.pathname.replace(/\/$/, '') || '/';
+      const url = new URL(request.url);
+      const method = request.method.toUpperCase();
+      let urlPath = url.pathname.replace(/\/$/, '') || '/';
 
-    // Find matching route
-    for (const route of ROUTES) {
-      if (route.method !== method) continue;
-      const { matched, params } = matchRoute(route.pattern, urlPath);
-      if (!matched) continue;
+      // Find matching route
+      for (const route of ROUTES) {
+        if (route.method !== method) continue;
+        const { matched, params } = matchRoute(route.pattern, urlPath);
+        if (!matched) continue;
 
-      // Public routes — no auth required
-      const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/api/auth/accept-terms', '/health', '/api/health'];
-      const isPublic = PUBLIC.some(p => urlPath === p || urlPath.startsWith(p));
+        const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/api/auth/accept-terms', '/health', '/api/health'];
+        const isPublic = PUBLIC.some(p => urlPath === p || urlPath.startsWith(p));
 
-      let authUser = null;
-      if (!isPublic && urlPath.startsWith('/api/')) {
-        authUser = await requireAuth(request, env);
-        if (!authUser) {
-          return json({ success: false, error: 'Unauthorized — please log in to HitAPI' }, 401, env);
-        }
+        let authUser = null;
+        if (!isPublic && urlPath.startsWith('/api/')) {
+          authUser = await requireAuth(request, env);
+          if (!authUser) {
+            return json({ success: false, error: 'Unauthorized — please log in to HitAPI' }, 401, env);
+          }
 
-        // CRITICAL: verify project ownership for any /api/projects/:id/* route
-        // params.id is always the project ID in this routing scheme
-        if (params?.id && urlPath.startsWith('/api/projects/')) {
-          const { assertProjectOwner } = await import('./routes/index.js');
-          const owns = await assertProjectOwner(env, params.id, authUser.sub);
-          if (!owns) {
-            return json({ success: false, error: 'Project not found' }, 404, env);
+          if (params?.id && urlPath.startsWith('/api/projects/')) {
+            const { assertProjectOwner } = await import('./routes/index.js');
+            const owns = await assertProjectOwner(env, params.id, authUser.sub);
+            if (!owns) {
+              return json({ success: false, error: 'Project not found' }, 404, env);
+            }
           }
         }
+
+        return route.handler(request, env, { params, ctx, user: authUser });
       }
 
-      return route.handler(request, env, { params, ctx, user: authUser });
-    }
+      return json({ error: 'Not found', path: urlPath }, 404, env);
 
-    // 404
-    return json({ error: 'Not found', path: urlPath }, 404, env);
+    } catch (err) {
+      // Log critical internal error — never let this break the response
+      try {
+        const { DatabaseAdapter } = await import('./db/adapter.js');
+        const db = new DatabaseAdapter(env.DB);
+        const { logInternalError } = await import('./services/errorLogger.js');
+        await logInternalError(db, {
+          source: 'worker',
+          severity: 'critical',
+          message: err.message,
+          stack: err.stack,
+          context: { url: request.url, method: request.method },
+        });
+      } catch { /* never let logging break the response */ }
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Internal server error',
+      }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
   },
 
-  /**
-   * Queue consumer — handles async test execution
-   */
   async queue(batch, env) {
     return handleQueue(batch, env);
   },
 
-  // Scheduled handler — for monitors (Cloudflare Cron Triggers)
-  // Configure in wrangler.toml under [triggers]: crons = ["*\/5 * * * *"]
   async scheduled(event, env, ctx) {
     const db = new (await import('./db/adapter.js')).DatabaseAdapter(env.DB);
     const monitors = await db.all(

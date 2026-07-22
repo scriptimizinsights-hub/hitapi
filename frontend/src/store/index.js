@@ -47,7 +47,8 @@ export const api = {
     create: (body) => request('/projects', { method: 'POST', body: JSON.stringify(body) }),
     update: (id, body) => request(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id) => request(`/projects/${id}`, { method: 'DELETE' }),
-    testLogin: (id, body) => request(`/projects/${id}/test-login`, { method: 'POST', body: JSON.stringify(body) })
+    testLogin: (id, body) => request(`/projects/${id}/test-login`, { method: 'POST', body: JSON.stringify(body) }),
+    errors: (id) => request(`/projects/${id}/errors`),
   },
   // Swagger
   swagger: {
@@ -319,6 +320,11 @@ export const useStore = create((set, get) => ({
     const id = Date.now();
     set(s => ({ toasts: [...s.toasts, { id, message, type }] }));
     setTimeout(() => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })), 4000);
+  },
+
+  admin: {
+    errors: (params) => request(`/admin/errors?${params}`),
+    errorStats: () => request(`/admin/errors/stats`),
   },
 
   removeToast: (id) => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) }))

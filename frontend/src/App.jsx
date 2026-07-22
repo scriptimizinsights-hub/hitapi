@@ -18,6 +18,7 @@ import { TermsPage } from './components/ui/TermsPage.jsx';
 import { LandingPage } from './components/ui/LandingPage.jsx';
 import { useStore } from './store/index.js';
 import './styles/global.css';
+import { AdminErrorsPage } from './components/admin/AdminErrorsPage.jsx';
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
@@ -194,6 +195,9 @@ export default function App() {
             </AppLayout>
           } />
           <Route path="*" element={<Navigate to="/" />} />
+          {user?.email && ADMIN_EMAILS.includes(user.email) && (
+            <Route path="/admin/errors" element={<AdminErrorsPage />} />
+          )}
         </Routes>
 
         {showNewProject && (

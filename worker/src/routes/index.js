@@ -9,7 +9,7 @@ import { executeAll } from '../services/executor.js';
 import { storeReport, getReport } from '../services/reports.js';
 import { json, error, parseBody, success } from '../middleware/cors.js';
 import { encryptField, decryptField } from '../services/encryption.js';
-
+import { logInternalError } from '../services/errorLogger.js';
 import { runAI, extractText, parseJSON } from '../services/ai.js';
 
 function repos(env) {
@@ -228,7 +228,17 @@ export async function generateTests(request, env, { params }) {
       await r.testCases.insertMany(suiteId, endpoint.id, cases);
       generated.push({ endpoint: `${endpoint.method} ${endpoint.path}`, count: cases.length });
     } catch (err) {
+
+      await logInternalError(env.DB, {
+        source: 'ai',
+        severity: 'error',
+        message: `AI call failed: ${err.message}`,
+        stack: err.stack,
+        projectId,
+        context: { model: MODEL, prompt: prompt.slice(0, 500) },
+      });
       errors.push({ endpoint: `${endpoint.method} ${endpoint.path}`, error: err.message });
+      throw err;
     }
   }
 
@@ -1293,7 +1303,17 @@ async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
       console.log(`[BugAnalysis] Saved bug ${bugId} — ${bug.severity}: ${bug.title}`);
       await new Promise(r => setTimeout(r, 150));
     } catch (err) {
+      await logInternalError(db, {
+        source: 'ai',
+        severity: 'error',
+        message: `AI call failed: ${err.message}`,
+        stack: err.stack,
+        projectId,
+        context: { model: MODEL, prompt: prompt.slice(0, 500) },
+      });
+
       console.error(`[BugAnalysis] Step ${result.step_order} failed:`, err.message);
+      throw err;
     }
   }
   console.log(`[BugAnalysis] Done — ${analyzed}/${failedResults.length} bugs saved`);
@@ -1929,4 +1949,158 @@ ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string
   } catch (err) {
     return error(`AI generation failed: ${err.message}`, 500);
   }
+}
+
+
+// ── Admin whitelist ───────────────────────────────────────────────────────────
+async function requireAdmin(user, db) {
+  if (!user) throw new Error('Admin access required');
+  const admin = await db.first(
+    'SELECT id FROM admins WHERE email = ?',
+    [user.email]
+  );
+  if (!admin) throw new Error('Admin access required');
+}
+
+// ── GET /api/admin/errors — all errors (admin only) ───────────────────────────
+export async function listAdminErrors(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+  requireAdmin(user, db);
+
+  const url = new URL(request.url);
+
+  const scope = url.searchParams.get('scope');    // 'internal' | 'external' | null (all)
+  const source = url.searchParams.get('source');   // filter by source
+  const severity = url.searchParams.get('severity'); // filter by severity
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  let where = 'WHERE 1=1';
+  const args = [];
+
+  if (scope) { where += ' AND scope = ?'; args.push(scope); }
+  if (source) { where += ' AND source = ?'; args.push(source); }
+  if (severity) { where += ' AND severity = ?'; args.push(severity); }
+
+  const [errors, countRow] = await Promise.all([
+    db.all(
+      `SELECT pe.*, p.name as project_name
+       FROM platform_errors pe
+       LEFT JOIN projects p ON p.id = pe.project_id
+       ${where}
+       ORDER BY pe.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...args, limit, offset]
+    ),
+    db.first(
+      `SELECT COUNT(*) as total FROM platform_errors ${where}`,
+      args
+    ),
+  ]);
+
+  // Parse context JSON
+  const parsed = errors.map(e => ({
+    ...e,
+    context: e.context ? JSON.parse(e.context) : null,
+  }));
+
+  return json(success({
+    errors: parsed,
+    total: countRow?.total || 0,
+    limit,
+    offset,
+  }));
+}
+
+// ── GET /api/projects/:id/errors — project errors only ───────────────────────
+export async function listProjectErrors(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const url = new URL(request.url);
+
+  // Verify project ownership
+  const project = await db.first(
+    'SELECT id FROM projects WHERE id = ? AND user_id = ?',
+    [params.id, user.sub]
+  );
+  if (!project) return error('Project not found', 404);
+
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  const [errors, countRow] = await Promise.all([
+    db.all(
+      `SELECT * FROM platform_errors
+       WHERE project_id = ? AND scope = 'external'
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [params.id, limit, offset]
+    ),
+    db.first(
+      `SELECT COUNT(*) as total FROM platform_errors
+       WHERE project_id = ? AND scope = 'external'`,
+      [params.id]
+    ),
+  ]);
+
+  return json(success({
+    errors: errors.map(e => ({ ...e, context: e.context ? JSON.parse(e.context) : null })),
+    total: countRow?.total || 0,
+  }));
+}
+
+// ── GET /api/admin/errors/stats — summary counts ─────────────────────────────
+export async function adminErrorStats(request, env, { user }) {
+  requireAdmin(user);
+  const db = new DatabaseAdapter(env.DB);
+
+  const stats = await db.all(
+    `SELECT
+       scope,
+       source,
+       severity,
+       COUNT(*) as count,
+       MAX(created_at) as last_seen
+     FROM platform_errors
+     GROUP BY scope, source, severity
+     ORDER BY count DESC`
+  );
+
+  const critical = await db.first(
+    `SELECT COUNT(*) as count FROM platform_errors
+     WHERE severity = 'critical' AND created_at > unixepoch() - 86400`
+  );
+
+  return json(success({ stats, critical_last_24h: critical?.count || 0 }));
+}
+
+// List admins
+export async function listAdmins(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+  await requireAdmin(user, db);
+  const admins = await db.all('SELECT id, email, name, added_by, created_at FROM admins ORDER BY created_at DESC');
+  return json(success(admins));
+}
+
+// Add admin
+export async function addAdmin(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+  await requireAdmin(user, db);
+  const { email, name } = await parseBody(request);
+  if (!email) return error('Email required', 400);
+  await db.run(
+    'INSERT INTO admins (email, name, added_by) VALUES (?, ?, ?)',
+    [email, name || '', user.email]
+  );
+  return json(success({ message: `${email} added as admin` }));
+}
+
+// Remove admin
+export async function removeAdmin(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  await requireAdmin(user, db);
+  // Prevent removing yourself
+  const target = await db.first('SELECT email FROM admins WHERE id = ?', [params.adminId]);
+  if (target?.email === user.email) return error('Cannot remove yourself', 400);
+  await db.run('DELETE FROM admins WHERE id = ?', [params.adminId]);
+  return json(success({ message: 'Admin removed' }));
 }

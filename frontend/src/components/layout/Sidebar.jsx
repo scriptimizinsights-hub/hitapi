@@ -17,7 +17,7 @@ const NAV = [
   { to: 'monitors', icon: Bell, label: 'Monitors' },
   { to: 'flows', icon: GitBranch, label: 'Flow Suites', dividerBefore: true },
   { to: 'settings', icon: Settings, label: 'Settings' },
-  // { to: 'flow', icon: HelpCircle, label: 'How it works' },
+  { to: 'errors', icon: AlertTriangle, label: 'Platform Errors' },
   // { to: 'login-flow', icon: Lock, label: 'Login flow' },
 ];
 

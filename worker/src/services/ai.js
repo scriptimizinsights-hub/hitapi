@@ -310,6 +310,7 @@ export async function generateTestCases(ai, endpoint, fullSpec = {}) {
     } catch (err) {
       lastError = err;
       console.warn(`[TestGen] Attempt ${attempt} failed: ${err.message}`);
+      throw err;  // let the outer try/catch handle logging and fallback
     }
   }
 
