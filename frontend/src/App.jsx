@@ -19,6 +19,7 @@ import { LandingPage } from './components/ui/LandingPage.jsx';
 import { useStore } from './store/index.js';
 import './styles/global.css';
 import { AdminErrorsPage } from './components/admin/AdminErrorsPage.jsx';
+import { api } from './api.js';
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
