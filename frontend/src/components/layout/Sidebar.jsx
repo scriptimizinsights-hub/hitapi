@@ -2,7 +2,8 @@ import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
-  HelpCircle, LogOut, User, Lock, GitBranch
+  HelpCircle, LogOut, User, Lock, GitBranch,
+  AlertTriangle
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
