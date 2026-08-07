@@ -107,7 +107,12 @@ export const api = {
     list: (id) => request(`/projects/${id}/reports`),
     deleteRun: (id, runId) => request(`/projects/${id}/runs/${runId}`, { method: 'DELETE' }),
     deleteAll: (id, flowId) => request(`/projects/${id}/flows/${flowId}/runs`, { method: 'DELETE' }),
-  }
+  },
+  admin: {
+    checkAdmin: () => request('/admin/check'),
+    errors: (params) => request(`/admin/errors?${params}`),
+    errorStats: () => request(`/admin/errors/stats`),
+  },
 };
 
 // ─── Zustand store ────────────────────────────────────────────────────────
@@ -320,12 +325,6 @@ export const useStore = create((set, get) => ({
     const id = Date.now();
     set(s => ({ toasts: [...s.toasts, { id, message, type }] }));
     setTimeout(() => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })), 4000);
-  },
-
-  admin: {
-    checkAdmin: () => request('/admin/check'),
-    errors: (params) => request(`/admin/errors?${params}`),
-    errorStats: () => request(`/admin/errors/stats`),
   },
 
   removeToast: (id) => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) }))
