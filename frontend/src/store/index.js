@@ -323,6 +323,7 @@ export const useStore = create((set, get) => ({
   },
 
   admin: {
+    checkAdmin: () => request('/admin/check'),
     errors: (params) => request(`/admin/errors?${params}`),
     errorStats: () => request(`/admin/errors/stats`),
   },

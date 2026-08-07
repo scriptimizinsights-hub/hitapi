@@ -2104,3 +2104,12 @@ export async function removeAdmin(request, env, { params, user }) {
   await db.run('DELETE FROM admins WHERE id = ?', [params.adminId]);
   return json(success({ message: 'Admin removed' }));
 }
+
+export async function checkAdmin(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const admin = await db.first(
+    'SELECT id FROM admins WHERE email = ?',
+    [user.email]
+  );
+  return json(success({ isAdmin: !!admin }));
+}

@@ -128,7 +128,16 @@ function Landing({ onNewProject }) {
 export default function App() {
   const [showNewProject, setShowNewProject] = useState(false);
   const { loadProjects, setCurrentProject, user, authLoading, loadMe, logout } = useStore();
-
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (user) {
+      api.admin.checkAdmin()
+        .then(data => setIsAdmin(data?.isAdmin || false))
+        .catch(() => setIsAdmin(false));
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
   useEffect(() => { loadMe(); }, []);
   useEffect(() => { if (user) loadProjects(); }, [user]);
 
@@ -195,7 +204,7 @@ export default function App() {
             </AppLayout>
           } />
           <Route path="*" element={<Navigate to="/" />} />
-          {user?.email && ADMIN_EMAILS.includes(user.email) && (
+          {isAdmin && (
             <Route path="/admin/errors" element={<AdminErrorsPage />} />
           )}
         </Routes>

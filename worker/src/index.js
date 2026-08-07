@@ -28,6 +28,7 @@ import {
   adminErrorStats,
   listAdminErrors, listProjectErrors,
   addAdmin, listAdmins, removeAdmin,
+  checkAdmin,
 }
   from './routes/index.js';
 
@@ -112,6 +113,7 @@ const ROUTES = [
   router('GET', '/api/admin/admins', listAdmins),
   router('POST', '/api/admin/admins', addAdmin),
   router('DELETE', '/api/admin/admins/:adminId', removeAdmin),
+  router('GET', '/api/admin/check', checkAdmin),
 ];
 
 /**
