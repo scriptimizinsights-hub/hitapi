@@ -11,6 +11,7 @@ import { json, error, parseBody, success } from '../middleware/cors.js';
 import { encryptField, decryptField } from '../services/encryption.js';
 import { logInternalError } from '../services/errorLogger.js';
 import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
+const { buildFlowStepPrompt } = require('../utils/promptBuilder.js'); // or inline the function
 
 function repos(env) {
   const db = new DatabaseAdapter(env.DB);
@@ -1899,43 +1900,11 @@ export async function generateFlowStep(request, env, { params }) {
   );
   if (!endpoint) return error('Endpoint not found', 404);
 
-  const parameters = endpoint.parameters ? JSON.parse(endpoint.parameters) : [];
+  const knownStatusCodes = endpoint.responses
+    ? Object.keys(JSON.parse(endpoint.responses)).map(Number).filter(n => !isNaN(n))
+    : [];
 
-  const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
-
-  const prompt = `
-
-You are generating API test cases.
-Generate EXACTLY ONE test case.
-
-Rules:
-- Return ONLY one JSON object.
-- Do NOT return an array.
-- Do NOT return multiple JSON objects.
-- Do NOT include markdown.
-- Do NOT include explanations.
-- The response must be valid JSON that can be parsed with JSON.parse().
-
-JSON Schema:
-{
-  "name": "string",
-  "path_params": {},
-  "query_params": {},
-  "headers": {},
-  "request_body": {},
-  "expected_status": 200,
-  "reasoning": "string"
-}
-
-API endpoint: ${endpoint.method} ${endpoint.path}
-Summary: ${endpoint.summary || ''}
-
-${endpoint.input_params ? `Path parameters (use ONLY this enum value):
-${endpoint.input_params ? JSON.stringify(endpoint.input_params) : JSON.stringify(endpoint?.pathParams || {})}` : 'No path parameters'}
-
-${schema?.properties ? `Request body fields:
-${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string'}${v.enum ? ' enum:' + JSON.stringify(v.enum) : ''}${v.description ? ' // ' + v.description : ''}`).join('\n')}` : ''}
-`;
+  const prompt = buildFlowStepPrompt(endpoint, pathParams, schema, knownStatusCodes);
 
   try {
     const response = await runAILogged(env.AI, db, prompt, 600, 40000, {
