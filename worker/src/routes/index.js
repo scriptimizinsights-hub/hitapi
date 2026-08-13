@@ -10,7 +10,7 @@ import { storeReport, getReport } from '../services/reports.js';
 import { json, error, parseBody, success } from '../middleware/cors.js';
 import { encryptField, decryptField } from '../services/encryption.js';
 import { logInternalError } from '../services/errorLogger.js';
-import { runAI, extractText, parseJSON } from '../services/ai.js';
+import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
 
 function repos(env) {
   const db = new DatabaseAdapter(env.DB);
@@ -203,7 +203,7 @@ export async function generateTests(request, env, { params }) {
 
 
 
-      const cases = await generateTestCases(env.AI, ep, fullSpec);
+      const cases = await generateTestCases(env.AI, ep, fullSpec, r.db, params.id);
       if (!cases?.length) continue;
 
       // If AI inferred a payload, cache it on the endpoint for next time
@@ -315,7 +315,7 @@ export async function runExecutionInline(executionId, projectId, env, r) {
       const tc = testCases.find(t => t.id === result.test_case_id);
       const ep = endpoints.find(e => e.id === result.endpoint_id);
       if (tc && ep) {
-        const bug = await analyzeBug(env.AI, { endpoint: ep, testCase: tc, result });
+        const bug = await analyzeBug(env.AI, { endpoint: ep, testCase: tc, result }, r.db, projectId);
         if (bug) {
           await r.bugs.create({ project_id: projectId, execution_id: executionId, endpoint_id: ep.id, ...bug });
           bugsList.push(bug);
@@ -401,7 +401,7 @@ export async function runSingleResult(request, env, { params }) {
       const endpoint = testCase ? await r.endpoints.get(testCase.endpoint_id) : null;
       if (testCase && endpoint) {
         const { analyzeBug } = await import('../services/ai.js');
-        const analysis = await analyzeBug(env.AI, { endpoint, testCase, result: body });
+        const analysis = await analyzeBug(env.AI, { endpoint, testCase, result: body }, r.db, params.id);
         if (analysis) {
           await r.bugs.create({
             project_id: params.id,
@@ -454,7 +454,7 @@ export async function dismissBug(request, env, { params }) {
 export async function detectApiWorkflows(request, env, { params }) {
   const { endpoints: epRepo } = repos(env);
   const endpoints = await epRepo.listByProject(params.id);
-  const workflows = await detectWorkflows(env.AI, endpoints);
+  const workflows = await detectWorkflows(env.AI, endpoints, epRepo.db, params.id);
   return json(success(workflows));
 }
 
@@ -1251,6 +1251,7 @@ async function runAllSubChecks(db, env, suite, allSteps, results, runId, project
 }
 
 async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
+
   const { analyzeFlowStepBug } = await import('../services/ai.js');
 
   const failedResults = results.filter(r => r.status === 'failed' || r.status === 'error');
@@ -1275,7 +1276,7 @@ async function analyzeFlowRunBugs(db, env, suite, allSteps, results, runId) {
 
       console.log(`[BugAnalysis] Step ${result.step_order}: ${step.method} ${step.endpoint_path}`);
 
-      const bug = await analyzeFlowStepBug(env.AI, { step, result, endpoint, suiteContext });
+      const bug = await analyzeFlowStepBug(env.AI, { step, result, endpoint, suiteContext }, db, suite.project_id);
       if (!bug) continue;
 
       const bugId = db.uuid();
@@ -1644,7 +1645,7 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     const secured = endpoints.filter(e => !skipIds.has(e.id)).slice(0, 28);
 
     for (const ep of secured) {
-      const epSteps = await generateStepsForEndpoint(env, ep);
+      const epSteps = await generateStepsForEndpoint(env, ep, project);
       for (const s of epSteps) {
         steps.push({
           step_order: order++,
@@ -1685,7 +1686,7 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     );
 
     for (const ep of writeEndpoints) {
-      const aiSteps = await generateStepsForEndpoint(env, ep);
+      const aiSteps = await generateStepsForEndpoint(env, ep, project);
       for (const s of aiSteps) {
         steps.push({
           step_order: order++,
@@ -1766,7 +1767,8 @@ export async function healthCheck(request, env) {
 }
 
 // ─── Helper: AI generates meaningful steps for one endpoint ──────────────────
-async function generateStepsForEndpoint(env, ep) {
+async function generateStepsForEndpoint(env, ep, project) {
+  const r = repos(env);
   const parameters = ep.parameters ? JSON.parse(ep.parameters) : [];
   const pathParams = parameters.filter(p => p.in === 'path');
   const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
@@ -1812,7 +1814,11 @@ Return ONLY a raw JSON array, no markdown:
 ]`;
 
   try {
-    const aiResponse = await runAI(env.AI, prompt, 1000, 20000);
+    const aiResponse = await runAILogged(env.AI, r.db, prompt, 1000, 20000, {
+      stage: 'flow_step_generation',
+      projectId: project?.id || null
+    });
+
     const text = extractText(aiResponse);
     if (!text) throw new Error('Empty AI response');
 
@@ -1932,7 +1938,11 @@ ${Object.entries(schema.properties).map(([k, v]) => `  ${k}: ${v.type || 'string
 `;
 
   try {
-    const response = await runAI(env.AI, prompt, 600, 40000, '@cf/meta/llama-3.2-1b-instruct');
+    const response = await runAILogged(env.AI, db, prompt, 600, 40000, {
+      stage: 'flow_step_generation',
+      projectId: params.id
+    });
+
     console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
     const text = extractText(response);
     const parsed = parseJSON(text);
@@ -2115,3 +2125,40 @@ export async function checkAdmin(request, env, { user }) {
   );
   return json(success({ isAdmin: !!admin }));
 }
+
+
+/**
+ * ADD THIS to worker/src/routes/index.js
+ */
+
+export async function listAiLogs(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+
+  const project = await db.first(
+    'SELECT id FROM projects WHERE id = ? AND user_id = ?',
+    [params.id, user.sub]
+  );
+  if (!project) return error('Project not found', 404);
+
+  const url = new URL(request.url);
+  const stage = url.searchParams.get('stage');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+
+  const where = stage ? 'WHERE project_id = ? AND stage = ?' : 'WHERE project_id = ?';
+  const params_ = stage ? [params.id, stage] : [params.id];
+
+  const logs = await db.all(
+    `SELECT id, stage, model, prompt, response, parsed_ok, duration_ms, error, created_at
+     FROM ai_logs ${where}
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [...params_, limit]
+  );
+
+  return json(success(logs));
+}
+
+/**
+ * Register in worker/src/index.js:
+ * router('GET', '/api/projects/:id/ai-logs', listAiLogs),
+ */

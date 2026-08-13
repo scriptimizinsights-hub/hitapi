@@ -29,6 +29,7 @@ import {
   listAdminErrors, listProjectErrors,
   addAdmin, listAdmins, removeAdmin,
   checkAdmin,
+  listAiLogs
 }
   from './routes/index.js';
 
@@ -114,6 +115,7 @@ const ROUTES = [
   router('POST', '/api/admin/admins', addAdmin),
   router('DELETE', '/api/admin/admins/:adminId', removeAdmin),
   router('GET', '/api/admin/check', checkAdmin),
+  router('GET', '/api/projects/:id/ai-logs', listAiLogs),
 ];
 
 /**

@@ -59,6 +59,43 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
   return Promise.race([call, timeout]);
 }
 
+
+export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 20000, opts = {}) {
+  const { stage = 'unknown', projectId = null, model = MODEL } = opts;
+  const t0 = Date.now();
+  let response = null;
+  let errMsg = null;
+
+  try {
+    response = await runAI(ai, prompt, maxTokens, timeoutMs, model);
+    return response;
+  } catch (err) {
+    errMsg = err.message;
+    throw err; // always propagate — logging must never swallow real failures
+  } finally {
+    const duration = Date.now() - t0;
+    const text = errMsg ? null : extractText(response);
+
+    if (db) {
+      db.run(
+        `INSERT INTO ai_logs
+           (project_id, stage, model, prompt, response, parsed_ok, duration_ms, error)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          projectId,
+          stage,
+          model,
+          prompt.slice(0, 10000),
+          text ? text.slice(0, 10000) : null,
+          text ? 1 : 0,
+          duration,
+          errMsg,
+        ]
+      ).catch(logErr => console.error('[AILog] Failed to save log:', logErr.message));
+    }
+  }
+}
+
 function resolveSchema(schema, fullSpec = {}) {
   if (!schema) return {};
 
@@ -255,7 +292,7 @@ function validateTestCases(cases, ctx) {
   return true;
 }
 
-export async function generateTestCases(ai, endpoint, fullSpec = {}) {
+export async function generateTestCases(ai, endpoint, fullSpec = {}, db = null, projectId = null) {
   if (!ai) throw new Error('AI binding missing in wrangler.toml');
 
   // Stage 1: Build rich context
@@ -274,12 +311,10 @@ export async function generateTestCases(ai, endpoint, fullSpec = {}) {
     try {
       console.log(`[TestGen] AI attempt ${attempt}`);
 
-      const response = await runAI(
-        ai,
-        attempt === 1 ? prompt : prompt + '\n\nIMPORTANT: Return ONLY the JSON array. No text before or after it.',
-        1500,   // enough tokens for 8-10 test cases
-        25000   // 25s timeout — worth it for quality
-      );
+      const response = await runAILogged(ai, db, prompt, maxTokens, timeoutMs, {
+        stage: 'test_generation',
+        projectId,
+      });
 
       const text = extractText(response);
       if (!text) throw new Error('Empty AI response');
@@ -357,7 +392,7 @@ function minimalFallback(ctx) {
  * Reuses existing analyzeBug prompt structure + adds flow context.
  * Called sequentially per failed step — not all at once.
  */
-export async function analyzeFlowStepBug(ai, { step, result, endpoint, suiteContext }) {
+export async function analyzeFlowStepBug(ai, { step, result, endpoint, suiteContext }, db = null, projectId = null) {
   if (!ai || result.status === 'passed') return null;
 
   try {
@@ -392,7 +427,10 @@ Failure reason: ${stepContext.failure_reason || 'status mismatch'}
 Output this exact JSON (no markdown, no extra text):
 {"severity":"high|medium|low","title":"short title under 60 chars","description":"what went wrong in 1-2 sentences","root_cause":"why this specific request failed","suggested_fix":"concrete action to fix this"}`;
 
-    const response = await runAI(ai, prompt, 300, 12000);
+    const response = await runAILogged(ai, db, prompt, maxTokens, timeoutMs, {
+      stage: 'flow_step_analysis',
+      projectId,
+    });
     const text = extractText(response);
     if (!text) return ruleBugFallback(stepContext);
     const parsed = parseJSON(text);
@@ -438,7 +476,7 @@ function ruleBugFallback({ method, path, expected_status, actual_status }) {
   };
 }
 
-export async function analyzeBug(ai, { endpoint, testCase, result }) {
+export async function analyzeBug(ai, { endpoint, testCase, result }, db = null, projectId = null) {
   if (!ai || result.status === 'passed') return null;
   try {
     const prompt = `Output ONLY a JSON object analyzing this failed API test:
@@ -449,7 +487,10 @@ Response: ${JSON.stringify(result.actual_body || {}).slice(0, 150)}
 
 JSON only.`;
 
-    const response = await runAI(ai, prompt, 300, 12000);
+    const response = await runAILogged(ai, db, prompt, 300, 12000, {
+      stage: 'bug_analysis',
+      projectId,
+    });
     const text = extractText(response);
     console.log('Bug AI response:', text);
     if (!text) return null;
@@ -467,7 +508,7 @@ JSON only.`;
   }
 }
 
-export async function detectWorkflows(ai, endpoints) {
+export async function detectWorkflows(ai, endpoints, db = null, projectId = null) {
   if (!ai || !endpoints.length) return [];
   try {
     const list = endpoints.slice(0, 12).map(e => `${e.method} ${e.path}`).join('\n');
@@ -478,7 +519,10 @@ ${list}
 
 JSON only.`;
 
-    const response = await runAI(ai, prompt, 500, 12000);
+    const response = await runAILogged(ai, db, prompt, 300, 12000, {
+      stage: 'workflow_detection',
+      projectId,
+    });
     const text = extractText(response);
     if (!text) return [];
     return parseJSON(text);
@@ -500,12 +544,15 @@ export async function generateRecommendations(ai, { bugs, failedResults }) {
   return recs;
 }
 
-export async function generateTestData(ai, schema) {
+export async function generateTestData(ai, schema, db = null, projectId = null) {
   if (!ai) return [];
   try {
     const prompt = `Output ONLY a JSON array of 3 realistic test data objects for schema: ${JSON.stringify(schema).slice(0, 200)}
 JSON array only.`;
-    const response = await runAI(ai, prompt, 400, 10000);
+    const response = await runAILogged(ai, db, prompt, 300, 12000, {
+      stage: 'test_data_generation',
+      projectId,
+    });
     const text = extractText(response);
     if (!text) return [];
     return parseJSON(text);
