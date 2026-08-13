@@ -1201,9 +1201,29 @@ export function FlowSuitesPage() {
     }
 
     async function autoGenerate() {
+
+        const authChoice = window.prompt(
+            'Auth type?\n1 = Auto login flow (default)\n2 = Static token\n3 = No auth\nEnter 1, 2, or 3:',
+            '1'
+        );
+        let authType = 'flow';
+        let staticToken = null;
+
+        if (authChoice === '2') {
+            authType = 'static';
+            staticToken = window.prompt('Paste your static API token:');
+            if (!staticToken) return;
+        } else if (authChoice === '3') {
+            authType = 'none';
+        }
+
+
         setGenerating(true);
         try {
-            const { suite, steps } = await api.flows.autoGenerate(projectId);
+            const { suite, steps } = await api.flows.autoGenerate(projectId, {
+                auth_type: authType,
+                static_token: staticToken,
+            });
             addToast(`✓ Created "${suite.name}" with ${steps.length} steps`, 'success');
             await loadSuites();
         } catch (err) { addToast(err.message, 'error'); }

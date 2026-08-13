@@ -138,12 +138,21 @@ function extractPath(obj, path) {
 }
 
 // ── Build headers for a step ──────────────────────────────────────────────────
-function buildHeaders(step, context, project) {
+function buildHeaders(step, context, project, suite) {
     const base = { 'Content-Type': 'application/json' };
 
-    // Inject auth from context (token extracted by a previous login step)
+    // Priority order for auth token:
+    // 1. Token extracted during THIS run (from a login step) — always wins if present
+    // 2. Suite-level static token (auth_type === 'static')
+    // 3. Project-level static bearer token (existing fallback)
+    // If suite.auth_type === 'none' — skip auth entirely, even if project has a fallback
+
     if (context.__token) {
         base['Authorization'] = `Bearer ${context.__token}`;
+    } else if (suite?.auth_type === 'static' && suite?.static_token) {
+        base['Authorization'] = `Bearer ${suite.static_token}`;
+    } else if (suite?.auth_type === 'none') {
+        // explicitly no auth — do nothing, don't fall through to project config
     } else if (project.auth_type === 'bearer') {
         const ac = project.auth_config
             ? (typeof project.auth_config === 'string' ? JSON.parse(project.auth_config) : project.auth_config)
@@ -164,7 +173,7 @@ function buildHeaders(step, context, project) {
 }
 
 // ── Execute a single step ─────────────────────────────────────────────────────
-async function executeStep(step, context, project) {
+async function executeStep(step, context, project, suite) {
     // Resolve URL — replace {{var}} placeholders first
     let url = step.url_override || `${project.base_url}${step.endpoint_path || ''}`;
     url = resolve(url, context);
@@ -201,7 +210,7 @@ async function executeStep(step, context, project) {
     url = url.replace(/%7B%7B\w+%7D%7D/g, '1'); // fallback for encoded placeholders
 
     const method = step.method || 'GET';
-    const headers = buildHeaders(step, context, project);
+    const headers = buildHeaders(step, context, project, suite);
     const payload = step.input_payload ? resolveDeep(step.input_payload, context) : null;
 
     // For POST/PUT/PATCH with no payload, try swagger example first, then {}
@@ -435,6 +444,13 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
     let signupCredentials = {};
     let signupTokenFound = false;
 
+    if (suite.auth_type === 'static' && suite.static_token) {
+        context.__token = suite.static_token;
+        context.token = suite.static_token;
+        signupTokenFound = true; // reuse this flag so login steps get auto-skipped below
+        console.log(`[Flow] Suite uses static token — seeding context, login steps will be skipped`);
+    }
+
     for (const step of steps.sort((a, b) => a.step_order - b.step_order)) {
 
         // Force skip
@@ -448,6 +464,26 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
             });
             continue;
         }
+
+        const stepName = (step.name || '').toLowerCase();
+        const stepPath = (step.endpoint_path || '').toLowerCase();
+        const isLoginStep = stepName.includes('login') || stepName.includes('signin') ||
+            stepPath.includes('login') || stepPath.includes('signin') || stepPath.includes('/token');
+        const isSignupStep = stepName.includes('sign up') || stepName.includes('signup') ||
+            stepName.includes('register') || stepPath.includes('signup') || stepPath.includes('register');
+
+        // Skip login/signup steps when suite uses static/none auth
+        if ((isLoginStep || isSignupStep) && suite.auth_type && suite.auth_type !== 'flow') {
+            results.push({
+                step_id: step.id, step_order: step.step_order, step_name: step.name,
+                status: 'skipped', failure_reason: `Skipped — suite auth_type is "${suite.auth_type}"`,
+                extracted_vars: {}, actual_status: null, actual_body: null,
+                actual_headers: {}, response_time_ms: 0,
+                request_url: null, request_method: null, request_headers: null, request_body: null
+            });
+            continue;
+        }
+
 
         // Cascade skip
         const lastResult = results.length > 0 ? results[results.length - 1] : null;
@@ -464,12 +500,6 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
         }
 
         // Detect step type
-        const stepName = (step.name || '').toLowerCase();
-        const stepPath = (step.endpoint_path || '').toLowerCase();
-        const isLoginStep = stepName.includes('login') || stepName.includes('signin') ||
-            stepPath.includes('login') || stepPath.includes('signin') || stepPath.includes('/token');
-        const isSignupStep = stepName.includes('sign up') || stepName.includes('signup') ||
-            stepName.includes('register') || stepPath.includes('signup') || stepPath.includes('register');
 
         // If signup already returned a token — skip login step entirely
         if (isLoginStep && signupTokenFound) {
@@ -487,7 +517,7 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
         }
 
         // Execute step normally
-        const result = await executeStep(step, context, project);
+        const result = await executeStep(step, context, project, suite);
 
         // Note: sub-checks run separately after all steps complete
         // to avoid multiplying subrequests (25 steps × 5 checks = 125 requests)
@@ -525,7 +555,7 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
         // Don't rely on input_payload which may have example credentials
         if (isLoginStep) {
             const loginUrl = result.request_url;
-            const baseHdrs = buildHeaders(step, context, project);
+            const baseHdrs = buildHeaders(step, context, project, suite);
             const rawUsername = signupCredentials.username || signupCredentials.email?.split('@')[0] || 'testuser';
             const cleanUsername = rawUsername.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9._-]/g, '');
 

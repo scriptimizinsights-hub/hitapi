@@ -562,7 +562,7 @@ export async function handleQueue(batch, env) {
         if (!suite || !project) { message.ack(); continue; }
 
         const { runFlowSuite } = await import('../services/flow.js');
-        const CHUNK_SIZE = 45;
+
 
         // Apply skip flags
         const steps = allSteps.map(s => ({
@@ -846,6 +846,7 @@ export async function listFlowSuites(request, env, { params }) {
 
 export async function createFlowSuite(request, env, { params }) {
   const body = await parseBody(request);
+
   if (!body?.name) return error('name is required');
 
   // Enforce max 100 steps per suite (queue handles chunking)
@@ -866,8 +867,8 @@ export async function createFlowSuite(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const id = db.uuid();
   await db.run(
-    `INSERT INTO flow_suites (id, project_id, name, description) VALUES (?, ?, ?, ?)`,
-    [id, params.id, body.name, body.description || '']
+    `INSERT INTO flow_suites (id, project_id, name, description, auth_type, static_token) VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, params.id, body.name, body.description || '', body.auth_type || null, body.static_token || null]
   );
   // Insert steps if provided
   if (body.steps?.length) {
@@ -1711,6 +1712,7 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
       suiteId, params.id,
       `${project?.name || 'API'} — ${isAuthAPI ? 'Auth Flow' : 'Functional Coverage'}`,
       `Auto-generated: ${steps.length} steps`,
+
     ]
   );
 

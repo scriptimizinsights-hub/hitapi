@@ -148,7 +148,16 @@ function EndpointPicker({ endpoints, value, onChange, placeholder = 'Select endp
 // ══════════════════════════════════════════════════════════════════════════════
 function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const [step, setStep] = useState(1);
-    const TOTAL = 7; // Extended from 5 to 7
+    const ALL_STEPS = [
+        { key: 'auth_method', label: 'Authentication method' },
+        { key: 'signup', label: 'Pick signup endpoint', flowOnly: true },
+        { key: 'login', label: 'Pick login endpoint', flowOnly: true },
+        { key: 'token', label: 'Token extraction', flowOnly: true },
+        { key: 'endpoints', label: 'Select endpoints' },
+        { key: 'auth_config', label: 'Auth configuration' },
+        { key: 'crud', label: 'CRUD groups' },
+        { key: 'review', label: 'Review & create' },
+    ];
 
     // Existing wizard state (unchanged)
     const [signupId, setSignupId] = useState(null);
@@ -159,6 +168,12 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const [suiteName, setSuiteName] = useState('');
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState('');
+    const [authType, setAuthType] = useState('flow'); // 'flow' | 'static' | 'none'
+    const [staticToken, setStaticToken] = useState('');
+    const activeSteps = ALL_STEPS.filter(s => !s.flowOnly || authType === 'flow');
+    const TOTAL = activeSteps.length;
+    const STEP_LABELS = activeSteps.map(s => s.label);
+    const currentStepKey = activeSteps[step - 1]?.key;
 
     // NEW: auth detection hook
     const { annotated, toggleAuth, authCount, publicCount } = useAuthDetector(endpoints);
@@ -193,28 +208,28 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
     // Build preview steps when entering step 7
     useEffect(() => {
-        if (step !== 7) return;
+        if (currentStepKey !== 'review') return;
         const preview = [];
         let order = 1;
-        if (signupId) {
+
+        // Only include signup/login if authType === 'flow'
+        if (authType === 'flow' && signupId) {
             const ep = endpoints.find(e => e.id === signupId);
             preview.push({ order: order++, name: 'Sign up', method: 'POST', path: ep?.path || '', color: 'var(--green)', fixed: true });
         }
-        if (loginId) {
+        if (authType === 'flow' && loginId) {
             const ep = endpoints.find(e => e.id === loginId);
             preview.push({ order: order++, name: 'Login', method: 'POST', path: ep?.path || '', color: 'var(--accent)', fixed: true });
         }
-        // Collect endpoint IDs in CRUD groups to avoid duplicates
+
         const crudEndpointIds = new Set(
-            groups
-                .filter(g => getGroupConfig(g.basePath).included)
-                .flatMap(g => g.endpoints.map(e => e.id))
+            groups.filter(g => getGroupConfig(g.basePath).included).flatMap(g => g.endpoints.map(e => e.id))
         );
 
         for (const id of selected) {
             const ep = endpoints.find(e => e.id === id);
             if (!ep) continue;
-            if (crudEndpointIds.has(id)) continue; // skip - already in CRUD group
+            if (crudEndpointIds.has(id)) continue;
             if (id === signupId || id === loginId) continue;
             preview.push({ order: order++, name: `${ep.method} ${ep.path}`, method: ep.method, path: ep.path, color: 'var(--amber)', endpointId: id });
         }
@@ -223,7 +238,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             preview.push({ order: order++, name: s.name, method: s.method, path: s.name.split(' ').slice(1).join(' '), color: 'var(--blue)', crudStep: s });
         });
         setReviewSteps(preview);
-    }, [step]);
+    }, [currentStepKey]);
 
     function moveReviewStep(idx, dir) {
         setReviewSteps(prev => {
@@ -259,14 +274,22 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     }
 
     async function handleCreate() {
-        if (!loginId && !signupId) { setError('Select at least a login or signup endpoint'); return; }
+        // Only require login/signup when using the flow auth method
+        if (authType === 'flow' && !loginId && !signupId) {
+            setError('Select at least a login or signup endpoint');
+            return;
+        }
+        if (authType === 'static' && !staticToken.trim()) {
+            setError('Enter a static token, or go back and pick a different auth method');
+            return;
+        }
 
         // Count total steps before creating
         const crudStepCount = buildCrudSteps(1).length;
-        const totalSteps = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size + crudStepCount;
+        const totalSteps = (authType === 'flow' ? (signupId ? 1 : 0) + (loginId ? 1 : 0) : 0) + selected.size + crudStepCount;
         const MAX_STEPS = 100;
         if (totalSteps > MAX_STEPS) {
-            setError(`Too many steps (${totalSteps}). Maximum is ${MAX_STEPS}. Remove ${totalSteps - MAX_STEPS} endpoint(s) from selection or CRUD groups.`);
+            setError(`Too many steps (${totalSteps}). Maximum is ${MAX_STEPS}.`);
             return;
         }
 
@@ -277,7 +300,8 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             const steps = [];
             let order = 1;
 
-            if (signupId) {
+            // Only build signup/login steps when authType === 'flow'
+            if (authType === 'flow' && signupId) {
                 const ep = endpoints.find(e => e.id === signupId);
                 const schema = safeJSON(ep?.request_body);
                 const example = schema?._example;
@@ -292,7 +316,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 });
             }
 
-            if (loginId) {
+            if (authType === 'flow' && loginId) {
                 const ep = endpoints.find(e => e.id === loginId);
                 const schema = safeJSON(ep?.request_body);
                 const example = schema?._example;
@@ -311,19 +335,14 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 });
             }
 
-            // Collect all endpoint IDs already in CRUD groups to avoid duplicates
             const crudEndpointIds = new Set(
-                groups
-                    .filter(g => getGroupConfig(g.basePath).included)
-                    .flatMap(g => g.endpoints.map(e => e.id))
+                groups.filter(g => getGroupConfig(g.basePath).included).flatMap(g => g.endpoints.map(e => e.id))
             );
 
             for (const id of selected) {
                 const ep = endpoints.find(e => e.id === id);
                 if (!ep) continue;
-                // Skip if already included in a CRUD group
                 if (crudEndpointIds.has(id)) continue;
-                // Skip signup/login — already added above
                 if (id === signupId || id === loginId) continue;
 
                 const schema = safeJSON(ep.request_body);
@@ -343,11 +362,9 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 });
             }
 
-            // Add CRUD group steps (new — from wizard step 6)
             const crudSteps = buildCrudSteps(order);
             crudSteps.forEach(s => { s.step_order = order++; steps.push(s); });
 
-            // Use reviewSteps order if available (user may have reordered)
             let finalSteps;
             if (reviewSteps.length > 0) {
                 finalSteps = reviewSteps.map((rs, i) => {
@@ -372,7 +389,6 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             skip_if_failed: 0
                         };
                     }
-                    // Individual selected endpoint
                     const ep = endpoints.find(e => e.id === rs.endpointId);
                     if (!ep) return null;
                     const schema = safeJSON(ep.request_body);
@@ -393,7 +409,9 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             const result = await api.flows.create(projectId, {
                 name: suiteName || 'Full Auth Flow',
                 description: `Wizard: ${finalSteps.length} steps · ${groups.filter(g => getGroupConfig(g.basePath).included).length} CRUD groups`,
-                steps: finalSteps
+                steps: finalSteps,
+                auth_type: authType,
+                static_token: authType === 'static' ? staticToken : null,
             });
             onCreated(result);
         } catch (err) { setError(err.message); }
@@ -454,7 +472,90 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             {/* Scrollable step content */}
             <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px', minHeight: 0 }}>
 
-                {step === 1 && (
+                {currentStepKey === 'auth_method' && (
+                    <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                            Choose how HitAPI should authenticate when running this suite.
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                            {/* Option 1 — Auto login flow */}
+                            <div
+                                onClick={() => setAuthType('flow')}
+                                style={{
+                                    padding: '12px 14px', borderRadius: 8, marginBottom: 8, cursor: 'pointer',
+                                    border: `1px solid ${authType === 'flow' ? 'rgba(130,100,255,0.5)' : 'var(--border)'}`,
+                                    background: authType === 'flow' ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
+                                }}
+                            >
+                                <div style={{ fontSize: 13, fontWeight: 600, color: authType === 'flow' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                    🔐 Auto login flow
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                                    HitAPI will run signup → login steps and extract the token automatically
+                                </div>
+                            </div>
+
+                            {/* Option 2 — Static token */}
+                            <div
+                                onClick={() => setAuthType('static')}
+                                style={{
+                                    padding: '12px 14px', borderRadius: 8, marginBottom: 8, cursor: 'pointer',
+                                    border: `1px solid ${authType === 'static' ? 'rgba(130,100,255,0.5)' : 'var(--border)'}`,
+                                    background: authType === 'static' ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
+                                }}
+                            >
+                                <div style={{ fontSize: 13, fontWeight: 600, color: authType === 'static' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                    🔑 Static API token
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                                    Provide a fixed token — no login step needed. Good for API keys that never expire.
+                                </div>
+                            </div>
+
+                            {/* Option 3 — No auth */}
+                            <div
+                                onClick={() => setAuthType('none')}
+                                style={{
+                                    padding: '12px 14px', borderRadius: 8, cursor: 'pointer',
+                                    border: `1px solid ${authType === 'none' ? 'rgba(130,100,255,0.5)' : 'var(--border)'}`,
+                                    background: authType === 'none' ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
+                                }}
+                            >
+                                <div style={{ fontSize: 13, fontWeight: 600, color: authType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                    🌐 No authentication
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                                    API is public — no Authorization header needed
+                                </div>
+                            </div>
+
+                            {authType === 'static' && (
+                                <div style={{ marginTop: 12 }}>
+                                    <Label>API Token / Bearer token</Label>
+                                    <input
+                                        type="password"
+                                        value={staticToken}
+                                        onChange={e => setStaticToken(e.target.value)}
+                                        placeholder="eyJhbGciOiJIUzI1NiJ9... or sk-..."
+                                        style={{
+                                            width: '100%', padding: '8px 10px', borderRadius: 6,
+                                            background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                            color: 'var(--text-primary)', fontSize: 12,
+                                            fontFamily: 'JetBrains Mono, monospace',
+                                        }}
+                                    />
+                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                                        This token will be sent as <code>Authorization: Bearer &lt;token&gt;</code> on every step
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+
+                {currentStepKey === 'signup' && (
                     <div>
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Select the endpoint that creates a new user. This runs first, then login uses the same credentials.
@@ -471,7 +572,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     </div>
                 )}
 
-                {step === 2 && (
+                {currentStepKey === 'login' && (
                     <div>
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Select the login endpoint. HitAPI will automatically try multiple credential combinations
@@ -489,7 +590,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     </div>
                 )}
 
-                {step === 3 && (
+                {currentStepKey === 'token' && (
                     <div>
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Where is the token in the login response? HitAPI will try common paths automatically, but you can specify a custom one.
@@ -528,7 +629,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     </div>
                 )}
 
-                {step === 4 && (
+                {currentStepKey === 'endpoints' && (
                     <div>
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
                             Select which endpoints to include in the suite. These will run after login with the token automatically injected.
@@ -593,7 +694,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     </div>
                 )}
 
-                {step === 5 && (
+                {currentStepKey === 'auth_config' && (
                     <StepAuthConfig
                         annotated={annotated}
                         toggleAuth={toggleAuth}
@@ -602,7 +703,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     />
                 )}
 
-                {step === 6 && (
+                {currentStepKey === 'crud' && (
                     <StepCrudGroups
                         groups={groups}
                         getGroupConfig={getGroupConfig}
@@ -616,7 +717,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     />
                 )}
 
-                {step === 7 && (
+                {currentStepKey === 'review' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div>
                             <Label>Suite name</Label>
@@ -697,7 +798,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         Next <ChevronRight size={14} />
                     </button>
                 ) : (
-                    <button onClick={handleCreate} disabled={creating || (!signupId && !loginId)}
+                    <button onClick={handleCreate} disabled={creating || (authType === 'flow' && !signupId && !loginId) || (authType === 'static' && !staticToken.trim())}
                         style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: creating ? 'not-allowed' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, opacity: creating ? 0.7 : 1 }}>
                         {creating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Creating…</> : <><Check size={14} /> Create suite</>}
                     </button>
@@ -715,6 +816,8 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     const [steps, setSteps] = useState([]);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState('');
+    const [authType, setAuthType] = useState('flow');
+    const [staticToken, setStaticToken] = useState('');
 
     function addStep() {
         setSteps(prev => [...prev, {
@@ -789,6 +892,8 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
         if (!suiteName.trim()) { setError('Suite name is required'); return; }
         if (steps.length === 0) { setError('Add at least one step'); return; }
         if (steps.length > 100) { setError(`Maximum 100 steps allowed. Remove ${steps.length - 100} step(s).`); return; }
+        if (authType === 'static' && !staticToken.trim()) { setError('Enter a static token, or pick a different auth method'); return; }
+
         setCreating(true);
         setError('');
         try {
@@ -822,7 +927,9 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
             const result = await api.flows.create(projectId, {
                 name: suiteName.trim(),
                 description: `Manual suite — ${steps.length} steps`,
-                steps: builtSteps
+                steps: builtSteps,
+                auth_type: authType,
+                static_token: authType === 'static' ? staticToken : null,
             });
             onCreated(result);
         } catch (err) { setError(err.message); }
@@ -835,6 +942,68 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Suite name</div>
                 <Input value={suiteName} onChange={setSuiteName} placeholder="e.g. Admin API Flow" />
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Add steps in order. Values extracted from one step (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{'{{token}}'}</code>) are automatically injected into all following steps.
+                </div>
+            </div>
+
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Suite name</div>
+                <Input value={suiteName} onChange={setSuiteName} placeholder="e.g. Admin API Flow" />
+
+                {/* NEW — compact auth type selector */}
+                <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Authentication</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        {[
+                            { key: 'flow', label: '🔐 Login flow', hint: 'signup → login → extract token' },
+                            { key: 'static', label: '🔑 Static token', hint: 'fixed token, no login step' },
+                            { key: 'none', label: '🌐 No auth', hint: 'public API' },
+                        ].map(opt => (
+                            <div
+                                key={opt.key}
+                                onClick={() => setAuthType(opt.key)}
+                                title={opt.hint}
+                                style={{
+                                    flex: 1, padding: '7px 10px', borderRadius: 7, cursor: 'pointer', textAlign: 'center',
+                                    border: `1px solid ${authType === opt.key ? 'rgba(130,100,255,0.5)' : 'var(--border)'}`,
+                                    background: authType === opt.key ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
+                                    fontSize: 11, fontWeight: 600,
+                                    color: authType === opt.key ? 'var(--accent)' : 'var(--text-secondary)',
+                                }}
+                            >
+                                {opt.label}
+                            </div>
+                        ))}
+                    </div>
+
+                    {authType === 'static' && (
+                        <div style={{ marginTop: 8 }}>
+                            <input
+                                type="password"
+                                value={staticToken}
+                                onChange={e => setStaticToken(e.target.value)}
+                                placeholder="Paste API token / Bearer token…"
+                                style={{
+                                    width: '100%', padding: '8px 10px', borderRadius: 6,
+                                    background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                    color: 'var(--text-primary)', fontSize: 12,
+                                    fontFamily: 'JetBrains Mono, monospace',
+                                }}
+                            />
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                                Sent as <code>Authorization: Bearer &lt;token&gt;</code> on every step
+                            </div>
+                        </div>
+                    )}
+
+                    {authType === 'flow' && (
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                            Add a signup/login step below manually, and extract the token via "extract vars" on that step.
+                        </div>
+                    )}
+                </div>
+
                 <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Add steps in order. Values extracted from one step (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{'{{token}}'}</code>) are automatically injected into all following steps.
                 </div>
@@ -1009,6 +1178,8 @@ export function SuiteCreator({ projectId, onCreated, onClose }) {
     const [mode, setMode] = useState(null);
     const [endpoints, setEndpoints] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [authType, setAuthType] = useState('flow');
+    const [staticToken, setStaticToken] = useState('');
 
     useEffect(() => {
         api.endpoints.list(projectId)

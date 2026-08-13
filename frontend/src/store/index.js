@@ -77,7 +77,7 @@ export const api = {
   // Flows
   flows: {
     list: (id) => request(`/projects/${id}/flows`),
-    autoGenerate: (id) => request(`/projects/${id}/flows/auto-generate`, { method: 'POST', body: '{}' }),
+    autoGenerate: (id, body = {}) => request(`/projects/${id}/flows/auto-generate`, { method: 'POST', body: JSON.stringify(body) }),
     get: (id, flowId) => request(`/projects/${id}/flows/${flowId}`),
     create: (id, body) => request(`/projects/${id}/flows`, { method: 'POST', body: JSON.stringify(body) }),
     update: (id, flowId, body) => request(`/projects/${id}/flows/${flowId}`, { method: 'PUT', body: JSON.stringify(body) }),
