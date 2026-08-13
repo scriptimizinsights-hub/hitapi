@@ -255,15 +255,15 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const loginEp = endpoints.find(e => e.id === loginId);
     const otherEps = endpoints.filter(e => e.id !== signupId && e.id !== loginId);
 
-    const STEP_LABELS = [
-        'Pick signup endpoint',
-        'Pick login endpoint',
-        'Token extraction',
-        'Select endpoints',
-        'Auth configuration',   // NEW step 5
-        'CRUD groups',          // NEW step 6
-        'Review & create',      // was step 5
-    ];
+
+    //     'Pick signup endpoint',
+    //     'Pick login endpoint',
+    //     'Token extraction',
+    //     'Select endpoints',
+    //     'Auth configuration',   // NEW step 5
+    //     'CRUD groups',          // NEW step 6
+    //     'Review & create',      // was step 5
+    // ];
 
     function toggleEndpoint(id) {
         setSelected(prev => {
