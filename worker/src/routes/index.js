@@ -11,7 +11,6 @@ import { json, error, parseBody, success } from '../middleware/cors.js';
 import { encryptField, decryptField } from '../services/encryption.js';
 import { logInternalError } from '../services/errorLogger.js';
 import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
-import { groupEndpointsByResource, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
 import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
 const { buildFlowStepPrompt } = require('../utils/promptBuilder.js'); // or inline the function
 
