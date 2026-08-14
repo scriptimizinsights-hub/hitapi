@@ -147,6 +147,8 @@ function processModelResponse(rawText) {
     // Stage 1
     const cleaned = removeMarkdownFences(rawText);
 
+    console.log('processModelResponse: cleaned text:', cleaned); // Debugging log
+
     // Stage 2
     const jsonText = extractFirstJsonValue(cleaned);
     if (!jsonText) {
