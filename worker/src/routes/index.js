@@ -2232,19 +2232,18 @@ Return ONLY a raw JSON array, no markdown:
 ]`;
 
   try {
-    const aiResponse = await runAILogged(env.AI, r.db, prompt, 1000, 20000, {
-      stage: 'flow_step_generation',
-      projectId: project?.id || null
-    });
 
-    const text = extractText(aiResponse);
-    if (!text) throw new Error('Empty AI response');
+    const { steps, droppedInvalid, droppedDuplicates } = await runAILogged(
+      env.AI, r.db, prompt, 700, 20000,
+      { stage: 'flow_step_generation', projectId: project?.id || null }
+    );
 
-    const parsed = parseJSON(text);
-    if (Array.isArray(parsed) && parsed.length) {
-      console.log(`[Flow] AI generated ${parsed.length} steps for ${ep.method} ${ep.path}`);
-      return parsed;
+    if (droppedInvalid || droppedDuplicates) {
+      console.log(`[Flow] ${ep.path}: dropped ${droppedInvalid} invalid, ${droppedDuplicates} duplicate steps`);
     }
+    console.log(`[Flow] AI generated ${steps.length} steps for ${ep.method} ${ep.path}`);
+    return steps;
+
     throw new Error('AI did not return a valid array');
   } catch (err) {
     console.warn(`[Flow] AI failed for ${ep.path}: ${err.message} — using fallback`);
@@ -2257,14 +2256,22 @@ Return ONLY a raw JSON array, no markdown:
         || p.schema?.enum?.[0]
         || (p.name.toLowerCase().includes('id') ? '{{userId}}' : '1');
     }
-
+    const fallbackBody = {};
+    if (schema?.properties) {
+      for (const [k, v] of Object.entries(schema.properties)) {
+        if (v.type === 'boolean') fallbackBody[k] = v.default ?? true;
+        else if (v.type === 'integer') fallbackBody[k] = 1;
+        else if (v.enum) fallbackBody[k] = v.enum[0];
+        else fallbackBody[k] = 'test_value';
+      }
+    }
     return [{
       name: `${ep.method} ${ep.path}`,
       path_params: fallbackParams,
       query_params: {},
-      request_body: buildPayloadFromSchema(ep),
+      request_body: Object.keys(fallbackBody).length ? fallbackBody : null,
       expected_status: ep.method === 'POST' ? 201 : 200,
-      reasoning: 'Fallback — AI unavailable',
+      reasoning: 'Rule-based fallback — AI unavailable',
     }];
   }
 }
