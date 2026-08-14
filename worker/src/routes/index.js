@@ -1756,6 +1756,230 @@ export async function getFlowRun(request, env, { params }) {
 
 
 
+// export async function autoGenerateFlowSuite(request, env, { params }) {
+//   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
+//   const body = await parseBody(request);
+//   const endpoints = await db.all(
+//     `SELECT * FROM endpoints WHERE project_id = ? ORDER BY path, method`,
+//     [params.id]
+//   );
+//   if (!endpoints.length) return error('No endpoints found. Import Swagger first.');
+
+//   const project = await db.first(`SELECT * FROM projects WHERE id = ?`, [params.id]);
+
+//   // ── Detect auth endpoints ────────────────────────────────────────────────
+//   const signupEp = endpoints.find(e =>
+//     e.method === 'POST' && (
+//       e.path.toLowerCase().includes('signup') ||
+//       e.path.toLowerCase().includes('register') ||
+//       e.summary?.toLowerCase().includes('sign up')
+//     )
+//   );
+//   const loginEp = endpoints.find(e =>
+//     e.method === 'POST' && (
+//       e.path.toLowerCase().includes('login') ||
+//       e.path.toLowerCase().includes('signin') ||
+//       e.summary?.toLowerCase().includes('login') ||
+//       e.summary?.toLowerCase().includes('authenticate')
+//     )
+//   );
+//   const isAuthAPI = !!(signupEp || loginEp);
+
+//   const steps = [];
+//   let order = 1;
+
+//   // ── STEP 1: Auth always goes first, if present ──────────────────────────
+//   if (signupEp) {
+//     steps.push({
+//       step_order: order++,
+//       name: 'Sign up',
+//       endpoint_id: signupEp.id,
+//       method: 'POST',
+//       input_payload: buildPayloadFromSchema(signupEp),
+//       input_params: null,
+//       expected_status: 201,
+//       extract_vars: [{ var: 'userId', path: 'data.id' }, { var: 'userId', path: 'id' }],
+//       skip_if_failed: 0,
+//     });
+//   }
+//   if (loginEp) {
+//     steps.push({
+//       step_order: order++,
+//       name: 'Login',
+//       endpoint_id: loginEp.id,
+//       method: 'POST',
+//       input_payload: buildPayloadFromSchema(loginEp),
+//       input_params: null,
+//       expected_status: 200,
+//       extract_vars: [
+//         { var: 'token', path: 'token' },
+//         { var: 'token', path: 'data.token' },
+//         { var: 'token', path: 'access_token' },
+//       ],
+//       skip_if_failed: 0,
+//     });
+//   }
+
+//   // ── STEP 2: Every remaining endpoint (secured or public) — CRUD-grouped ──
+//   const skipIds = new Set([signupEp?.id, loginEp?.id].filter(Boolean));
+//   const remaining = endpoints.filter(e => !skipIds.has(e.id));
+
+//   // 2a. Standalone GETs — resources with no sibling POST (not a CRUD lifecycle)
+//   const standaloneGets = remaining.filter(ep => {
+//     if (ep.method !== 'GET') return false;
+//     const base = getResourceBase(ep.path);
+//     return !remaining.some(e => e.method === 'POST' && getResourceBase(e.path) === base);
+//   });
+//   for (const ep of standaloneGets) {
+//     steps.push({
+//       step_order: order++,
+//       name: ep.summary || `${ep.method} ${ep.path}`,
+//       endpoint_id: ep.id,
+//       method: 'GET',
+//       input_payload: null,
+//       input_params: buildPathParams(ep),
+//       expected_status: 200,
+//       extract_vars: [],
+//       skip_if_failed: 0,
+//     });
+//   }
+
+//   // 2b. CRUD-groupable resources — grouped by resource, ordered POST→GET→PUT→PATCH→DELETE
+//   const resourceEndpoints = remaining.filter(e => {
+//     const base = getResourceBase(e.path);
+//     return remaining.some(x => x.method === 'POST' && getResourceBase(x.path) === base);
+//   });
+
+//   const groups = groupEndpointsByResource(resourceEndpoints);
+
+//   for (const group of groups) {
+//     // Enum-based path params (e.g. /convert/{from}-to-{to}) don't fit CRUD —
+//     // fall back to per-endpoint handling, capped at 28 to control step count.
+//     const hasEnumPathParam = group.endpoints.some(ep => {
+//       try {
+//         const p = ep.parameters ? JSON.parse(ep.parameters) : [];
+//         return p.some(x => x.in === 'path' && x.schema?.enum);
+//       } catch { return false; }
+//     });
+
+//     if (hasEnumPathParam) {
+//       for (const ep of group.endpoints.slice(0, 28)) {
+//         steps.push({
+//           step_order: order++,
+//           name: `${ep.method} ${ep.path}`,
+//           endpoint_id: ep.id,
+//           method: ep.method,
+//           input_payload: buildPayloadFromSchema(ep),
+//           input_params: buildPathParams(ep),
+//           expected_status: 200,
+//           extract_vars: [],
+//           skip_if_failed: 1,
+//         });
+//       }
+//       continue;
+//     }
+
+//     const groupSteps = buildGroupSteps(group, buildPayloadFromSchema, buildPathParams);
+//     groupSteps.forEach(s => { s.step_order = order++; steps.push(s); });
+//   }
+
+//   if (!steps.length) return error('Could not generate any steps.');
+
+//   // ── Persist ───────────────────────────────────────────────────────────────
+//   const suiteId = db.uuid();
+//   await db.run(
+//     `INSERT INTO flow_suites (id, project_id, name, description, auth_type, static_token) VALUES (?, ?, ?, ?, ?, ?)`,
+//     [
+//       suiteId, params.id,
+//       `${project?.name || 'API'} — ${isAuthAPI ? 'Auth Flow' : 'Functional Coverage'}`,
+//       `Auto-generated: ${steps.length} steps`,
+//       body.auth_type || null,
+//       body.static_token || null,
+//     ]
+//   );
+
+//   for (const step of steps) {
+//     await db.run(
+//       `INSERT INTO flow_steps
+//          (id, suite_id, step_order, name, endpoint_id, method,
+//           input_payload, input_params, expected_status,
+//           extract_vars, skip_if_failed)
+//        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+//       [
+//         db.uuid(), suiteId, step.step_order, step.name,
+//         step.endpoint_id || null, step.method,
+//         step.input_payload ? JSON.stringify(step.input_payload) : null,
+//         step.input_params ? JSON.stringify(step.input_params) : null,
+//         step.expected_status ?? null,
+//         step.extract_vars?.length ? JSON.stringify(step.extract_vars) : null,
+//         step.skip_if_failed ? 1 : 0,
+//       ]
+//     );
+//   }
+
+//   const suite = await db.first(`SELECT * FROM flow_suites WHERE id = ?`, [suiteId]);
+//   const createdSteps = await db.all(
+//     `SELECT fs.*, e.path as endpoint_path
+//      FROM flow_steps fs
+//      LEFT JOIN endpoints e ON e.id = fs.endpoint_id
+//      WHERE fs.suite_id = ? ORDER BY fs.step_order`,
+//     [suiteId]
+//   );
+
+//   return json(success({ suite, steps: createdSteps }), 201);
+// }
+
+
+
+// ── Async version of group step building — calls AI per endpoint ──────────────
+async function buildGroupStepsWithAI(group, env, project, groupVarName) {
+  const steps = [];
+  let createdInThisGroup = false;
+
+  for (const ep of group.endpoints) {
+    const isCreate = ep.method === 'POST' && ep.path === group.resourceBase;
+
+    // AI generates 4-6 varied scenarios for this ONE endpoint
+    // (same generateStepsForEndpoint used by the old auth-flow path —
+    // returns [{name, path_params, query_params, request_body, expected_status, reasoning}, ...])
+    const aiSteps = await generateStepsForEndpoint(env, ep, project);
+
+    for (const s of aiSteps) {
+      const pathParams = { ...(s.path_params || {}) };
+
+      // If we already created a resource in this group, chain its ID into
+      // every subsequent item-level step instead of using AI's guessed id
+      if (createdInThisGroup) {
+        for (const key of Object.keys(pathParams)) {
+          if (key.toLowerCase().includes('id')) {
+            pathParams[key] = `{{${groupVarName}}}`;
+          }
+        }
+      }
+
+      steps.push({
+        name: s.name,
+        endpoint_id: ep.id,
+        method: ep.method,
+        input_payload: s.request_body,
+        input_params: { ...pathParams, ...(s.query_params || {}) },
+        expected_status: s.expected_status,
+        extract_vars: (isCreate && s.expected_status < 300) ? [
+          { var: groupVarName, path: 'data.id' },
+          { var: groupVarName, path: 'id' },
+          { var: groupVarName, path: 'data._id' },
+          { var: groupVarName, path: '_id' },
+        ] : [],
+        skip_if_failed: isCreate ? 0 : 1,
+      });
+    }
+
+    if (isCreate) createdInThisGroup = true;
+  }
+
+  return steps;
+}
+
 export async function autoGenerateFlowSuite(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
   const body = await parseBody(request);
@@ -1788,7 +2012,7 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
   const steps = [];
   let order = 1;
 
-  // ── STEP 1: Auth always goes first, if present ──────────────────────────
+  // ── Auth always goes first ───────────────────────────────────────────────
   if (signupEp) {
     steps.push({
       step_order: order++,
@@ -1820,41 +2044,46 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     });
   }
 
-  // ── STEP 2: Every remaining endpoint (secured or public) — CRUD-grouped ──
+  // ── Everything else, CRUD-grouped, AI-varied per endpoint ────────────────
   const skipIds = new Set([signupEp?.id, loginEp?.id].filter(Boolean));
   const remaining = endpoints.filter(e => !skipIds.has(e.id));
 
-  // 2a. Standalone GETs — resources with no sibling POST (not a CRUD lifecycle)
+  // Standalone GETs (no sibling POST — not part of a CRUD lifecycle)
   const standaloneGets = remaining.filter(ep => {
     if (ep.method !== 'GET') return false;
     const base = getResourceBase(ep.path);
     return !remaining.some(e => e.method === 'POST' && getResourceBase(e.path) === base);
   });
   for (const ep of standaloneGets) {
-    steps.push({
-      step_order: order++,
-      name: ep.summary || `${ep.method} ${ep.path}`,
-      endpoint_id: ep.id,
-      method: 'GET',
-      input_payload: null,
-      input_params: buildPathParams(ep),
-      expected_status: 200,
-      extract_vars: [],
-      skip_if_failed: 0,
-    });
+    const aiSteps = await generateStepsForEndpoint(env, ep, project);
+    for (const s of aiSteps) {
+      steps.push({
+        step_order: order++,
+        name: s.name,
+        endpoint_id: ep.id,
+        method: 'GET',
+        input_payload: null,
+        input_params: { ...(s.path_params || {}), ...(s.query_params || {}) },
+        expected_status: s.expected_status,
+        extract_vars: [],
+        skip_if_failed: 0,
+      });
+    }
   }
 
-  // 2b. CRUD-groupable resources — grouped by resource, ordered POST→GET→PUT→PATCH→DELETE
+  // CRUD-groupable resources
   const resourceEndpoints = remaining.filter(e => {
     const base = getResourceBase(e.path);
     return remaining.some(x => x.method === 'POST' && getResourceBase(x.path) === base);
   });
 
   const groups = groupEndpointsByResource(resourceEndpoints);
+  // Cap total AI-generated steps to avoid runaway suite size / AI call count
+  const MAX_TOTAL_STEPS = 100;
 
   for (const group of groups) {
-    // Enum-based path params (e.g. /convert/{from}-to-{to}) don't fit CRUD —
-    // fall back to per-endpoint handling, capped at 28 to control step count.
+    if (order > MAX_TOTAL_STEPS) break;
+
     const hasEnumPathParam = group.endpoints.some(ep => {
       try {
         const p = ep.parameters ? JSON.parse(ep.parameters) : [];
@@ -1863,23 +2092,31 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
     });
 
     if (hasEnumPathParam) {
-      for (const ep of group.endpoints.slice(0, 28)) {
-        steps.push({
-          step_order: order++,
-          name: `${ep.method} ${ep.path}`,
-          endpoint_id: ep.id,
-          method: ep.method,
-          input_payload: buildPayloadFromSchema(ep),
-          input_params: buildPathParams(ep),
-          expected_status: 200,
-          extract_vars: [],
-          skip_if_failed: 1,
-        });
+      // Format-conversion style endpoints — AI handles enum combos directly
+      for (const ep of group.endpoints) {
+        const aiSteps = await generateStepsForEndpoint(env, ep, project);
+        for (const s of aiSteps) {
+          steps.push({
+            step_order: order++,
+            name: s.name,
+            endpoint_id: ep.id,
+            method: ep.method,
+            input_payload: s.request_body,
+            input_params: { ...(s.path_params || {}), ...(s.query_params || {}) },
+            expected_status: s.expected_status,
+            extract_vars: [],
+            skip_if_failed: 1,
+          });
+        }
       }
       continue;
     }
 
-    const groupSteps = buildGroupSteps(group, buildPayloadFromSchema, buildPathParams);
+    const groupVarName = group.resourceBase
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .replace(/^_+|_+$/g, '') + '_id';
+
+    const groupSteps = await buildGroupStepsWithAI(group, env, project, groupVarName);
     groupSteps.forEach(s => { s.step_order = order++; steps.push(s); });
   }
 
@@ -1928,6 +2165,7 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
 
   return json(success({ suite, steps: createdSteps }), 201);
 }
+
 
 
 export async function healthCheck(request, env) {
