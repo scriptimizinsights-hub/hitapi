@@ -1282,7 +1282,7 @@ export function FlowSuitesPage() {
                         <GitBranch size={32} color="var(--text-tertiary)" />
                         <h3>No flow suites yet</h3>
                         <p>Click <strong>Auto-generate suite</strong> to create a signup → login → auth endpoints flow from your Swagger spec.</p>
-                        <button className="btn btn-primary" onClick={autoGenerate} disabled={generating}
+                        <button className="btn btn-primary" onClick={openAutoGenerate} disabled={generating}
                             style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Zap size={14} /> Auto-generate suite
                         </button>
