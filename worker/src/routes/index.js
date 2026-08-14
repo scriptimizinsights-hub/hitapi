@@ -11,6 +11,8 @@ import { json, error, parseBody, success } from '../middleware/cors.js';
 import { encryptField, decryptField } from '../services/encryption.js';
 import { logInternalError } from '../services/errorLogger.js';
 import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
+import { groupEndpointsByResource, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
+import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
 const { buildFlowStepPrompt } = require('../utils/promptBuilder.js'); // or inline the function
 
 function repos(env) {
@@ -1855,43 +1857,10 @@ Return ONLY a raw JSON array, no markdown:
 }
 
 // ─── Helper: build payload from schema properties ────────────────────────────
-function buildPayloadFromSchema(ep) {
-  try {
-    const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
-    if (!schema?.properties) return null;
-    const payload = {};
-    for (const [f, fSchema] of Object.entries(schema.properties)) {
-      const n = f.toLowerCase();
-      if (fSchema?.example !== undefined) payload[f] = fSchema.example;
-      else if (fSchema?.enum) payload[f] = fSchema.enum[0];
-      else if (n.includes('email')) payload[f] = 'test@example.com';
-      else if (n.includes('password')) payload[f] = 'Test@123456';
-      else if (n.includes('name')) payload[f] = 'Test User';
-      else if (n.includes('id')) payload[f] = '{{userId}}';
-      else if (fSchema?.type === 'boolean') payload[f] = fSchema.default ?? true;
-      else if (fSchema?.type === 'integer') payload[f] = 1;
-      else payload[f] = 'test_value';
-    }
-    return payload;
-  } catch { return null; }
-}
+
 
 // ─── Helper: build path params using enum/example, never hardcoded "1" ───────
-function buildPathParams(ep) {
-  try {
-    const parameters = ep.parameters ? JSON.parse(ep.parameters) : [];
-    const pathParams = parameters.filter(p => p.in === 'path');
-    if (!pathParams.length) return null;
-    const result = {};
-    for (const p of pathParams) {
-      result[p.name] = p.example
-        || p.schema?.example
-        || p.schema?.enum?.[0]
-        || (p.name.toLowerCase().includes('id') ? '{{userId}}' : '1');
-    }
-    return result;
-  } catch { return null; }
-}
+
 
 export async function generateFlowStep(request, env, { params }) {
   const db = new DatabaseAdapter(env.DB);
@@ -2180,3 +2149,150 @@ export async function listAiLogs(request, env, { params, user }) {
  * Register in worker/src/index.js:
  * router('GET', '/api/projects/:id/ai-logs', listAiLogs),
  */
+
+
+
+const FORMAT_EXAMPLES = {
+  json: '[{"id":1,"name":"Ada"},{"id":2,"name":"Grace"}]',
+  csv: 'id,name\n1,Ada\n2,Grace',
+  xml: '<users><user><id>1</id><name>Ada</name></user></users>',
+  yaml: 'name: Ada\nage: 30',
+  markdown: '# Hello\n**bold text**\n- item 1',
+  html: '<h1>Hello</h1><p>World</p>',
+  base64: 'SGVsbG8gV29ybGQ=',
+  sql: 'SELECT id, name FROM users WHERE active = 1',
+  string: 'Hello World',
+  excel: 'col1,col2\nval1,val2',
+};
+
+// ── Build a realistic payload from an endpoint's schema ────────────────────────
+function buildPayloadFromSchema(ep) {
+  try {
+    const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
+    if (!schema?.properties) return null;
+    const payload = {};
+    for (const [f, fSchema] of Object.entries(schema.properties)) {
+      const n = f.toLowerCase();
+      if (fSchema?.example !== undefined) payload[f] = fSchema.example;
+      else if (fSchema?.enum) payload[f] = fSchema.enum[0];
+      else if (n.includes('email')) payload[f] = 'test@example.com';
+      else if (n.includes('password')) payload[f] = 'Test@123456';
+      else if (n.includes('name')) payload[f] = 'Test Name';
+      else if (n.includes('id')) payload[f] = '{{userId}}';
+      else if (fSchema?.type === 'boolean') payload[f] = fSchema.default ?? true;
+      else if (fSchema?.type === 'integer') payload[f] = 1;
+      else if (fSchema?.type === 'number') payload[f] = 1.0;
+      else payload[f] = 'test_value';
+    }
+    return payload;
+  } catch { return null; }
+}
+
+// ── Build path params using enum/example — never hardcoded "1" ─────────────────
+function buildPathParams(ep) {
+  try {
+    const parameters = ep.parameters ? JSON.parse(ep.parameters) : [];
+    const pathParams = parameters.filter(p => p.in === 'path');
+    if (!pathParams.length) return null;
+    const result = {};
+    for (const p of pathParams) {
+      result[p.name] = p.example
+        || p.schema?.example
+        || p.schema?.enum?.[0]
+        || (p.name.toLowerCase().includes('id') ? '{{userId}}' : '1');
+    }
+    return result;
+  } catch { return null; }
+}
+
+// ── Format-aware payload for enum-based conversion endpoints ───────────────────
+function buildFormatAwarePayload(ep, pathParams) {
+  try {
+    const schema = ep.request_body ? JSON.parse(ep.request_body) : null;
+    if (!schema?.properties) return null;
+    const fromFormat = pathParams?.from;
+    const payload = {};
+    for (const [field, fieldSchema] of Object.entries(schema.properties)) {
+      const fieldName = field.toLowerCase();
+      if (fieldName === 'input' && fromFormat && FORMAT_EXAMPLES[fromFormat]) {
+        payload[field] = FORMAT_EXAMPLES[fromFormat];
+      } else if (fieldSchema?.type === 'boolean') {
+        payload[field] = fieldSchema.default ?? true;
+      } else if (fieldSchema?.enum) {
+        payload[field] = fieldSchema.enum[0];
+      } else {
+        payload[field] = fieldSchema?.example ?? 'test_value';
+      }
+    }
+    return payload;
+  } catch { return null; }
+}
+
+// ── MAIN FUNCTION — this is what replaces your old buildFunctionalFlow ─────────
+function buildFunctionalFlow(endpoints) {
+  const steps = [];
+  let order = 1;
+
+  // ── Part 1: standalone GET endpoints (no sibling POST → not a CRUD resource) ──
+  const getEndpoints = endpoints.filter(e => e.method === 'GET');
+  for (const ep of getEndpoints) {
+    const hasSiblingPost = endpoints.some(
+      e => e.method === 'POST' && getResourceBase(e.path) === getResourceBase(ep.path)
+    );
+    if (hasSiblingPost) continue; // handled inside its group below instead
+
+    steps.push({
+      step_order: order++,
+      name: ep.summary || `${ep.method} ${ep.path}`,
+      endpoint_id: ep.id,
+      method: 'GET',
+      input_payload: null,
+      input_params: buildPathParams(ep),
+      expected_status: 200,
+      extract_vars: [],
+      skip_if_failed: 0,
+    });
+  }
+
+  // ── Part 2: CRUD-grouped resources (customers, followups, templates, etc.) ────
+  const resourceEndpoints = endpoints.filter(e => {
+    const base = getResourceBase(e.path);
+    return endpoints.some(x => x.method === 'POST' && getResourceBase(x.path) === base);
+  });
+
+  const groups = groupEndpointsByResource(resourceEndpoints);
+
+  for (const group of groups) {
+    // Enum-based path params (format conversion style) don't fit CRUD lifecycle —
+    // handle separately with format-aware payloads instead of ID chaining.
+    const hasEnumPathParam = group.endpoints.some(ep => {
+      try {
+        const params = ep.parameters ? JSON.parse(ep.parameters) : [];
+        return params.some(p => p.in === 'path' && p.schema?.enum);
+      } catch { return false; }
+    });
+
+    if (hasEnumPathParam) {
+      for (const ep of group.endpoints) {
+        const pathParams = buildPathParams(ep);
+        steps.push({
+          step_order: order++,
+          name: `${ep.method} ${ep.path}`,
+          endpoint_id: ep.id,
+          method: ep.method,
+          input_payload: buildFormatAwarePayload(ep, pathParams),
+          input_params: pathParams,
+          expected_status: 200,
+          extract_vars: [],
+          skip_if_failed: 1,
+        });
+      }
+      continue;
+    }
+
+    const groupSteps = buildGroupSteps(group, buildPayloadFromSchema, buildPathParams);
+    groupSteps.forEach(s => { s.step_order = order++; steps.push(s); });
+  }
+
+  return steps;
+}
