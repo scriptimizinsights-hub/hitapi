@@ -2,6 +2,7 @@
  * Add this component to FlowSuitesPage.jsx (or a new file, imported in)
  * Replaces the window.prompt() approach for Auto-generate auth options
  */
+import React, { useState } from 'react';
 
 export function AutoGenerateModal({ onConfirm, onClose, generating }) {
     const [authType, setAuthType] = useState('flow');
