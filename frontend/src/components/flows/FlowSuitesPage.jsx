@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { StepEditPanel } from './StepEditPanel.jsx';
 import { SuiteCreator } from './SuiteCreator.jsx';
+import { AutoGenerateModal } from './AutoGenerateModal.jsx'; // Import the new modal component
 
 function getStepGroup(result) {
     const name = result.step_name || '';
@@ -1188,6 +1189,7 @@ export function FlowSuitesPage() {
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [showCreator, setShowCreator] = useState(false);
+    const [showAutoGenModal, setShowAutoGenModal] = useState(false);
 
     useEffect(() => { loadSuites(); }, [projectId]);
 
@@ -1200,34 +1202,22 @@ export function FlowSuitesPage() {
         finally { setLoading(false); }
     }
 
-    async function autoGenerate() {
+    function openAutoGenerate() {
+        setShowAutoGenModal(true);
+    }
 
-        const authChoice = window.prompt(
-            'Auth type?\n1 = Auto login flow (default)\n2 = Static token\n3 = No auth\nEnter 1, 2, or 3:',
-            '1'
-        );
-        let authType = 'flow';
-        let staticToken = null;
-
-        if (authChoice === '2') {
-            authType = 'static';
-            staticToken = window.prompt('Paste your static API token:');
-            if (!staticToken) return;
-        } else if (authChoice === '3') {
-            authType = 'none';
-        }
-
-
+    async function confirmAutoGenerate({ auth_type, static_token }) {
         setGenerating(true);
         try {
-            const { suite, steps } = await api.flows.autoGenerate(projectId, {
-                auth_type: authType,
-                static_token: staticToken,
-            });
+            const { suite, steps } = await api.flows.autoGenerate(projectId, { auth_type, static_token });
             addToast(`✓ Created "${suite.name}" with ${steps.length} steps`, 'success');
+            setShowAutoGenModal(false);
             await loadSuites();
-        } catch (err) { addToast(err.message, 'error'); }
-        finally { setGenerating(false); }
+        } catch (err) {
+            addToast(err.message, 'error');
+        } finally {
+            setGenerating(false);
+        }
     }
 
     async function deleteSuite(suiteId) {
@@ -1249,7 +1239,7 @@ export function FlowSuitesPage() {
                     <button className="btn btn-ghost" onClick={loadSuites} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <RefreshCw size={13} /> Refresh
                     </button>
-                    <button className="btn btn-ghost" onClick={autoGenerate} disabled={generating}
+                    <button className="btn btn-ghost" onClick={openAutoGenerate} disabled={generating}
                         style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {generating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Generating…</> : <><Zap size={13} /> Auto-generate</>}
                     </button>
@@ -1311,6 +1301,14 @@ export function FlowSuitesPage() {
                         loadSuites();
                     }}
                     onClose={() => setShowCreator(false)}
+                />
+            )}
+
+            {showAutoGenModal && (
+                <AutoGenerateModal
+                    generating={generating}
+                    onConfirm={confirmAutoGenerate}
+                    onClose={() => setShowAutoGenModal(false)}
                 />
             )}
         </div>
