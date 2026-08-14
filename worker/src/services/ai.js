@@ -6,7 +6,7 @@
 
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';   // ~1–3s, always available
 const MODEL_FALLBACK = '@hf/google/gemma-7b-it';           // better quality, use if 1B fails
-
+import { processModelResponse, processSingleObjectResponse, NormalizeError } from '../utils/normalizeAIResponse.js';
 export function parseJSON(text) {
   try {
     const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -60,41 +60,51 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
 }
 
 
+
 export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 20000, opts = {}) {
   const { stage = 'unknown', projectId = null, model = MODEL } = opts;
   const t0 = Date.now();
-  let response = null;
+  let rawResponse = null;
   let errMsg = null;
+  let failStage = null;
+  let result = null;
 
   try {
-    response = await runAI(ai, prompt, maxTokens, timeoutMs, model);
-    return response;
+    rawResponse = await runAI(ai, prompt, maxTokens, timeoutMs, model);
+    const text = extractText(rawResponse);
+
+    result = stage === 'bug_analysis'
+      ? processSingleObjectResponse(text)   // returns bug object directly
+      : processModelResponse(text);         // returns { steps, droppedInvalid, droppedDuplicates }
+
+    return result;
+
   } catch (err) {
     errMsg = err.message;
-    throw err; // always propagate — logging must never swallow real failures
+    failStage = err instanceof NormalizeError ? err.stage : 'ai_call';
+    throw err;
+
   } finally {
     const duration = Date.now() - t0;
-    const text = errMsg ? null : extractText(response);
+    const text = rawResponse ? extractText(rawResponse) : null;
 
     if (db) {
       db.run(
         `INSERT INTO ai_logs
-           (project_id, stage, model, prompt, response, parsed_ok, duration_ms, error)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (project_id, stage, model, prompt, response, parsed_ok, duration_ms, error, fail_stage)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          projectId,
-          stage,
-          model,
+          projectId, stage, model,
           prompt.slice(0, 10000),
           text ? text.slice(0, 10000) : null,
-          text ? 1 : 0,
-          duration,
-          errMsg,
+          result ? 1 : 0,
+          duration, errMsg, failStage,
         ]
       ).catch(logErr => console.error('[AILog] Failed to save log:', logErr.message));
     }
   }
 }
+
 
 function resolveSchema(schema, fullSpec = {}) {
   if (!schema) return {};
@@ -304,6 +314,10 @@ export async function generateTestCases(ai, endpoint, fullSpec = {}, db = null, 
   const prompt = buildPrompt(ctx);
 
   // Stage 3: Call AI with retry
+  // runAILogged already runs the full normalization pipeline internally —
+  // fence-stripping, first-JSON extraction, parse, per-step validation, dedup.
+  // It returns { steps, droppedInvalid, droppedDuplicates } on success,
+  // or throws NormalizeError (with .stage) / a plain Error on AI failure.
   let cases = null;
   let lastError = null;
 
@@ -311,41 +325,35 @@ export async function generateTestCases(ai, endpoint, fullSpec = {}, db = null, 
     try {
       console.log(`[TestGen] AI attempt ${attempt}`);
 
-      const response = await runAILogged(ai, db, prompt, maxTokens, timeoutMs, {
-        stage: 'test_generation',
-        projectId,
-      });
+      const { steps, droppedInvalid, droppedDuplicates } = await runAILogged(
+        ai, db, prompt, 400, 15000,
+        { stage: 'test_generation', projectId }
+      );
 
-      const text = extractText(response);
-      if (!text) throw new Error('Empty AI response');
-
-      const parsed = parseJSON(text);
-      if (!parsed) throw new Error('Could not parse AI response as JSON');
-
-      if (!validateTestCases(parsed, ctx)) {
-        throw new Error(`Validation failed — got ${parsed.length} cases but structure is wrong`);
+      if (droppedInvalid || droppedDuplicates) {
+        console.log(`[TestGen] Cleaned: dropped ${droppedInvalid} invalid, ${droppedDuplicates} duplicate cases`);
       }
 
-      // Normalize field names — AI sometimes uses slightly different names
-      cases = parsed.map(tc => ({
-        name: tc.name || tc.test_name || 'Unnamed test',
-        test_type: tc.test_type || tc.type || 'positive',
-        path_params: tc.path_params || tc.pathParams || tc.path_parameters || {},
-        query_params: tc.query_params || tc.queryParams || tc.query_parameters || {},
-        request_body: tc.request_body ?? tc.body ?? tc.payload ?? null,
-        expected_status: tc.expected_status || tc.expectedStatus || tc.status || 200,
-        reasoning: tc.reasoning || tc.ai_reasoning || '',
-        // Keep content type for executor
+      // steps are already normalized to {name, path_params, query_params,
+      // request_body, expected_status, reasoning, type} — just attach content_type
+      cases = steps.map(s => ({
+        name: s.name,
+        test_type: s.type || 'positive',
+        path_params: s.path_params,
+        query_params: s.query_params,
+        request_body: s.request_body,
+        expected_status: s.expected_status,
+        reasoning: s.reasoning,
         content_type: ctx.contentType,
       }));
 
       console.log(`[TestGen] ✓ ${cases.length} test cases generated on attempt ${attempt}`);
-      break;
+      break; // success — stop retrying
 
     } catch (err) {
       lastError = err;
       console.warn(`[TestGen] Attempt ${attempt} failed: ${err.message}`);
-      throw err;  // let the outer try/catch handle logging and fallback
+      // don't throw — let the loop try attempt 2, or fall through to fallback below
     }
   }
 

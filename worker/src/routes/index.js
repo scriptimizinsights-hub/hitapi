@@ -1900,35 +1900,82 @@ export async function generateFlowStep(request, env, { params }) {
   );
   if (!endpoint) return error('Endpoint not found', 404);
 
+  const parameters = endpoint.parameters ? JSON.parse(endpoint.parameters) : [];
+  const pathParams = parameters.filter(p => p.in === 'path');
+  const queryParams = parameters.filter(p => p.in === 'query');
+  const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
   const knownStatusCodes = endpoint.responses
     ? Object.keys(JSON.parse(endpoint.responses)).map(Number).filter(n => !isNaN(n))
     : [];
 
-  const prompt = buildFlowStepPrompt(endpoint, pathParams, schema, knownStatusCodes);
+  const prompt = buildFlowStepPrompt(endpoint, pathParams, queryParams, schema, knownStatusCodes);
 
   try {
-    const response = await runAILogged(env.AI, db, prompt, 600, 40000, {
+    const { steps, droppedInvalid, droppedDuplicates } = await runAILogged(env.AI, db, prompt, 600, 40000, {
       stage: 'flow_step_generation',
       projectId: params.id
     });
 
-    console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
-    const text = extractText(response);
-    const parsed = parseJSON(text);
+    if (droppedInvalid || droppedDuplicates) {
+      console.log(`[GenerateStep] Cleaned response: dropped ${droppedInvalid} invalid, ${droppedDuplicates} duplicate steps`);
+    }
 
-    if (!parsed) return error('AI could not generate step');
+    // console.log(`[Flow] AI generated step for ${endpoint.method} ${endpoint.path}: ${JSON.stringify(response)} `);
+    // const text = extractText(response);
+    // const parsed = parseJSON(text);
 
-    // Map to consistent field names
+    // if (!parsed) return error('AI could not generate step');
+
+    // // Map to consistent field names
+    // return json(success({
+    //   name: parsed.name || `${endpoint.method} ${endpoint.path}`,
+    //   input_params: parsed.path_params || parsed.input_params || null,
+    //   input_payload: parsed.request_body || parsed.input_payload || null,
+    //   expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
+    //   extract_vars: parsed.extract_vars || [],
+    //   reasoning: parsed.reasoning || '',
+    // }));
+
+    // Return just the first (best) step — this route generates ONE step for the form
+    const best = steps[0];
     return json(success({
-      name: parsed.name || `${endpoint.method} ${endpoint.path}`,
-      input_params: parsed.path_params || parsed.input_params || null,
-      input_payload: parsed.request_body || parsed.input_payload || null,
-      expected_status: parsed.expected_status || (endpoint.method === 'POST' ? 201 : 200),
-      extract_vars: parsed.extract_vars || [],
-      reasoning: parsed.reasoning || '',
+      name: best.name,
+      input_params: Object.keys(best.path_params).length ? best.path_params : null,
+      input_payload: best.request_body || best.input_payload || null,
+      expected_status: best.expected_status,
+      extract_vars: [],
+      reasoning: best.reasoning,
     }));
   } catch (err) {
-    return error(`AI generation failed: ${err.message}`, 500);
+    // Log WHY we're falling back — distinguishes "AI never responded" from
+    // "AI responded but every step failed validation"
+    const stage = err instanceof NormalizeError ? err.stage : 'ai_call';
+    console.warn(`[GenerateStep] AI failed at stage=${stage}: ${err.message} — using rule-based fallback`);
+
+    // ── Existing rule-based fallback — unchanged ──────────────────────────
+    const fallbackParams = {};
+    for (const p of pathParams) {
+      fallbackParams[p.name] = p.schema?.enum?.[0] || p.example || '1';
+    }
+    const fallbackBody = {};
+    if (schema?.properties) {
+      for (const [k, v] of Object.entries(schema.properties)) {
+        if (v.type === 'boolean') fallbackBody[k] = v.default ?? true;
+        else if (v.type === 'integer') fallbackBody[k] = 1;
+        else if (v.enum) fallbackBody[k] = v.enum[0];
+        else if (k === 'input') fallbackBody[k] = '[{"id":1,"name":"test"}]';
+        else fallbackBody[k] = 'test_value';
+      }
+    }
+
+    return json(success({
+      name: `${endpoint.method} ${endpoint.path}`,
+      input_params: Object.keys(fallbackParams).length ? fallbackParams : null,
+      input_payload: Object.keys(fallbackBody).length ? fallbackBody : null,
+      expected_status: endpoint.method === 'POST' ? 201 : 200,
+      extract_vars: [],
+      reasoning: 'Rule-based fallback — AI unavailable',
+    }));
   }
 }
 

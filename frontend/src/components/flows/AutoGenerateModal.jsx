@@ -66,19 +66,21 @@ export function AutoGenerateModal({ onConfirm, onClose, generating }) {
 
                     {authType === 'static' && (
                         <div style={{ marginTop: 10 }}>
-                            <input
-                                type="password"
-                                value={staticToken}
-                                onChange={e => { setStaticToken(e.target.value); setError(''); }}
-                                placeholder="Paste API token / Bearer token…"
-                                autoFocus
-                                style={{
-                                    width: '100%', padding: '9px 11px', borderRadius: 7,
-                                    background: 'var(--bg-input, rgba(255,255,255,0.03))', border: '1px solid var(--border)',
-                                    color: 'var(--text-primary)', fontSize: 12,
-                                    fontFamily: 'JetBrains Mono, monospace',
-                                }}
-                            />
+                            <form onSubmit={e => e.preventDefault()}>
+                                <input
+                                    type="password"
+                                    value={staticToken}
+                                    onChange={e => { setStaticToken(e.target.value); setError(''); }}
+                                    placeholder="Paste API token / Bearer token…"
+                                    autoFocus
+                                    style={{
+                                        width: '100%', padding: '9px 11px', borderRadius: 7,
+                                        background: 'var(--bg-input, rgba(255,255,255,0.03))', border: '1px solid var(--border)',
+                                        color: 'var(--text-primary)', fontSize: 12,
+                                        fontFamily: 'JetBrains Mono, monospace',
+                                    }}
+                                />
+                            </form>
                             <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 5 }}>
                                 Sent as <code>Authorization: Bearer &lt;token&gt;</code> on every step
                             </div>
