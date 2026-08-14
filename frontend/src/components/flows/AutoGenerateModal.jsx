@@ -3,6 +3,7 @@
  * Replaces the window.prompt() approach for Auto-generate auth options
  */
 import React, { useState } from 'react';
+import { Zap } from 'lucide-react';
 
 export function AutoGenerateModal({ onConfirm, onClose, generating }) {
     const [authType, setAuthType] = useState('flow');
