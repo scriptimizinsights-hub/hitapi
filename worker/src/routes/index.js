@@ -1579,7 +1579,7 @@ export async function getFlowRun(request, env, { params }) {
 
 export async function autoGenerateFlowSuite(request, env, { params }) {
   const db = new (await import('../db/adapter.js')).DatabaseAdapter(env.DB);
-
+  const body = await parseBody(request);
   const endpoints = await db.all(
     `SELECT * FROM endpoints WHERE project_id = ? ORDER BY path, method`,
     [params.id]
@@ -1709,11 +1709,13 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
   // Persist
   const suiteId = db.uuid();
   await db.run(
-    `INSERT INTO flow_suites (id, project_id, name, description) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO flow_suites (id, project_id, name, description, auth_type, static_token) VALUES (?, ?, ?, ?, ?, ?)`,
     [
       suiteId, params.id,
       `${project?.name || 'API'} — ${isAuthAPI ? 'Auth Flow' : 'Functional Coverage'}`,
       `Auto-generated: ${steps.length} steps`,
+      body.auth_type || null,
+      body.static_token || null
 
     ]
   );
