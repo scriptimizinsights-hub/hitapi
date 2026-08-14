@@ -1021,7 +1021,7 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                     steps.map((s, i) => (
                         <StepEditor key={s.id} step={s} index={i} total={steps.length}
                             endpoints={endpoints}
-                            projectId={projectId}   {/* ← add this line */}
+                            projectId={projectId}
                             onUpdate={(key, val) => updateStep(s.id, key, val)}
                             onPickEndpoint={(epId) => onPickEndpoint(s.id, epId)}
                             onRemove={() => removeStep(s.id)}
