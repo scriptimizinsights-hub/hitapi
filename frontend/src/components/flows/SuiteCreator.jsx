@@ -275,6 +275,14 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
         setGeneratingAI(false);
     }
 
+    function guardedClose() {
+        if (generatingAI) {
+            addToast?.('⏳ Please wait — generating request bodies with AI', 'info');
+            return;
+        }
+        onClose();
+    }
+
     function moveReviewStep(idx, dir) {
         setReviewSteps(prev => {
             const next = [...prev];
@@ -902,7 +910,7 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     }
 
     // When endpoint is picked — auto-fill method and body
-    function onPickEndpoint(stepId, endpointId) {
+    async function onPickEndpoint(stepId, endpointId) {
         const ep = endpoints.find(e => e.id === endpointId);
         if (!ep) { updateStep(stepId, 'endpoint_id', null); return; }
 
