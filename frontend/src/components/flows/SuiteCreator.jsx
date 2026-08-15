@@ -241,6 +241,7 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             preview.push({ order: order++, name: s.name, method: s.method, path: s.name.split(' ').slice(1).join(' '), color: 'var(--blue)', crudStep: s });
         });
         setReviewSteps(preview);
+        console.log('calling generateAllPayloadsWithAI', preview);
         generateAllPayloadsWithAI(preview)
     }, [currentStepKey]);
 
