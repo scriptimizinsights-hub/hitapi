@@ -174,6 +174,9 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const TOTAL = activeSteps.length;
     const STEP_LABELS = activeSteps.map(s => s.label);
     const currentStepKey = activeSteps[step - 1]?.key;
+    const [aiOverrides, setAiOverrides] = useState({});
+    const [generatingAI, setGeneratingAI] = useState(false);
+    const [aiProgress, setAiProgress] = useState({ done: 0, total: 0 });
 
     // NEW: auth detection hook
     const { annotated, toggleAuth, authCount, publicCount } = useAuthDetector(endpoints);
@@ -238,7 +241,38 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             preview.push({ order: order++, name: s.name, method: s.method, path: s.name.split(' ').slice(1).join(' '), color: 'var(--blue)', crudStep: s });
         });
         setReviewSteps(preview);
+        generateAllPayloadsWithAI(preview)
     }, [currentStepKey]);
+
+
+    async function generateAllPayloadsWithAI(previewSteps) {
+        const targets = previewSteps
+            .map((step, i) => ({ step, i }))
+            .filter(({ step }) => {
+                if (step.fixed) return false;
+                const method = step.crudStep?.method || step.method;
+                const endpointId = step.crudStep?.endpoint_id || step.endpointId;
+                return endpointId && ['POST', 'PUT', 'PATCH'].includes(method);
+            });
+
+        if (!targets.length) return;
+
+        setGeneratingAI(true);
+        setAiProgress({ done: 0, total: targets.length });
+
+        for (const { step, i } of targets) {
+            const endpointId = step.crudStep?.endpoint_id || step.endpointId;
+            try {
+                const result = await api.flows.generateStep(projectId, endpointId);
+                setAiOverrides(prev => ({ ...prev, [i]: result }));
+            } catch (err) {
+                console.warn(`AI generation failed for step ${i}:`, err.message);
+            }
+            setAiProgress(prev => ({ ...prev, done: prev.done + 1 }));
+        }
+
+        setGeneratingAI(false);
+    }
 
     function moveReviewStep(idx, dir) {
         setReviewSteps(prev => {
@@ -724,6 +758,13 @@ function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             <Input value={suiteName} onChange={setSuiteName} placeholder="My Auth Flow" />
                         </div>
 
+                        {generatingAI && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(130,100,255,0.08)', borderRadius: 8, fontSize: 12, color: 'var(--accent)' }}>
+                                <div className="spinner" style={{ width: 12, height: 12 }} />
+                                ✨ Generating request bodies with AI — {aiProgress.done}/{aiProgress.total}
+                            </div>
+                        )}
+
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span>Steps ({reviewSteps.length}) — reorder with ↑↓</span>
                             <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400 }}>Signup & Login are fixed</span>
@@ -856,6 +897,27 @@ function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     function onPickEndpoint(stepId, endpointId) {
         const ep = endpoints.find(e => e.id === endpointId);
         if (!ep) { updateStep(stepId, 'endpoint_id', null); return; }
+
+        setSteps(prev => prev.map(s => s.id === stepId ? {
+            ...s,
+            endpoint_id: endpointId,
+            method: ep.method || 'GET',
+            name: s.name || `${ep.method} ${ep.path}`,
+        } : s));
+
+        try {
+            const result = await api.flows.generateStep(projectId, endpointId);
+            setSteps(prev => prev.map(s => s.id === stepId ? {
+                ...s,
+                input_payload: result.input_payload ? JSON.stringify(result.input_payload, null, 2) : '',
+                input_params: result.input_params ? JSON.stringify(result.input_params, null, 2) : '',
+                expected_status: String(result.expected_status || (ep.method === 'POST' ? 201 : 200)),
+                name: s.name || result.name || `${ep.method} ${ep.path}`,
+            } : s));
+            return;
+        } catch (err) {
+            console.warn('AI generation failed, using rule-based fallback:', err.message);
+        }
 
         const schema = safeJSON(ep.request_body);
         const example = schema?._example;
