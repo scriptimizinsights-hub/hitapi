@@ -45,34 +45,87 @@ export function extractText(response) {
   return '';
 }
 
-export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, model = MODEL) {
+export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, model = MODEL, geminiKey = null) {
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
   );
   console.log(`[AI] Prompt (${prompt.length} chars, max_tokens=${maxTokens}):`, prompt);
-  const call = ai.run(model, {
-    prompt,
-    max_tokens: maxTokens,
-    temperature: 0.1,
-    stream: false
-  });
-  return Promise.race([call, timeout]);
+
+  try {
+    const call = ai.run(model, {
+      prompt,
+      max_tokens: maxTokens,
+      temperature: 0.1,
+      stream: false,
+    });
+    return await Promise.race([call, timeout]);
+
+  } catch (err) {
+    const isQuotaExhausted =
+      err.message?.includes('4006') ||
+      err.message?.includes('daily free allocation') ||
+      err.message?.includes('Workers Paid plan');
+
+    if (isQuotaExhausted && geminiKey) {
+      console.warn('[AI] Workers AI quota exhausted — falling back to Gemini');
+      return await runGemini(prompt, maxTokens, timeoutMs, geminiKey);
+    }
+
+    throw err;
+  }
+}
+
+
+export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.1 },
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error?.message || `Gemini HTTP ${res.status}`);
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) throw new Error('Gemini returned empty response');
+
+    console.log('[AI] Gemini fallback succeeded');
+    return { response: text, _model: 'gemini-2.0-flash' };
+
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 
 
+
 export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 20000, opts = {}) {
-  const { stage = 'unknown', projectId = null, model = MODEL } = opts;
+  const { stage = 'unknown', projectId = null, model = MODEL, geminiKey = null } = opts;
   const t0 = Date.now();
   let rawResponse = null;
   let errMsg = null;
   let failStage = null;
   let result = null;
+  let actualModel = model;
 
   try {
-    rawResponse = await runAI(ai, prompt, maxTokens, timeoutMs, model);
+    rawResponse = await runAI(ai, prompt, maxTokens, timeoutMs, model, geminiKey);
     const text = extractText(rawResponse);
-
+    if (rawResponse?._model) actualModel = rawResponse._model;
     result = stage === 'bug_analysis'
       ? processSingleObjectResponse(text)   // returns bug object directly
       : processModelResponse(text);         // returns { steps, droppedInvalid, droppedDuplicates }
@@ -94,7 +147,7 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
            (project_id, stage, model, prompt, response, parsed_ok, duration_ms, error, fail_stage)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          projectId, stage, model,
+          projectId, stage, actualModel,
           prompt.slice(0, 10000),
           text ? text.slice(0, 10000) : null,
           result ? 1 : 0,
@@ -302,7 +355,7 @@ function validateTestCases(cases, ctx) {
   return true;
 }
 
-export async function generateTestCases(ai, endpoint, fullSpec = {}, db = null, projectId = null) {
+export async function generateTestCases(ai, endpoint, fullSpec = {}, db = null, projectId = null, geminiKey = null) {
   if (!ai) throw new Error('AI binding missing in wrangler.toml');
 
   // Stage 1: Build rich context
@@ -327,7 +380,7 @@ export async function generateTestCases(ai, endpoint, fullSpec = {}, db = null, 
 
       const { steps, droppedInvalid, droppedDuplicates } = await runAILogged(
         ai, db, prompt, 400, 15000,
-        { stage: 'test_generation', projectId }
+        { stage: 'test_generation', projectId, geminiKey }
       );
 
       if (droppedInvalid || droppedDuplicates) {
@@ -400,7 +453,7 @@ function minimalFallback(ctx) {
  * Reuses existing analyzeBug prompt structure + adds flow context.
  * Called sequentially per failed step — not all at once.
  */
-export async function analyzeFlowStepBug(ai, { step, result, endpoint, suiteContext }, db = null, projectId = null) {
+export async function analyzeFlowStepBug(ai, { step, result, endpoint, suiteContext }, db = null, projectId = null, geminiKey = null) {
   if (!ai || result.status === 'passed') return null;
 
   try {
@@ -438,6 +491,7 @@ Output this exact JSON (no markdown, no extra text):
     const response = await runAILogged(ai, db, prompt, maxTokens, timeoutMs, {
       stage: 'flow_step_analysis',
       projectId,
+      geminiKey: geminiKey
     });
     const text = extractText(response);
     if (!text) return ruleBugFallback(stepContext);
@@ -484,7 +538,7 @@ function ruleBugFallback({ method, path, expected_status, actual_status }) {
   };
 }
 
-export async function analyzeBug(ai, { endpoint, testCase, result }, db = null, projectId = null) {
+export async function analyzeBug(ai, { endpoint, testCase, result }, db = null, projectId = null, geminiKey = null) {
   if (!ai || result.status === 'passed') return null;
   try {
     const prompt = `Output ONLY a JSON object analyzing this failed API test:
@@ -498,6 +552,7 @@ JSON only.`;
     const response = await runAILogged(ai, db, prompt, 300, 12000, {
       stage: 'bug_analysis',
       projectId,
+      geminiKey: geminiKey
     });
     const text = extractText(response);
     console.log('Bug AI response:', text);
@@ -516,7 +571,7 @@ JSON only.`;
   }
 }
 
-export async function detectWorkflows(ai, endpoints, db = null, projectId = null) {
+export async function detectWorkflows(ai, endpoints, db = null, projectId = null, geminiKey = null) {
   if (!ai || !endpoints.length) return [];
   try {
     const list = endpoints.slice(0, 12).map(e => `${e.method} ${e.path}`).join('\n');
@@ -530,6 +585,7 @@ JSON only.`;
     const response = await runAILogged(ai, db, prompt, 300, 12000, {
       stage: 'workflow_detection',
       projectId,
+      geminiKey: geminiKey
     });
     const text = extractText(response);
     if (!text) return [];
@@ -552,7 +608,7 @@ export async function generateRecommendations(ai, { bugs, failedResults }) {
   return recs;
 }
 
-export async function generateTestData(ai, schema, db = null, projectId = null) {
+export async function generateTestData(ai, schema, db = null, projectId = null, geminiKey = null) {
   if (!ai) return [];
   try {
     const prompt = `Output ONLY a JSON array of 3 realistic test data objects for schema: ${JSON.stringify(schema).slice(0, 200)}
@@ -560,6 +616,7 @@ JSON array only.`;
     const response = await runAILogged(ai, db, prompt, 300, 12000, {
       stage: 'test_data_generation',
       projectId,
+      geminiKey: geminiKey
     });
     const text = extractText(response);
     if (!text) return [];
