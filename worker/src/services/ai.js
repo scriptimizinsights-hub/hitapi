@@ -58,9 +58,10 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
       temperature: 0.1,
       stream: false,
     });
-    return await Promise.race([call, timeout]);
+    return await Promise.all([call]);
 
   } catch (err) {
+    console.error('[AI] Error during AI call:', err);
     const isQuotaExhausted =
       err.message?.includes('4006') ||
       err.message?.includes('daily free allocation') ||
@@ -69,7 +70,7 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
     const isTimeout = err.message?.includes('AI timeout after');
 
     // Retry via Gemini for BOTH quota exhaustion AND timeouts
-    if ((isQuotaExhausted || isTimeout) && geminiKey) {
+    if (err && geminiKey) {
       console.warn(`[AI] Workers AI ${isTimeout ? 'timed out' : 'quota exhausted'} — falling back to Gemini`);
       return await runGemini(prompt, maxTokens, timeoutMs, geminiKey);
     }
@@ -107,7 +108,12 @@ export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
     if (!text) throw new Error('Gemini returned empty response');
 
     console.log('[AI] Gemini fallback succeeded');
-    return { response: text, _model: 'gemini-2.0-flash' };
+    return {
+      response: text,
+      _model: 'gemini-2.0-flash',
+      _tokensIn: data.usageMetadata?.promptTokenCount ?? null,
+      _tokensOut: data.usageMetadata?.candidatesTokenCount ?? null,
+    };
 
   } finally {
     clearTimeout(timer);
@@ -126,12 +132,18 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
   let failStage = null;
   let result = null;
   let actualModel = model;
-  console.log(`[AILog] Stage: ${stage}, projectId: ${projectId}, model: ${model}, prompt length: ${prompt.length}, geminiKey: ${geminiKey}`);
+  let tokensIn = null;
+  let tokensOut = null;
 
   try {
     rawResponse = await runAI(ai, prompt, maxTokens, timeoutMs, model, geminiKey);
+    console.log(`[AI] ${stage} — raw response:`, rawResponse);
     const text = extractText(rawResponse);
     if (rawResponse?._model) actualModel = rawResponse._model;
+    if (rawResponse?._tokensIn !== undefined) tokensIn = rawResponse._tokensIn;
+    if (rawResponse?._tokensOut !== undefined) tokensOut = rawResponse._tokensOut;
+
+
     result = stage === 'bug_analysis'
       ? processSingleObjectResponse(text)   // returns bug object directly
       : processModelResponse(text);         // returns { steps, droppedInvalid, droppedDuplicates }
@@ -150,13 +162,14 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
     if (db) {
       db.run(
         `INSERT INTO ai_logs
-           (project_id, stage, model, prompt, response, parsed_ok, duration_ms, error, fail_stage)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (project_id, stage, model, prompt, response, parsed_ok, tokens_in, tokens_out, duration_ms, error, fail_stage)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           projectId, stage, actualModel,
           prompt.slice(0, 10000),
           text ? text.slice(0, 10000) : null,
           result ? 1 : 0,
+          tokensIn, tokensOut,
           duration, errMsg, failStage,
         ]
       ).catch(logErr => console.error('[AILog] Failed to save log:', JSON.stringify(logErr)));
