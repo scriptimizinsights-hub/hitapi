@@ -41,7 +41,7 @@ export function extractText(response) {
   if (response.choices?.[0]?.message?.content) return response.choices[0].message.content;
   if (response.choices?.[0]?.text) return response.choices[0].text;
   if (response.result) return response.result;
-  console.log('Unknown AI shape:', JSON.stringify(response).slice(0, 100));
+  console.log('Unknown AI shape:', JSON.stringify(response));
   return '';
 }
 
@@ -157,7 +157,7 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
           result ? 1 : 0,
           duration, errMsg, failStage,
         ]
-      ).catch(logErr => console.error('[AILog] Failed to save log:', JSON.stringify(logErr.message)));
+      ).catch(logErr => console.error('[AILog] Failed to save log:', JSON.stringify(logErr)));
     }
   }
 }
