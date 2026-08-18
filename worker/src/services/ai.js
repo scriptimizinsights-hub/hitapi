@@ -187,8 +187,8 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           projectId, stage, actualModel,
-          prompt.slice(0, 10000),
-          text ? text.slice(0, 10000) : null,
+          prompt,
+          text ? text : null,
           result ? 1 : 0,
           tokensIn, tokensOut,
           duration, errMsg, failStage,
