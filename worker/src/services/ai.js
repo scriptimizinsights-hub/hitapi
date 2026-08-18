@@ -36,7 +36,13 @@ export function parseJSON(text) {
 
 export function extractText(response) {
   if (!response) return '';
+  if (Array.isArray(response) && response.length > 0) {
+    response = response[0];
+  }
   if (typeof response === 'string') return response;
+  if (Array.isArray(response.response)) {
+    return JSON.stringify(response.response);
+  }
   if (response.response) return response.response;
   if (response.choices?.[0]?.message?.content) return response.choices[0].message.content;
   if (response.choices?.[0]?.text) return response.choices[0].text;
