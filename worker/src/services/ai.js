@@ -64,7 +64,14 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
       temperature: 0.1,
       stream: false,
     });
-    return await Promise.all([call]);
+    const response = await Promise.all([call]);
+
+    const text = extractText(response);
+    if (!text || !text.trim()) {
+      throw new Error('AI returned empty content');
+    }
+
+    return response;
 
   } catch (err) {
     console.error('[AI] Error during AI call:', err);
@@ -148,7 +155,7 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
     if (rawResponse?._model) actualModel = rawResponse._model;
     if (rawResponse?._tokensIn !== undefined) tokensIn = rawResponse._tokensIn;
     if (rawResponse?._tokensOut !== undefined) tokensOut = rawResponse._tokensOut;
-
+    console.log(`[AI] ${stage} — extracted text (${text.length} chars):`, text);
 
     result = stage === 'bug_analysis'
       ? processSingleObjectResponse(text)   // returns bug object directly
