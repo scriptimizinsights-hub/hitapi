@@ -98,13 +98,13 @@ export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.1 },
+          generationConfig: { maxOutputTokens: Math.max(maxTokens * 4, 2000), temperature: 0.1, thinkingConfig: { thinkingBudget: 0 } },
         }),
         signal: controller.signal,
       }
@@ -131,7 +131,7 @@ export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
 
     return {
       response: text,
-      _model: 'gemini-2.5-flash',
+      _model: 'gemini-2.0-flash',
       _tokensIn: data.usageMetadata?.promptTokenCount ?? null,
       _tokensOut: data.usageMetadata?.candidatesTokenCount ?? null,
     };
