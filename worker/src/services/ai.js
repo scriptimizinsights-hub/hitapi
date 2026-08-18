@@ -96,8 +96,6 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
 export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  console.log("[AI] Gemini fallback API-KEY:", apiKey);
-
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -117,13 +115,23 @@ export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
       throw new Error(data.error?.message || `Gemini HTTP ${res.status}`);
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = (data.candidates?.[0]?.content?.parts || [])
+      .map(p => p.text || '')
+      .join('');
+
     if (!text) throw new Error('Gemini returned empty response');
 
+    const finishReason = data.candidates?.[0]?.finishReason;
+    if (finishReason && finishReason !== 'STOP') {
+      console.warn(`[AI] Gemini finishReason: ${finishReason}`);
+    }
+
     console.log('[AI] Gemini fallback succeeded');
+
+
     return {
       response: text,
-      _model: 'gemini-2.0-flash',
+      _model: 'gemini-2.5-flash',
       _tokensIn: data.usageMetadata?.promptTokenCount ?? null,
       _tokensOut: data.usageMetadata?.candidatesTokenCount ?? null,
     };
