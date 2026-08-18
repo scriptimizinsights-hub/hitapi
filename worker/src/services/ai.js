@@ -66,8 +66,11 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
       err.message?.includes('daily free allocation') ||
       err.message?.includes('Workers Paid plan');
 
-    if (isQuotaExhausted && geminiKey) {
-      console.warn('[AI] Workers AI quota exhausted — falling back to Gemini');
+    const isTimeout = err.message?.includes('AI timeout after');
+
+    // Retry via Gemini for BOTH quota exhaustion AND timeouts
+    if ((isQuotaExhausted || isTimeout) && geminiKey) {
+      console.warn(`[AI] Workers AI ${isTimeout ? 'timed out' : 'quota exhausted'} — falling back to Gemini`);
       return await runGemini(prompt, maxTokens, timeoutMs, geminiKey);
     }
 
@@ -79,10 +82,11 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
 export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  console.log("[AI] Gemini fallback API-KEY:", apiKey);
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
