@@ -119,12 +119,14 @@ export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
 
 export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 20000, opts = {}) {
   const { stage = 'unknown', projectId = null, model = MODEL, geminiKey = null } = opts;
+
   const t0 = Date.now();
   let rawResponse = null;
   let errMsg = null;
   let failStage = null;
   let result = null;
   let actualModel = model;
+  console.log(`[AILog] Stage: ${stage}, projectId: ${projectId}, model: ${model}, prompt length: ${prompt.length}, geminiKey: ${geminiKey}`);
 
   try {
     rawResponse = await runAI(ai, prompt, maxTokens, timeoutMs, model, geminiKey);
