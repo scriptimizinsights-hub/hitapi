@@ -153,7 +153,7 @@ export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 2
           result ? 1 : 0,
           duration, errMsg, failStage,
         ]
-      ).catch(logErr => console.error('[AILog] Failed to save log:', logErr.message));
+      ).catch(logErr => console.error('[AILog] Failed to save log:', JSON.stringify(logErr.message)));
     }
   }
 }
