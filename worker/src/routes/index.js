@@ -91,34 +91,42 @@ export async function assertProjectOwner(env, projectId, userId) {
 
 // ─── Swagger Import ──────────────────────────────────────────────────────────
 
+
 export async function importSwagger(request, env, { params }) {
+  const db = new DatabaseAdapter(env.DB);
   const body = await parseBody(request);
-  const { projects, endpoints: epRepo } = repos(env);
 
-  const project = await projects.get(params.id);
-  if (!project) return error('Project not found', 404);
+  let fullSpec;
 
-  // Use provided URL/content or fall back to project swagger_url
-  const source = body?.swagger_url || body?.content || project.swagger_url;
-  if (!source) return error('Provide swagger_url or content');
-
-  const spec = await fetchAndParseSpec(source, env.CACHE);
-  const info = extractSpecInfo(spec);
-  const extracted = extractEndpoints(spec);
-
-  await epRepo.upsertMany(params.id, extracted);
-  const stats = await epRepo.stats(params.id);
-
-  // Invalidate cache for this project's endpoints
-  if (env.CACHE) {
-    await env.CACHE.delete(`endpoints:${params.id}`);
+  if (body.spec) {
+    // Extension already fetched it (local/private API case)
+    fullSpec = typeof body.spec === 'string' ? JSON.parse(body.spec) : body.spec;
+  } else if (body.url) {
+    // Existing behavior — Worker fetches a publicly reachable spec
+    const res = await fetch(body.url);
+    if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
+    fullSpec = await res.json();
+  } else {
+    return error('Provide either "url" or "spec"', 400);
   }
 
-  return json(success({
-    spec_info: info,
-    imported: extracted.length,
-    stats
-  }));
+  const endpoints = extractEndpoints(fullSpec);
+  if (!endpoints.length) return error('No endpoints found in spec', 400);
+
+  for (const ep of endpoints) {
+    await db.run(
+      `INSERT INTO endpoints
+         (id, project_id, method, path, summary, description, operation_id,
+          parameters, request_body, responses, security, tags)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        db.uuid(), params.id, ep.method, ep.path, ep.summary, ep.description, ep.operationId,
+        ep.parameters, ep.request_body, ep.responses, ep.security, ep.tags,
+      ]
+    );
+  }
+
+  return json(success({ imported: endpoints.length }), 201);
 }
 
 // ─── Endpoints ───────────────────────────────────────────────────────────────
