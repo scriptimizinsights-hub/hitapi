@@ -2363,3 +2363,84 @@ function buildFunctionalFlow(endpoints) {
 
   return steps;
 }
+
+
+export async function pollAgentJobs(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+
+  // Heartbeat — powers the "Agent connected" indicator
+  await db.run(
+    `INSERT INTO local_agent_heartbeats (user_id, last_seen_at) VALUES (?, unixepoch())
+     ON CONFLICT(user_id) DO UPDATE SET last_seen_at = unixepoch()`,
+    [user.sub]
+  );
+
+  // Claim up to 5 pending jobs at once for this user
+  const jobs = await db.all(
+    `SELECT * FROM local_agent_jobs
+     WHERE user_id = ? AND status = 'pending' AND expires_at > unixepoch()
+     ORDER BY created_at ASC LIMIT 5`,
+    [user.sub]
+  );
+
+  if (jobs.length) {
+    const ids = jobs.map(j => j.id);
+    await db.run(
+      `UPDATE local_agent_jobs SET status = 'claimed', claimed_at = unixepoch()
+       WHERE id IN (${ids.map(() => '?').join(',')})`,
+      ids
+    );
+  }
+
+  return json(success(jobs.map(j => ({
+    id: j.id,
+    method: j.method,
+    url: j.url,
+    headers: j.headers ? JSON.parse(j.headers) : {},
+    body: j.body,
+  }))));
+}
+
+// ── Extension posts the result back here ──────────────────────────────────
+export async function submitAgentJobResult(request, env, { params, user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const body = await parseBody(request);
+
+  const job = await db.first(
+    `SELECT * FROM local_agent_jobs WHERE id = ? AND user_id = ?`,
+    [params.jobId, user.sub]
+  );
+  if (!job) return error('Job not found', 404);
+
+  if (body.error) {
+    await db.run(
+      `UPDATE local_agent_jobs SET status = 'failed', error = ?, completed_at = unixepoch() WHERE id = ?`,
+      [String(body.error).slice(0, 500), job.id]
+    );
+  } else {
+    await db.run(
+      `UPDATE local_agent_jobs
+       SET status = 'done', result_status = ?, result_body = ?, result_headers = ?, completed_at = unixepoch()
+       WHERE id = ?`,
+      [
+        body.status ?? null,
+        body.body !== undefined ? JSON.stringify(body.body) : null,
+        body.headers ? JSON.stringify(body.headers) : null,
+        job.id,
+      ]
+    );
+  }
+
+  return json(success({ ok: true }));
+}
+
+// ── Dashboard checks this to show "Agent connected" / "Agent offline" ─────
+export async function agentStatus(request, env, { user }) {
+  const db = new DatabaseAdapter(env.DB);
+  const hb = await db.first(
+    `SELECT last_seen_at FROM local_agent_heartbeats WHERE user_id = ?`,
+    [user.sub]
+  );
+  const connected = hb && (Date.now() / 1000 - hb.last_seen_at) < 15; // seen in last 15s
+  return json(success({ connected, last_seen_at: hb?.last_seen_at || null }));
+}

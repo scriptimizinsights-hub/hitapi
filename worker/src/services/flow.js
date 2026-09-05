@@ -3,6 +3,7 @@
  * Runs steps sequentially, passing context variables between steps.
  * Supports {{varName}} placeholders in payload, headers, params and URL.
  */
+import { isLocalUrl } from '../utils/localUrl.js';
 
 const TIMEOUT_MS = 15000;
 
@@ -24,6 +25,8 @@ const LOGIN_COMBOS = [
     (creds) => creds.email && creds.password ? { login: creds.email, password: creds.password } : null,
     (creds) => creds.username && creds.password ? { email: creds.username, password: creds.password } : null, // try username as email
 ];
+
+
 
 // ── Extract token from any response body ──────────────────────────────────────
 function extractToken(body) {
@@ -239,24 +242,31 @@ async function executeStep(step, context, project, suite) {
     let actual_status, actual_body, actual_headers = {};
 
     try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-        const response = await fetch(url, {
-            method,
-            headers,
-            body: requestBody,
-            signal: controller.signal
-        });
-        clearTimeout(timer);
-
-        actual_status = response.status;
-        for (const [k, v] of response.headers.entries()) actual_headers[k] = v;
-
-        const ct = response.headers.get('content-type') || '';
-        actual_body = ct.includes('application/json')
-            ? await response.json().catch(() => null)
-            : { _text: (await response.text()).slice(0, 500) };
+        let actual_status, actual_body, actual_headers = {};
+        if (isLocalUrl(url)) {
+            const agentResult = await executeViaLocalAgent(db, {
+                projectId: project.id,
+                userId: project.user_id,
+                runId: context.__runId || null,
+                stepId: step.id || null,
+                method, url, headers, body: requestBody,
+            });
+            actual_status = agentResult.status;
+            actual_body = agentResult.body;
+            actual_headers = agentResult.headers;
+        } else {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+            const response = await fetch(url, { method, headers, body: requestBody, signal: controller.signal });
+            clearTimeout(timer);
+            actual_status = response.status;
+            for (const [k, v] of response.headers.entries()) actual_headers[k] = v;
+            const ct = response.headers.get('content-type') || '';
+            actual_body = ct.includes('application/json')
+                ? await response.json().catch(() => null)
+                : { _text: (await response.text()).slice(0, 500) };
+        }
 
         console.log(`[Flow] Step ${step.step_order} response: ${actual_status}`);
         if (actual_body) console.log(`[Flow] Body: ${JSON.stringify(actual_body).slice(0, 200)}`);
@@ -608,4 +618,54 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
             pass_rate: steps.length ? Math.round((passed / steps.length) * 100) : 0
         }
     };
+}
+
+
+const LOCAL_JOB_TIMEOUT_MS = 25000; // must be less than the Worker's own execution limit
+const LOCAL_JOB_POLL_INTERVAL_MS = 500;
+
+async function executeViaLocalAgent(db, { projectId, userId, runId, stepId, method, url, headers, body }) {
+    const jobId = db.uuid();
+
+    await db.run(
+        `INSERT INTO local_agent_jobs
+       (id, project_id, user_id, run_id, step_id, method, url, headers, body)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            jobId, projectId, userId, runId || null, stepId || null,
+            method, url,
+            headers ? JSON.stringify(headers) : null,
+            body !== undefined && body !== null ? String(body) : null,
+        ]
+    );
+
+    const deadline = Date.now() + LOCAL_JOB_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, LOCAL_JOB_POLL_INTERVAL_MS));
+        const job = await db.first(`SELECT * FROM local_agent_jobs WHERE id = ?`, [jobId]);
+        if (!job) break;
+
+        if (job.status === 'done') {
+            return {
+                status: job.result_status,
+                headers: job.result_headers ? JSON.parse(job.result_headers) : {},
+                body: job.result_body ? safeJSONParse(job.result_body) : null,
+                _viaAgent: true,
+            };
+        }
+        if (job.status === 'failed') {
+            throw new Error(job.error || 'Local agent reported failure');
+        }
+    }
+
+    // Timed out — mark expired so the extension stops trying to claim it late
+    await db.run(`UPDATE local_agent_jobs SET status = 'expired' WHERE id = ? AND status != 'done'`, [jobId]);
+    throw new Error(
+        'No response from HitAPI browser extension. Make sure the extension is installed, ' +
+        'you are logged in, and "Local Agent" is enabled in the extension popup.'
+    );
+}
+
+function safeJSONParse(str) {
+    try { return JSON.parse(str); } catch { return { _text: str }; }
 }
