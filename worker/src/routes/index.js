@@ -120,6 +120,12 @@ export async function importSwagger(request, env, { params }) {
 
   console.log(`[Swagger Import] Project ${params.id}: Found ${endpoints.length} endpoints`);
   for (const ep of endpoints) {
+    const toDbValue = (v) => {
+      if (v === undefined || v === null) return null;
+      if (typeof v === 'object') return JSON.stringify(v);
+      return v;
+    };
+
     await db.run(
       `INSERT INTO endpoints
        (id, project_id, method, path, summary, description, operation_id,
@@ -128,16 +134,16 @@ export async function importSwagger(request, env, { params }) {
       [
         db.uuid(),
         params.id,
-        ep.method ?? null,
-        ep.path ?? null,
-        ep.summary ?? null,
-        ep.description ?? null,
-        ep.operationId ?? null,
-        ep.parameters ?? null,
-        ep.request_body ?? null,
-        ep.responses ?? null,
-        ep.security ?? null,
-        ep.tags ?? null,
+        toDbValue(ep.method),
+        toDbValue(ep.path),
+        toDbValue(ep.summary),
+        toDbValue(ep.description),
+        toDbValue(ep.operationId),
+        toDbValue(ep.parameters),
+        toDbValue(ep.request_body),
+        toDbValue(ep.responses),
+        toDbValue(ep.security),
+        toDbValue(ep.tags),
       ]
     );
   }
