@@ -96,13 +96,11 @@ export async function importSwagger(request, env, { params }) {
   const db = new DatabaseAdapter(env.DB);
   const body = await parseBody(request);
   console.log(`[Swagger Import] Project ${params.id}:`, body ? `Fetching from ${body}` : 'Using provided spec');
-  let fullSpec;
 
+  let fullSpec;
   if (body.spec) {
-    // Extension already fetched it (local/private API case)
     fullSpec = typeof body.spec === 'string' ? JSON.parse(body.spec) : body.spec;
   } else if (body.url) {
-    // Existing behavior — Worker fetches a publicly reachable spec
     const res = await fetch(body.url);
     if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
     fullSpec = await res.json();
@@ -110,11 +108,14 @@ export async function importSwagger(request, env, { params }) {
     return error('Provide either "url" or "spec"', 400);
   }
 
+  // NEW — unwrap common envelope patterns
+  if (fullSpec && !fullSpec.paths && !fullSpec.openapi && !fullSpec.swagger && fullSpec.result) {
+    console.log('[Import] Unwrapping "result" envelope');
+    fullSpec = fullSpec.result;
+  }
+
   const endpoints = extractEndpoints(fullSpec);
-  console.log('[Import] Received spec keys:', Object.keys(fullSpec || {}));
-  console.log('[Import] Paths count:', Object.keys(fullSpec?.paths || {}).length);
-  console.log('[Import] First 300 chars:', JSON.stringify(fullSpec).slice(0, 300));
-  console.log('[Import] Extracted endpoints count:', endpoints.length);
+
   if (!endpoints.length) return error('No endpoints found in spec', 400);
 
   console.log(`[Swagger Import] Project ${params.id}: Found ${endpoints.length} endpoints`);
