@@ -128,22 +128,21 @@ export async function importSwagger(request, env, { params }) {
 
     await db.run(
       `INSERT INTO endpoints
-       (id, project_id, method, path, summary, description, operation_id,
-        parameters, request_body, responses, security, tags)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, path, method, summary, description,
+        parameters, request_body, responses, tags, security)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         db.uuid(),
         params.id,
-        toDbValue(ep.method),
         toDbValue(ep.path),
+        toDbValue(ep.method),
         toDbValue(ep.summary),
         toDbValue(ep.description),
-        toDbValue(ep.operationId),
         toDbValue(ep.parameters),
         toDbValue(ep.request_body),
         toDbValue(ep.responses),
-        toDbValue(ep.security),
         toDbValue(ep.tags),
+        toDbValue(ep.security),
       ]
     );
   }
