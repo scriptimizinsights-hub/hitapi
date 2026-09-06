@@ -95,7 +95,7 @@ export async function assertProjectOwner(env, projectId, userId) {
 export async function importSwagger(request, env, { params }) {
   const db = new DatabaseAdapter(env.DB);
   const body = await parseBody(request);
-
+  console.log(`[Swagger Import] Project ${params.id}:`, body.url ? `Fetching from ${body.url}` : 'Using provided spec');
   let fullSpec;
 
   if (body.spec) {
@@ -111,8 +111,13 @@ export async function importSwagger(request, env, { params }) {
   }
 
   const endpoints = extractEndpoints(fullSpec);
+  console.log('[Import] Received spec keys:', Object.keys(fullSpec || {}));
+  console.log('[Import] Paths count:', Object.keys(fullSpec?.paths || {}).length);
+  console.log('[Import] First 300 chars:', JSON.stringify(fullSpec).slice(0, 300));
+  console.log('[Import] Extracted endpoints count:', endpoints.length);
   if (!endpoints.length) return error('No endpoints found in spec', 400);
 
+  console.log(`[Swagger Import] Project ${params.id}: Found ${endpoints.length} endpoints`);
   for (const ep of endpoints) {
     await db.run(
       `INSERT INTO endpoints
