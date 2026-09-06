@@ -95,7 +95,7 @@ export async function assertProjectOwner(env, projectId, userId) {
 export async function importSwagger(request, env, { params }) {
   const db = new DatabaseAdapter(env.DB);
   const body = await parseBody(request);
-  console.log(`[Swagger Import] Project ${params.id}:`, body.url ? `Fetching from ${body.url}` : 'Using provided spec');
+  console.log(`[Swagger Import] Project ${params.id}:`, body ? `Fetching from ${body}` : 'Using provided spec');
   let fullSpec;
 
   if (body.spec) {
