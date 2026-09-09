@@ -129,7 +129,6 @@ export async function importSwagger(request, env, { params }) {
       if (typeof v === 'object') return JSON.stringify(v);
       return v;
     };
-    console.log(`[Swagger Import] Project ${params.id}: Inserting endpoint JSON:`, JSON.stringify(ep));
 
     await db.run(
       `INSERT INTO endpoints
@@ -144,13 +143,21 @@ export async function importSwagger(request, env, { params }) {
         toDbValue(ep.summary),
         toDbValue(ep.description),
         toDbValue(ep.parameters),
-        toDbValue(ep.request_body),
+        toDbValue(ep.requestBody),
         toDbValue(ep.responses),
         toDbValue(ep.tags),
         toDbValue(ep.security),
       ]
     );
   }
+
+  // Clear cached endpoints for this project
+  await env.CACHE.delete(`endpoints:${params.id}`);
+
+  console.log(
+    `[Swagger Import] Cache cleared: endpoints:${params.id}`
+  );
+
 
   return json(success({ imported: endpoints.length }), 201);
 }
