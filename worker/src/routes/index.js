@@ -1980,9 +1980,30 @@ export async function generateFlowStep(request, env, { params }) {
   );
   if (!endpoint) return error('Endpoint not found', 404);
 
-  const parameters = endpoint.parameters ? JSON.parse(endpoint.parameters) : [];
-  const pathParams = parameters.filter(p => p.in === 'path');
-  const queryParams = parameters.filter(p => p.in === 'query');
+  // const parameters = endpoint.parameters ? JSON.parse(endpoint.parameters) : [];
+  // const pathParams = parameters.filter(p => p.in === 'path');
+  // const queryParams = parameters.filter(p => p.in === 'query');
+
+  const rawParameters = endpoint.parameters
+    ? JSON.parse(endpoint.parameters)
+    : [];
+
+  const parameters = Array.isArray(rawParameters)
+    ? rawParameters
+    : [
+      ...(rawParameters.path ?? []),
+      ...(rawParameters.query ?? []),
+      ...(rawParameters.header ?? []),
+      ...(rawParameters.cookie ?? [])
+    ];
+
+  const pathParams = parameters.filter(
+    p => p.in === 'path'
+  );
+
+  const queryParams = parameters.filter(
+    p => p.in === 'query'
+  );
   const schema = endpoint.request_body ? JSON.parse(endpoint.request_body) : null;
   const knownStatusCodes = endpoint.responses
     ? Object.keys(JSON.parse(endpoint.responses)).map(Number).filter(n => !isNaN(n))
