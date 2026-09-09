@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS admins (
 
 -- Seed your first admin (you)
 INSERT INTO admins (email, name, added_by)
-VALUES ('sunil.yadav@scriptimiz.com', 'Sunil', 'system');
+VALUES ('yadavsunil9699@gmail.com', 'Sunil', 'system');

@@ -3,7 +3,7 @@
  */
 
 import { DatabaseAdapter, ProjectRepo, EndpointRepo, TestCaseRepo, ExecutionRepo, BugRepo } from '../db/adapter.js';
-import { fetchAndParseSpec, extractEndpoints, extractSpecInfo } from '../services/swagger.js';
+import { extractEndpoints } from '../services/swagger';
 import { generateTestCases, analyzeBug, detectWorkflows, generateRecommendations } from '../services/ai.js';
 import { executeAll } from '../services/executor.js';
 import { storeReport, getReport } from '../services/reports.js';
@@ -104,6 +104,10 @@ export async function importSwagger(request, env, { params }) {
     const res = await fetch(body.url);
     if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
     fullSpec = await res.json();
+  } else if (body.swagger_url) {
+    const res = await fetch(body.swagger_url);
+    if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
+    fullSpec = await res.json();
   } else {
     return error('Provide either "url" or "spec"', 400);
   }
@@ -155,7 +159,9 @@ export async function importSwagger(request, env, { params }) {
 export async function listEndpoints(request, env, { params }) {
   const cacheKey = `endpoints:${params.id}`;
   if (env.CACHE) {
+
     const cached = await env.CACHE.get(cacheKey);
+
     if (cached) return json(success(JSON.parse(cached)));
   }
 

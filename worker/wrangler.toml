@@ -36,12 +36,12 @@ binding = "AI"
 # ─── Environment variables ───────────────────────────────────────────────────
 [vars]
 ENVIRONMENT = "production"
-VITE_API_URL="https://services.hitapi.dev/api"
+VITE_API_URL="http://localhost:8787/api"
 CORS_ORIGIN = "*"
 ENCRYPTION_KEY="0ef7713c8eeab0dfc19a906ac866155138cf1e603d228da3868fbe4d0814b8ca"
 
 # ─── Local dev overrides ─────────────────────────────────────────────────────
-[env.development]
-[env.development.vars]
+[env.dev.vars]
 ENVIRONMENT = "development"
 CORS_ORIGIN = "http://localhost:5173"
+

@@ -26,7 +26,4 @@ SELECT id, project_id, execution_id, endpoint_id, severity, title, description, 
 DROP TABLE bugs;
 ALTER TABLE bugs_new RENAME TO bugs;
 
--- Step 4: Add flow_run_id to flow_runs if not exists
-ALTER TABLE flow_runs ADD COLUMN bug_count INTEGER DEFAULT 0;
-
 ALTER TABLE flow_step_results ADD COLUMN sub_checks TEXT;

@@ -13,9 +13,13 @@
     "install:all": "npm install && npm install --workspace=worker && npm install --workspace=frontend"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "wrangler": "^4.129.1"
   },
   "overrides": {
     "vite": "6.3.5"
+  },
+  "dependencies": {
+    "js-yaml": "^5.4.1"
   }
 }
