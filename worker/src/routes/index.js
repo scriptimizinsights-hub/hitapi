@@ -2039,15 +2039,33 @@ export async function generateFlowStep(request, env, { params }) {
     // }));
 
     // Return just the first (best) step — this route generates ONE step for the form
-    const best = steps[0];
-    return json(success({
-      name: best.name,
-      input_params: Object.keys(best.path_params).length ? best.path_params : null,
-      input_payload: best.request_body || best.input_payload || null,
-      expected_status: best.expected_status,
+    // const best = steps[0];
+    // return json(success({
+    //   name: best.name,
+    //   input_params: Object.keys(best.path_params).length ? best.path_params : null,
+    //   input_payload: best.request_body || best.input_payload || null,
+    //   expected_status: best.expected_status,
+    //   extract_vars: [],
+    //   reasoning: best.reasoning,
+    // }));
+
+    const result = steps.map(step => ({
+      name: step.name,
+      input_params:
+        step.path_params &&
+          Object.keys(step.path_params).length
+          ? step.path_params
+          : null,
+      input_payload:
+        step.request_body ||
+        step.input_payload ||
+        null,
+      expected_status: step.expected_status,
       extract_vars: [],
-      reasoning: best.reasoning,
+      reasoning: step.reasoning,
     }));
+
+    return json(success(result));
   } catch (err) {
     // Log WHY we're falling back — distinguishes "AI never responded" from
     // "AI responded but every step failed validation"
