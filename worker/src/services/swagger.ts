@@ -1689,7 +1689,6 @@ export function extractEndpoints(
             spec,
             operation
           );
-        console.log("Swagger 3 request body:", JSON.stringify(requestBody));
 
       } else {
 
@@ -1701,7 +1700,6 @@ export function extractEndpoints(
               ...operationParameters
             ]
           );
-        console.log("Swagger 2 request body:", JSON.stringify(requestBody));
 
       }
 
