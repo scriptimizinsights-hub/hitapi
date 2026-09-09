@@ -129,7 +129,7 @@ export async function importSwagger(request, env, { params }) {
       if (typeof v === 'object') return JSON.stringify(v);
       return v;
     };
-    console.log(`[Swagger Import] Project ${params.id}: Inserting endpoint ${ep}`);
+    console.log(`[Swagger Import] Project ${params.id}: Inserting endpoint JSON:`, JSON.stringify(ep));
 
     await db.run(
       `INSERT INTO endpoints
