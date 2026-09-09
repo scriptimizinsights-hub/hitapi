@@ -19,32 +19,70 @@ function describeField(field, def, required) {
 
     return '  ' + parts.join(' ');
 }
-
-function buildFlowStepPrompt(endpoint, pathParams, queryParams, schema, knownStatusCodes) {
+function buildFlowStepPrompt(
+    endpoint,
+    pathParams,
+    queryParams,
+    requestBody,
+    knownStatusCodes
+) {
     const hasPathParams = pathParams.length > 0;
-    const hasQueryParams = queryParams.length > 0;          // RESTORED — was never used
-    const hasBody = schema?.properties && Object.keys(schema.properties).length > 0;
+    const hasQueryParams = queryParams.length > 0;
+
+    // requestBody is the complete OpenAPI requestBody object.
+    // Do not extract or modify its schema here.
+    const hasBody =
+        requestBody &&
+        typeof requestBody === 'object' &&
+        requestBody.content &&
+        Object.keys(requestBody.content).length > 0;
 
     const pathParamLines = hasPathParams
-        ? pathParams.map(p => describeField(p.name, p.schema || {}, p.required)).join('\n')
-        : null;
-
-    const queryParamLines = hasQueryParams                   // RESTORED
-        ? queryParams.map(p => describeField(p.name, p.schema || {}, p.required)).join('\n')
-        : null;
-
-    const bodyLines = hasBody
-        ? Object.entries(schema.properties)
-            .map(([field, def]) => describeField(field, def, schema.required?.includes(field)))
+        ? pathParams
+            .map(p =>
+                describeField(
+                    p.name,
+                    p.schema || {},
+                    p.required
+                )
+            )
             .join('\n')
+        : null;
+
+    const queryParamLines = hasQueryParams
+        ? queryParams
+            .map(p =>
+                describeField(
+                    p.name,
+                    p.schema || {},
+                    p.required
+                )
+            )
+            .join('\n')
+        : null;
+
+    // Keep the complete requestBody exactly as received.
+    const requestBodyJson = hasBody
+        ? JSON.stringify(requestBody, null, 2)
         : null;
 
     return `Design 4-6 test steps for this API endpoint.
 
-${endpoint.method} ${endpoint.path}
-${endpoint.summary || ''}
+            ${endpoint.method} ${endpoint.path}
+            ${endpoint.summary || ''}
 
-${hasPathParams ? `PATH PARAMETERS:\n${pathParamLines}\n` : ''}${hasQueryParams ? `QUERY PARAMETERS:\n${queryParamLines}\n` : ''}${hasBody ? `REQUEST BODY FIELDS:\n${bodyLines}\n` : 'REQUEST BODY: none\n'}${knownStatusCodes?.length ? `VALID RESPONSE CODES: ${knownStatusCodes.join(', ')}\n` : ''}
+            ${hasPathParams
+            ? `PATH PARAMETERS:
+            ${pathParamLines}
+            ` : ''}${hasQueryParams
+            ? `QUERY PARAMETERS:
+            ${queryParamLines}
+            ` : ''}${hasBody
+            ? `REQUEST BODY:
+            ${requestBodyJson}
+            `: 'REQUEST BODY: none\n'}${knownStatusCodes?.length
+            ? `VALID RESPONSE CODES: ${knownStatusCodes.join(', ')}
+            `: ''}
 RULES:
 - Match each field's type, format, enum, min/max, and pattern exactly.
 - format:email → real email. format:date-time → ISO 8601. format:uri → real URL.
