@@ -29,8 +29,6 @@ function buildFlowStepPrompt(
     const hasPathParams = pathParams.length > 0;
     const hasQueryParams = queryParams.length > 0;
 
-    // requestBody is the complete OpenAPI requestBody object.
-    // Do not extract or modify its schema here.
     const hasBody =
         requestBody &&
         typeof requestBody === 'object' &&
