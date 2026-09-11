@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../../store/index.js';
+import { api } from '../../../store/index.js';
 import {
     Check, Plus, PenLine,
 } from 'lucide-react';
