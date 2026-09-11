@@ -917,6 +917,7 @@ export async function createFlowSuite(request, env, { params }) {
     [id, params.id, body.name, body.description || '', body.auth_type || null, body.static_token || null]
   );
   // Insert steps if provided
+  console.log("Got request body " + JSON.stringify(body));
   if (body.steps?.length) {
     for (const step of body.steps) {
       const sid = db.uuid();
