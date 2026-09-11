@@ -10,7 +10,7 @@ import { StepAuthConfig } from './StepAuthConfig.jsx';
 import { StepCrudGroups } from './StepCrudGroups.jsx';
 import { Label, Input, EndpointPicker, safeJSON } from './Helpers.jsx'
 
-export default function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
+export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
     const [step, setStep] = useState(1);
     const ALL_STEPS = [
         { key: 'auth_method', label: 'Authentication method' },

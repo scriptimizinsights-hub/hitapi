@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 import { Input, safeJSON } from './Helpers.jsx'
-export default function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
+export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
     const [suiteName, setSuiteName] = useState('');
     const [steps, setSteps] = useState([]);
     const [creating, setCreating] = useState(false);
