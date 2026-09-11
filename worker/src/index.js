@@ -9,7 +9,6 @@ import { hitapiSignup, hitapiLogin, hitapiMe, hitapiAcceptTerms, hitapiTermsHist
 import {
   listProjects, createProject, getProject, updateProject, deleteProject,
   importSwagger,
-  listEndpoints, getEndpointStats,
   generateTests, listTestCases,
   runExecution, runSingleResult, getExecution, listExecutions,
   listBugs, dismissBug,
@@ -32,6 +31,8 @@ import {
   listAiLogs, pollAgentJobs, submitAgentJobResult, agentStatus,
 }
   from './routes/index.js';
+
+import { listEndpoints, getEndpointStats, deleteEndpoint } from './repository/repository.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
 
@@ -84,6 +85,7 @@ const ROUTES = [
 
   // Endpoints
   router('GET', '/api/projects/:id/endpoints', listEndpoints),
+  router('DELETE', '/api/projects/:id/endpoints/:endpointId', deleteEndpoint),
   router('GET', '/api/projects/:id/endpoints/stats', getEndpointStats),
 
   // AI Test Generation

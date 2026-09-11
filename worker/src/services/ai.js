@@ -34,28 +34,172 @@ export function parseJSON(text) {
   }
 }
 
+// export function extractText(response) {
+//   if (!response) return '';
+//   if (Array.isArray(response) && response.length > 0) {
+//     response = response[0];
+//   }
+//   if (typeof response === 'string') return response;
+//   if (Array.isArray(response.response)) {
+//     return JSON.stringify(response.response);
+//   }
+//   if (response.response) return response.response;
+//   if (response.choices?.[0]?.message?.content) return response.choices[0].message.content;
+//   if (response.choices?.[0]?.text) return response.choices[0].text;
+//   if (response.result) return response.result;
+//   console.log('Unknown AI shape:', JSON.stringify(response));
+//   return '';
+// }
+
+// export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, model = MODEL, geminiKey = null) {
+//   const timeout = new Promise((_, reject) =>
+//     setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
+//   );
+
+//   console.log(`[AI] Prompt (${prompt.length} chars, max_tokens=${maxTokens}):`, prompt);
+
+//   try {
+//     const call = ai.run(model, {
+//       prompt,
+//       max_tokens: maxTokens,
+//       temperature: 0.1,
+//       stream: false,
+//     });
+
+//     const response = await Promise.all([call]);
+
+//     const text = extractText(response);
+
+//     if (!text || !text.trim()) {
+//       throw new Error('AI returned empty content');
+//     }
+
+//     return response;
+
+//   } catch (err) {
+//     console.error('[AI] Error during AI call:', err);
+
+//     const isQuotaExhausted =
+//       err.message?.includes('4006') ||
+//       err.message?.includes('daily free allocation') ||
+//       err.message?.includes('Workers Paid plan');
+
+//     const isTimeout = err.message?.includes('AI timeout after');
+
+//     // ============================================================
+//     // NEW: QWEN FALLBACK
+//     // ============================================================
+//     const QWEN_AI_URL = 'http://localhost:11434/v1/chat/completions';
+//     if (err && (isQuotaExhausted || isTimeout) && QWEN_AI_URL) {
+//       try {
+//         console.warn(
+//           `[AI] Workers AI ${isTimeout ? 'timed out' : 'quota exhausted'
+//           } — falling back to Qwen`
+//         );
+
+//         return await runQwen(
+//           prompt,
+//           maxTokens,
+//           timeoutMs,
+//           QWEN_AI_URL
+//         );
+
+//       } catch (qwenErr) {
+//         console.error('[AI] Qwen fallback failed:', qwenErr);
+//       }
+//     }
+
+//     // ============================================================
+//     // EXISTING GEMINI FALLBACK - UNCHANGED
+//     // ============================================================
+//     if (err && geminiKey) {
+//       console.warn(
+//         `[AI] Workers AI ${isTimeout ? 'timed out' : 'quota exhausted'
+//         } — falling back to Gemini`
+//       );
+
+//       return await runGemini(
+//         prompt,
+//         maxTokens,
+//         timeoutMs,
+//         geminiKey
+//       );
+//     }
+
+//     throw err;
+//   }
+// }
+
+
 export function extractText(response) {
   if (!response) return '';
+
   if (Array.isArray(response) && response.length > 0) {
     response = response[0];
   }
-  if (typeof response === 'string') return response;
+
+  if (typeof response === 'string') {
+    return response.trim();
+  }
+
+  if (
+    typeof response.response === 'string' &&
+    response.response.trim()
+  ) {
+    return response.response.trim();
+  }
+
   if (Array.isArray(response.response)) {
     return JSON.stringify(response.response);
   }
-  if (response.response) return response.response;
-  if (response.choices?.[0]?.message?.content) return response.choices[0].message.content;
-  if (response.choices?.[0]?.text) return response.choices[0].text;
-  if (response.result) return response.result;
-  console.log('Unknown AI shape:', JSON.stringify(response));
+
+  if (
+    typeof response.choices?.[0]?.message?.content === 'string' &&
+    response.choices[0].message.content.trim()
+  ) {
+    return response.choices[0].message.content.trim();
+  }
+
+  if (
+    typeof response.choices?.[0]?.text === 'string' &&
+    response.choices[0].text.trim()
+  ) {
+    return response.choices[0].text.trim();
+  }
+
+  if (typeof response.result === 'string' && response.result.trim()) {
+    return response.result.trim();
+  }
+
+  console.log(
+    '[AI] Unknown/empty AI shape:',
+    JSON.stringify(response)
+  );
+
   return '';
 }
 
-export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, model = MODEL, geminiKey = null) {
+export async function runAI(
+  ai,
+  prompt,
+  maxTokens = 800,
+  timeoutMs = 20000,
+  model = MODEL,
+  geminiKey = null
+) {
   const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
+    setTimeout(
+      () => reject(
+        new Error(`AI timeout after ${timeoutMs}ms`)
+      ),
+      timeoutMs
+    )
   );
-  console.log(`[AI] Prompt (${prompt.length} chars, max_tokens=${maxTokens}):`, prompt);
+
+  console.log(
+    `[AI] Prompt (${prompt.length} chars, max_tokens=${maxTokens}):`,
+    prompt
+  );
 
   try {
     const call = ai.run(model, {
@@ -64,28 +208,102 @@ export async function runAI(ai, prompt, maxTokens = 800, timeoutMs = 20000, mode
       temperature: 0.1,
       stream: false,
     });
-    const response = await Promise.all([call]);
+
+    const response = await Promise.race([
+      call,
+      timeout
+    ]);
+
+    console.log(
+      '[AI] Raw response:',
+      JSON.stringify(response)
+    );
 
     const text = extractText(response);
+
     if (!text || !text.trim()) {
       throw new Error('AI returned empty content');
     }
 
-    return response;
+    return text;
 
   } catch (err) {
     console.error('[AI] Error during AI call:', err);
+
+    const message = err?.message || '';
+
     const isQuotaExhausted =
-      err.message?.includes('4006') ||
-      err.message?.includes('daily free allocation') ||
-      err.message?.includes('Workers Paid plan');
+      message.includes('4006') ||
+      message.includes('daily free allocation') ||
+      message.includes('Workers Paid plan');
 
-    const isTimeout = err.message?.includes('AI timeout after');
+    const isTimeout =
+      message.includes('AI timeout after');
 
-    // Retry via Gemini for BOTH quota exhaustion AND timeouts
-    if (err && geminiKey) {
-      console.warn(`[AI] Workers AI ${isTimeout ? 'timed out' : 'quota exhausted'} — falling back to Gemini`);
-      return await runGemini(prompt, maxTokens, timeoutMs, geminiKey);
+    const isEmptyResponse =
+      message.includes('AI returned empty content');
+
+    const shouldFallback =
+      isQuotaExhausted ||
+      isTimeout ||
+      isEmptyResponse;
+
+    // ============================================================
+    // QWEN FALLBACK
+    // ============================================================
+
+    const QWEN_AI_URL =
+      'http://localhost:11434/v1/chat/completions';
+
+    if (shouldFallback) {
+      try {
+        console.warn(
+          `[AI] Workers AI failed (${isTimeout
+            ? 'timeout'
+            : isQuotaExhausted
+              ? 'quota exhausted'
+              : 'empty response'
+          }) — falling back to Qwen`
+        );
+
+        return await runQwen(
+          prompt,
+          maxTokens,
+          timeoutMs,
+          QWEN_AI_URL
+        );
+
+      } catch (qwenErr) {
+        console.error(
+          '[AI] Qwen fallback failed:',
+          qwenErr
+        );
+      }
+    }
+
+    // ============================================================
+    // GEMINI FALLBACK
+    // ============================================================
+
+    if (geminiKey && shouldFallback) {
+      try {
+        console.warn(
+          '[AI] Falling back to Gemini'
+        );
+
+        return await runGemini(
+          prompt,
+          maxTokens,
+          timeoutMs,
+          geminiKey
+        );
+
+      } catch (geminiErr) {
+        console.error(
+          '[AI] Gemini fallback failed:',
+          geminiErr
+        );
+      }
     }
 
     throw err;
@@ -142,7 +360,81 @@ export async function runGemini(prompt, maxTokens, timeoutMs, apiKey) {
 }
 
 
+export async function runQwen(
+  prompt,
+  maxTokens,
+  timeoutMs,
+  qwenUrl
+) {
+  const controller = new AbortController();
 
+  const timer = setTimeout(
+    () => controller.abort(),
+    timeoutMs
+  );
+
+  try {
+    console.log(`[AI] Calling Qwen: ${qwenUrl}`);
+
+    const res = await fetch(qwenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'qwen2.5:3b',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.1,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        data.error?.message ||
+        `Qwen HTTP ${res.status}`
+      );
+    }
+
+    const text =
+      data.choices?.[0]?.message?.content ||
+      data.message?.content ||
+      data.response ||
+      '';
+
+    if (!text || !text.trim()) {
+      throw new Error('Qwen returned empty response');
+    }
+
+    console.log('[AI] Qwen fallback succeeded');
+
+    return {
+      response: text,
+      _model: 'qwen2.5:3b',
+      _tokensIn: data.usage?.prompt_tokens ?? null,
+      _tokensOut: data.usage?.completion_tokens ?? null,
+    };
+
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`Qwen timeout after ${timeoutMs}ms`);
+    }
+
+    throw err;
+
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export async function runAILogged(ai, db, prompt, maxTokens = 800, timeoutMs = 20000, opts = {}) {
   const { stage = 'unknown', projectId = null, model = MODEL, geminiKey = null } = opts;

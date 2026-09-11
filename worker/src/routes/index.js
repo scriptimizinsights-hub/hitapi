@@ -2,7 +2,7 @@
  * API Routes — all endpoints for the HitAPI worker
  */
 
-import { DatabaseAdapter, ProjectRepo, EndpointRepo, TestCaseRepo, ExecutionRepo, BugRepo } from '../db/adapter.js';
+import { DatabaseAdapter, ProjectRepo, TestCaseRepo, ExecutionRepo, BugRepo } from '../db/adapter.js';
 import { extractEndpoints } from '../services/swagger';
 import { generateTestCases, analyzeBug, detectWorkflows, generateRecommendations } from '../services/ai.js';
 import { executeAll } from '../services/executor.js';
@@ -20,7 +20,6 @@ function repos(env) {
   return {
     db,
     projects: new ProjectRepo(db),
-    endpoints: new EndpointRepo(db),
     testCases: new TestCaseRepo(db),
     executions: new ExecutionRepo(db),
     bugs: new BugRepo(db)
@@ -163,32 +162,6 @@ export async function importSwagger(request, env, { params }) {
 }
 
 // ─── Endpoints ───────────────────────────────────────────────────────────────
-
-export async function listEndpoints(request, env, { params }) {
-  const cacheKey = `endpoints:${params.id}`;
-  if (env.CACHE) {
-
-    const cached = await env.CACHE.get(cacheKey);
-
-    if (cached) return json(success(JSON.parse(cached)));
-  }
-
-  const { endpoints: epRepo } = repos(env);
-  const data = await epRepo.listByProject(params.id);
-  const stats = await epRepo.stats(params.id);
-
-  if (env.CACHE) {
-    await env.CACHE.put(cacheKey, JSON.stringify({ endpoints: data, stats }), { expirationTtl: 300 });
-  }
-
-  return json(success({ endpoints: data, stats }));
-}
-
-export async function getEndpointStats(request, env, { params }) {
-  const { endpoints: epRepo } = repos(env);
-  const stats = await epRepo.stats(params.id);
-  return json(success(stats));
-}
 
 // ─── AI Test Generation ──────────────────────────────────────────────────────
 

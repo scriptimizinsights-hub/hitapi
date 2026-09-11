@@ -1,26 +1,177 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Globe, Search, Upload, Zap, ChevronRight, CheckSquare, Square } from 'lucide-react';
+import {
+  Globe, Search, Upload, Zap, ChevronRight, CheckSquare, Square, Eye,
+  Trash2
+} from 'lucide-react';
 import { useStore } from '../../store/index.js';
 
-function EndpointRow({ endpoint, selected, onSelect, onCheck, checked }) {
+function EndpointRow({
+  endpoint,
+  selected,
+  onSelect,
+  onCheck,
+  checked,
+  onView,
+  onDelete
+}) {
   const method = endpoint.method;
-  const paramCount = (() => { try { return JSON.parse(endpoint.parameters || '[]').length; } catch { return 0; } })();
-  const tags = (() => { try { return JSON.parse(endpoint.tags || '[]'); } catch { return []; } })();
+
+  const paramCount = (() => {
+    try {
+      return JSON.parse(endpoint.parameters || '[]').length;
+    } catch {
+      return 0;
+    }
+  })();
+
+  const tags = (() => {
+    try {
+      return JSON.parse(endpoint.tags || '[]');
+    } catch {
+      return [];
+    }
+  })();
 
   return (
-    <tr onClick={() => onSelect(endpoint)} style={{ cursor: 'pointer', background: selected ? 'rgba(130,100,255,0.05)' : 'transparent' }}>
-      <td onClick={e => { e.stopPropagation(); onCheck(endpoint.id); }} style={{ width: 36, cursor: 'pointer' }}>
+    <tr
+      onClick={() => onSelect(endpoint)}
+      style={{
+        cursor: 'pointer',
+        background: selected
+          ? 'rgba(130,100,255,0.05)'
+          : 'transparent'
+      }}
+    >
+      {/* Checkbox */}
+      <td
+        onClick={e => {
+          e.stopPropagation();
+          onCheck(endpoint.id);
+        }}
+        style={{
+          width: 36,
+          cursor: 'pointer'
+        }}
+      >
         {checked
           ? <CheckSquare size={15} color="var(--accent)" />
           : <Square size={15} color="var(--text-tertiary)" />}
       </td>
-      <td><span className={`method-badge method-${method}`}>{method}</span></td>
-      <td><span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{endpoint.path}</span></td>
-      <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{endpoint.summary || '—'}</td>
-      <td>{tags.map(tag => <span key={tag} className="badge badge-gray" style={{ marginRight: 4, fontSize: 10 }}>{tag}</span>)}</td>
-      <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{paramCount} params</td>
-      <td><ChevronRight size={14} color="var(--text-tertiary)" /></td>
+
+      {/* Method */}
+      <td>
+        <span className={`method-badge method-${method}`}>
+          {method}
+        </span>
+      </td>
+
+      {/* Path */}
+      <td>
+        <span
+          style={{
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: 12
+          }}
+        >
+          {endpoint.path}
+        </span>
+      </td>
+
+      {/* Summary */}
+      <td
+        style={{
+          color: 'var(--text-secondary)',
+          fontSize: 12
+        }}
+      >
+        {endpoint.summary || '—'}
+      </td>
+
+      {/* Tags */}
+      <td>
+        {tags.map(tag => (
+          <span
+            key={tag}
+            className="badge badge-gray"
+            style={{
+              marginRight: 4,
+              fontSize: 10
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+      </td>
+
+      {/* Params */}
+      <td
+        style={{
+          color: 'var(--text-tertiary)',
+          fontSize: 12
+        }}
+      >
+        {paramCount} params
+      </td>
+
+      {/* Actions */}
+      <td
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 90
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 4
+          }}
+        >
+          <button
+            type="button"
+            title="View endpoint"
+            onClick={e => {
+              e.stopPropagation();
+              onView(endpoint);
+            }}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer',
+              padding: 5,
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: 5
+            }}
+          >
+            <Eye size={15} />
+          </button>
+
+          <button
+            type="button"
+            title="Delete endpoint"
+            onClick={e => {
+              e.stopPropagation();
+              onDelete(endpoint);
+            }}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer',
+              padding: 5,
+              display: 'flex',
+              alignItems: 'center',
+              borderRadius: 5
+            }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      </td>
     </tr>
   );
 }
@@ -202,14 +353,15 @@ function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
 
 export function EndpointsPage() {
   const { projectId } = useParams();
-  const { endpoints, endpointStats, loadEndpoints } = useStore();
+  const {
+    endpoints, endpointStats, loadEndpoints, deleteEndpoint
+  } = useStore();
   const [search, setSearch] = useState('');
   const [methodFilter, setMethodFilter] = useState('ALL');
   const [selected, setSelected] = useState(null);
   const [checkedIds, setCheckedIds] = useState(new Set());
   const [showImport, setShowImport] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
-
   useEffect(() => { loadEndpoints(projectId); }, [projectId]);
 
   // Refresh when user switches back to this tab (e.g. after adding via extension)
@@ -242,6 +394,37 @@ export function EndpointsPage() {
   }
 
   const allChecked = filtered.length > 0 && checkedIds.size === filtered.length;
+
+  async function handleView(endpoint) {
+    setSelected(endpoint);
+    console.log('View endpoint:', endpoint);
+  }
+
+  async function handleDelete(endpoint) {
+    const confirmed = window.confirm(
+      `Delete ${endpoint.method} ${endpoint.path}?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteEndpoint(projectId, endpoint.id);
+
+      setCheckedIds(prev => {
+        const next = new Set(prev);
+        next.delete(endpoint.id);
+        return next;
+      });
+
+      if (selected?.id === endpoint.id) {
+        setSelected(null);
+      }
+
+      await loadEndpoints(projectId);
+    } catch (err) {
+      alert(err.message || 'Failed to delete endpoint');
+    }
+  }
 
   return (
     <div className="page">
@@ -339,7 +522,9 @@ export function EndpointsPage() {
                 <th>Summary</th>
                 <th>Tags</th>
                 <th>Params</th>
-                <th style={{ width: 40 }} />
+                <th style={{ width: 90, textAlign: 'right' }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -349,12 +534,366 @@ export function EndpointsPage() {
                   endpoint={ep}
                   selected={selected?.id === ep.id}
                   checked={checkedIds.has(ep.id)}
-                  onSelect={ep => setSelected(selected?.id === ep.id ? null : ep)}
+                  onSelect={ep =>
+                    setSelected(
+                      selected?.id === ep.id ? null : ep
+                    )
+                  }
                   onCheck={toggleCheck}
+                  onView={handleView}
+                  onDelete={handleDelete}
                 />
               ))}
             </tbody>
           </table>
+          {selected && (
+            <div
+              className="modal-backdrop"
+              onClick={() => setSelected(null)}
+            >
+              <div
+                className="modal"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  width: 760,
+                  maxWidth: '92vw',
+                  maxHeight: '88vh',
+                  padding: 0,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    padding: '20px 24px',
+                    borderBottom: '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'var(--bg-card)'
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      Endpoint Details
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 5,
+                        fontSize: 11,
+                        color: 'var(--text-tertiary)'
+                      }}
+                    >
+                      API endpoint configuration
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    title="Close"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      border: '1px solid var(--border)',
+                      borderRadius: 7,
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: 18,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div
+                  style={{
+                    padding: 24,
+                    overflowY: 'auto'
+                  }}
+                >
+                  {/* Method + Path */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      marginBottom: 24
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: '0.06em',
+                          color: 'var(--text-tertiary)',
+                          marginBottom: 7
+                        }}
+                      >
+                        METHOD
+                      </div>
+
+                      <span className={`method-badge method-${selected.method}`}>
+                        {selected.method}
+                      </span>
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: '0.06em',
+                          color: 'var(--text-tertiary)',
+                          marginBottom: 7
+                        }}
+                      >
+                        ENDPOINT
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '9px 12px',
+                          borderRadius: 7,
+                          background: 'var(--bg-input)',
+                          border: '1px solid var(--border)',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontSize: 12,
+                          color: 'var(--text-primary)',
+                          wordBreak: 'break-all'
+                        }}
+                      >
+                        {selected.path}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        color: 'var(--text-tertiary)',
+                        marginBottom: 8
+                      }}
+                    >
+                      SUMMARY
+                    </div>
+
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 7,
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border)',
+                        fontSize: 13,
+                        lineHeight: 1.6,
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      {selected.summary || 'No summary available'}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        color: 'var(--text-tertiary)',
+                        marginBottom: 8
+                      }}
+                    >
+                      DESCRIPTION
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 1.6,
+                        color: selected.description
+                          ? 'var(--text-secondary)'
+                          : 'var(--text-tertiary)'
+                      }}
+                    >
+                      {selected.description || 'No description available'}
+                    </div>
+                  </div>
+
+                  {/* Parameters */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 8
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: '0.06em',
+                          color: 'var(--text-tertiary)'
+                        }}
+                      >
+                        PARAMETERS
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: 'var(--text-tertiary)'
+                        }}
+                      >
+                        Request parameters
+                      </span>
+                    </div>
+
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: 14,
+                        minHeight: 45,
+                        maxHeight: 180,
+                        overflow: 'auto',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 7,
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: 11,
+                        lineHeight: 1.6,
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {typeof selected.parameters === 'string'
+                        ? selected.parameters || '[]'
+                        : JSON.stringify(selected.parameters || [], null, 2)}
+                    </pre>
+                  </div>
+
+                  {/* Request Body */}
+                  <div style={{ marginBottom: 22 }}>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        color: 'var(--text-tertiary)',
+                        marginBottom: 8
+                      }}
+                    >
+                      REQUEST BODY
+                    </div>
+
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: 14,
+                        minHeight: 45,
+                        maxHeight: 220,
+                        overflow: 'auto',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 7,
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: 11,
+                        lineHeight: 1.6,
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {typeof selected.request_body === 'string'
+                        ? selected.request_body || '{}'
+                        : JSON.stringify(selected.request_body || {}, null, 2)}
+                    </pre>
+                  </div>
+
+                  {/* Responses */}
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        color: 'var(--text-tertiary)',
+                        marginBottom: 8
+                      }}
+                    >
+                      RESPONSES
+                    </div>
+
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: 14,
+                        maxHeight: 260,
+                        overflow: 'auto',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 7,
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: 11,
+                        lineHeight: 1.6,
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {typeof selected.responses === 'string'
+                        ? selected.responses || '{}'
+                        : JSON.stringify(selected.responses || {}, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div
+                  style={{
+                    padding: '14px 24px',
+                    borderTop: '1px solid var(--border)',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    background: 'var(--bg-card)'
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setSelected(null)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {filtered.length === 0 && (
             <div className="empty-state" style={{ padding: '30px' }}><p>No endpoints match your filter</p></div>
           )}

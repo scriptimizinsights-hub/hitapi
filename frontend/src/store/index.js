@@ -57,7 +57,11 @@ export const api = {
   // Endpoints
   endpoints: {
     list: (id) => request(`/projects/${id}/endpoints`),
-    stats: (id) => request(`/projects/${id}/endpoints/stats`)
+    stats: (id) => request(`/projects/${id}/endpoints/stats`),
+    delete: (projectId, endpointId) =>
+      request(`/projects/${projectId}/endpoints/${endpointId}`, {
+        method: 'DELETE'
+      })
   },
   // Tests
   tests: {
@@ -233,6 +237,23 @@ export const useStore = create((set, get) => ({
   loadEndpoints: async (projectId) => {
     const data = await api.endpoints.list(projectId);
     set({ endpoints: data.endpoints || [], endpointStats: data.stats });
+  },
+  deleteEndpoint: async (projectId, endpointId) => {
+    await api.endpoints.delete(projectId, endpointId);
+
+    set(s => ({
+      endpoints: s.endpoints.filter(endpoint => endpoint.id !== endpointId)
+    }));
+
+    // Refresh stats after deletion
+    const data = await api.endpoints.list(projectId);
+
+    set({
+      endpoints: data.endpoints || [],
+      endpointStats: data.stats
+    });
+
+    get().addToast('Endpoint deleted', 'success');
   },
 
   generateTests: async (projectId, options = {}) => {
