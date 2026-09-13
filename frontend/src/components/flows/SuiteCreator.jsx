@@ -286,8 +286,6 @@ export function SuiteCreator({ projectId, onCreated, onClose }) {
     const [mode, setMode] = useState(null);
     const [endpoints, setEndpoints] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [authType, setAuthType] = useState('flow');
-    const [staticToken, setStaticToken] = useState('');
 
     useEffect(() => {
         api.endpoints.list(projectId)
@@ -306,13 +304,22 @@ export function SuiteCreator({ projectId, onCreated, onClose }) {
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 20
-        }} onClick={e => e.target === e.currentTarget && onClose()}>
+        }} onClick={e => {
+
+            return e.target === e.currentTarget && onClose()
+        }}>
             <div style={{
-                width: '100%', maxWidth: mode ? 600 : 480,
-                maxHeight: '92vh', borderRadius: 14,
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                width: '96vw',
+                maxWidth: mode ? '800px' : '480px',
+                height: mode ? '94vh' : 'auto',
+                maxHeight: '94vh',
+                borderRadius: 14,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
                 boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-                display: 'flex', flexDirection: 'column', overflow: 'hidden'
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
             }}>
                 {/* Modal header */}
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
