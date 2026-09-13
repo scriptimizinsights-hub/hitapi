@@ -130,11 +130,11 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
         // Only include signup/login if authType === 'flow'
         if (authType === 'flow' && signupId) {
             const ep = endpoints.find(e => e.id === signupId);
-            preview.push({ order: order++, name: 'Sign up', method: 'POST', path: ep?.path || '', color: 'var(--green)', fixed: true });
+            preview.push({ order: order++, name: 'Sign up', method: 'POST', path: ep?.path || '', color: 'var(--green)', fixed: true, endpointId: signupId });
         }
         if (authType === 'flow' && loginId) {
             const ep = endpoints.find(e => e.id === loginId);
-            preview.push({ order: order++, name: 'Login', method: 'POST', path: ep?.path || '', color: 'var(--accent)', fixed: true });
+            preview.push({ order: order++, name: 'Login', method: 'POST', path: ep?.path || '', color: 'var(--accent)', fixed: true, endpointId: loginId });
         }
 
         const crudEndpointIds = new Set(
@@ -289,6 +289,25 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
         }));
     }
 
+    function resetRequestBody(endpointId) {
+        setRequestBodyOverrides(prev => {
+            const next = { ...prev };
+            delete next[endpointId];
+            return next;
+        });
+        setRequestBodyText(prev => {
+            const next = { ...prev };
+            delete next[endpointId];
+            return next;
+        });
+        setRequestBodyErrors(prev => ({ ...prev, [endpointId]: '' }));
+        setSavedRequestBodies(prev => {
+            const next = new Set(prev);
+            next.delete(endpointId);
+            return next;
+        });
+    }
+
     function saveTestCaseBody(endpointId, caseIndex) {
         const key = getTestCaseKey(endpointId, caseIndex);
         const text = testCaseBodyText[key];
@@ -350,6 +369,39 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                     ep.path
                 )
                 : {});
+    }
+
+    function deleteAiCase(endpointId, caseIndex) {
+        setAiOverrides(prev => {
+            const cases = getAiCasesForEndpoint(endpointId); // however this reads from prev conceptually
+            const currentCases = Array.isArray(prev[endpointId]) ? prev[endpointId]
+                : Array.isArray(prev[endpointId]?.data) ? prev[endpointId].data
+                    : Array.isArray(prev[endpointId]?.cases) ? prev[endpointId].cases
+                        : [];
+            const nextCases = currentCases.filter((_, i) => i !== caseIndex);
+            return { ...prev, [endpointId]: nextCases };
+        });
+
+        // Clean up any per-case overrides — re-key everything above the deleted index
+        // down by one, since keys are `${endpointId}:${caseIndex}`.
+        const reKey = (stateSetter) => {
+            stateSetter(prev => {
+                const next = {};
+                for (const [key, value] of Object.entries(prev)) {
+                    const [epId, idxStr] = key.split(':');
+                    if (epId !== String(endpointId)) { next[key] = value; continue; }
+                    const idx = parseInt(idxStr, 10);
+                    if (idx === caseIndex) continue; // drop the deleted case's override
+                    const newIdx = idx > caseIndex ? idx - 1 : idx;
+                    next[`${epId}:${newIdx}`] = value;
+                }
+                return next;
+            });
+        };
+
+        reKey(setTestCaseBodyOverrides);
+        reKey(setTestCaseBodyText);
+        reKey(setTestCaseBodyErrors);
     }
 
     function getEndpointForReviewStep(step) {
@@ -626,25 +678,8 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                 // -----------------------------------------
                 // SIGNUP
                 // -----------------------------------------
-                if (
-                    rs.fixed &&
-                    rs.name === 'Sign up' &&
-                    signupId
-                ) {
-                    const ep = endpoints.find(
-                        e => e.id === signupId
-                    );
-
-                    const schema = safeJSON(
-                        ep?.request_body
-                    );
-
-                    const payload =
-                        schema?._example ||
-                        buildPayload(
-                            Object.keys(schema?.properties || {}),
-                            ep?.path
-                        );
+                if (rs.fixed && rs.name === 'Sign up' && signupId) {
+                    const payload = getRequestBodyForEndpoint(signupId);
 
                     finalSteps.push({
                         step_order: finalOrder++,
@@ -653,37 +688,17 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         method: 'POST',
                         input_payload: payload,
                         expected_status: 201,
-                        extract_vars: [
-                            { var: 'userId', path: 'id' }
-                        ],
+                        extract_vars: [{ var: 'userId', path: 'id' }],
                         skip_if_failed: 0
                     });
-
                     continue;
                 }
 
                 // -----------------------------------------
                 // LOGIN
                 // -----------------------------------------
-                if (
-                    rs.fixed &&
-                    rs.name === 'Login' &&
-                    loginId
-                ) {
-                    const ep = endpoints.find(
-                        e => e.id === loginId
-                    );
-
-                    const schema = safeJSON(
-                        ep?.request_body
-                    );
-
-                    const payload =
-                        schema?._example ||
-                        buildPayload(
-                            Object.keys(schema?.properties || {}),
-                            ep?.path
-                        );
+                if (rs.fixed && rs.name === 'Login' && loginId) {
+                    const payload = getRequestBodyForEndpoint(loginId);
 
                     finalSteps.push({
                         step_order: finalOrder++,
@@ -699,7 +714,6 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         ],
                         skip_if_failed: 0
                     });
-
                     continue;
                 }
 
@@ -1436,12 +1450,24 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                                                     {caseIndex + 1}. {aiCase.name}
                                                                                 </div>
                                                                                 <span style={{
-                                                                                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20, flexShrink: 0,
+                                                                                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20,
                                                                                     background: isErrorCase ? 'rgba(230,90,90,0.12)' : 'rgba(50,200,120,0.12)',
                                                                                     color: isErrorCase ? 'var(--red)' : 'var(--green)',
                                                                                 }}>
                                                                                     {aiCase.expected_status}
                                                                                 </span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={(e) => { e.stopPropagation(); deleteAiCase(endpointId, caseIndex); }}
+                                                                                    title="Remove this test case"
+                                                                                    style={{
+                                                                                        width: 18, height: 18, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                                        background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)',
+                                                                                        cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: 0,
+                                                                                    }}
+                                                                                >
+                                                                                    ✕
+                                                                                </button>
                                                                             </div>
 
                                                                             {aiCase.reasoning && (
@@ -1511,16 +1537,30 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                             <span style={{ fontSize: 9.5, color: 'var(--text-tertiary)' }}>
                                                                 Edit this JSON before creating the suite.
                                                             </span>
-                                                            <button
-                                                                onClick={() => saveRequestBody(endpointId)}
-                                                                style={{
-                                                                    padding: '5px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600,
-                                                                    border: '1px solid var(--accent)', background: 'var(--accent-dim)',
-                                                                    color: 'var(--accent)', cursor: 'pointer',
-                                                                }}
-                                                            >
-                                                                ✓ Save request body
-                                                            </button>
+                                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                                {isEdited && (
+                                                                    <button
+                                                                        onClick={() => resetRequestBody(endpointId)}
+                                                                        style={{
+                                                                            padding: '5px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                                                                            border: '1px solid var(--border)', background: 'transparent',
+                                                                            color: 'var(--text-tertiary)', cursor: 'pointer',
+                                                                        }}
+                                                                    >
+                                                                        ↺ Reset
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => saveRequestBody(endpointId)}
+                                                                    style={{
+                                                                        padding: '5px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                                                                        border: '1px solid var(--accent)', background: 'var(--accent-dim)',
+                                                                        color: 'var(--accent)', cursor: 'pointer',
+                                                                    }}
+                                                                >
+                                                                    ✓ Save request body
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}

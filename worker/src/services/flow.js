@@ -215,6 +215,7 @@ async function executeStep(step, context, project, suite) {
     const method = step.method || 'GET';
     const headers = buildHeaders(step, context, project, suite);
     const payload = step.input_payload ? resolveDeep(step.input_payload, context) : null;
+    console.log(`Resolved payload -> ${JSON.stringify(payload).slice(0, 200)}`);
 
     // For POST/PUT/PATCH with no payload, try swagger example first, then {}
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
@@ -243,7 +244,6 @@ async function executeStep(step, context, project, suite) {
 
     try {
 
-        let actual_status, actual_body, actual_headers = {};
         if (isLocalUrl(url)) {
             const agentResult = await executeViaLocalAgent(db, {
                 projectId: project.id,
@@ -561,9 +561,20 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
             }
         }
 
-        // Smart login — ALWAYS try credential combos for login step
-        // Don't rely on input_payload which may have example credentials
-        if (isLoginStep) {
+        // After a successful login — extract token from response into context
+        if (isLoginStep && result.status === 'passed') {
+            if (result.actual_body) {
+                const loginToken = extractToken(result.actual_body);
+                if (loginToken) {
+                    context.__token = loginToken;
+                    context.token = loginToken;
+                    result.extracted_vars = { ...(result.extracted_vars || {}), token: loginToken };
+                    console.log(`[Flow] Login succeeded — token extracted into context`);
+                }
+            }
+        }
+        // If login failed, try smart login with signup credentials
+        if (result.actual_status == 'failed' && isLoginStep) {
             const loginUrl = result.request_url;
             const baseHdrs = buildHeaders(step, context, project, suite);
             const rawUsername = signupCredentials.username || signupCredentials.email?.split('@')[0] || 'testuser';
