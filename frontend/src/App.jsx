@@ -20,6 +20,7 @@ import { useStore } from './store/index.js';
 import './styles/global.css';
 import { AdminErrorsPage } from './components/admin/AdminErrorsPage.jsx';
 import { api } from './store/index.js';
+import { LiveFetchPage } from './components/live-fetch/LiveFetchPage.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -252,6 +253,7 @@ function ProjectRoutes() {
   return (
     <Routes>
       <Route path="dashboard" element={<Dashboard />} />
+      <Route path="live-fetch" element={<LiveFetchPage />} />
       <Route path="endpoints" element={<EndpointsPage />} />
       <Route path="tests" element={<TestsPage />} />
       <Route path="executions" element={<ExecutionsPage />} />

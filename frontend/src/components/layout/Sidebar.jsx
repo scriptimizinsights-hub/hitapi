@@ -3,13 +3,14 @@ import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
   HelpCircle, LogOut, User, Lock, GitBranch,
-  AlertTriangle
+  AlertTriangle, Send
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
 
 const NAV = [
   { to: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: 'live-fetch', icon: Send, label: 'Live Fetch' },   // new
   { to: 'endpoints', icon: Globe, label: 'Endpoints' },
   { to: 'tests', icon: TestTube, label: 'Test Cases' },
   { to: 'executions', icon: Play, label: 'Executions' },
