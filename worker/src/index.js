@@ -32,7 +32,7 @@ import {
 }
   from './routes/index.js';
 
-import { listEndpoints, getEndpointStats, deleteEndpoint } from './repository/repository.js';
+import { listEndpoints, getEndpointStats, deleteEndpoint, createEndpoint } from './repository/repository.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
 
@@ -87,7 +87,7 @@ const ROUTES = [
   router('GET', '/api/projects/:id/endpoints', listEndpoints),
   router('DELETE', '/api/projects/:id/endpoints/:endpointId', deleteEndpoint),
   router('GET', '/api/projects/:id/endpoints/stats', getEndpointStats),
-
+  router('POST', '/api/projects/:id/endpoints', createEndpoint),
   // AI Test Generation
   router('POST', '/api/projects/:id/generate', generateTests),
   router('GET', '/api/projects/:id/tests', listTestCases),

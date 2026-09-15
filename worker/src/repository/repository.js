@@ -63,3 +63,26 @@ export async function deleteEndpoint(request, env, { params }) {
         id: params.endpointId
     }));
 }
+
+export async function createEndpoint(request, env, { params }) {
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return json({ error: 'Invalid JSON body' }, 400);
+    }
+
+    if (!body?.path || !body?.method) {
+        return json({ error: 'path and method are required' }, 400);
+    }
+
+    const { endpoints: epRepo } = repos(env);
+    const created = await epRepo.create(params.id, body);
+
+    if (env.CACHE) {
+        const cacheKey = `endpoints:${params.id}`;
+        await env.CACHE.delete(cacheKey);
+    }
+
+    return json(success(created), 201);
+}

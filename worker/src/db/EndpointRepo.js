@@ -45,4 +45,25 @@ export class EndpointRepo {
     async delete(projectId, endpointId) {
         return await this.db.run('DELETE FROM endpoints WHERE project_id = ? AND id = ?', [projectId, endpointId]);
     }
+
+    async create(projectId, data) {
+        const n = v => (v === undefined ? null : v); // D1 rejects undefined, needs null
+        const id = this.db.uuid();
+
+        await this.db.run(
+            `INSERT INTO endpoints (id, project_id, path, method, summary, description, parameters, request_body, responses, tags, security)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                id, projectId, data.path, data.method.toUpperCase(),
+                n(data.summary), n(data.description),
+                JSON.stringify(data.parameters || []),
+                JSON.stringify(data.request_body ?? null),
+                JSON.stringify(data.responses || {}),
+                JSON.stringify(data.tags || []),
+                JSON.stringify(data.security || [])
+            ]
+        );
+
+        return this.get(id);
+    }
 }

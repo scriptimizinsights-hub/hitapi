@@ -2,354 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Globe, Search, Upload, Zap, ChevronRight, CheckSquare, Square, Eye,
-  Trash2
+  PenLine
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
-
-function EndpointRow({
-  endpoint,
-  selected,
-  onSelect,
-  onCheck,
-  checked,
-  onView,
-  onDelete
-}) {
-  const method = endpoint.method;
-
-  const paramCount = (() => {
-    try {
-      return JSON.parse(endpoint.parameters || '[]').length;
-    } catch {
-      return 0;
-    }
-  })();
-
-  const tags = (() => {
-    try {
-      return JSON.parse(endpoint.tags || '[]');
-    } catch {
-      return [];
-    }
-  })();
-
-  return (
-    <tr
-      onClick={() => onSelect(endpoint)}
-      style={{
-        cursor: 'pointer',
-        background: selected
-          ? 'rgba(130,100,255,0.05)'
-          : 'transparent'
-      }}
-    >
-      {/* Checkbox */}
-      <td
-        onClick={e => {
-          e.stopPropagation();
-          onCheck(endpoint.id);
-        }}
-        style={{
-          width: 36,
-          cursor: 'pointer'
-        }}
-      >
-        {checked
-          ? <CheckSquare size={15} color="var(--accent)" />
-          : <Square size={15} color="var(--text-tertiary)" />}
-      </td>
-
-      {/* Method */}
-      <td>
-        <span className={`method-badge method-${method}`}>
-          {method}
-        </span>
-      </td>
-
-      {/* Path */}
-      <td>
-        <span
-          style={{
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 12
-          }}
-        >
-          {endpoint.path}
-        </span>
-      </td>
-
-      {/* Summary */}
-      <td
-        style={{
-          color: 'var(--text-secondary)',
-          fontSize: 12
-        }}
-      >
-        {endpoint.summary || '—'}
-      </td>
-
-      {/* Tags */}
-      <td>
-        {tags.map(tag => (
-          <span
-            key={tag}
-            className="badge badge-gray"
-            style={{
-              marginRight: 4,
-              fontSize: 10
-            }}
-          >
-            {tag}
-          </span>
-        ))}
-      </td>
-
-      {/* Params */}
-      <td
-        style={{
-          color: 'var(--text-tertiary)',
-          fontSize: 12
-        }}
-      >
-        {paramCount} params
-      </td>
-
-      {/* Actions */}
-      <td
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: 90
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: 4
-          }}
-        >
-          <button
-            type="button"
-            title="View endpoint"
-            onClick={e => {
-              e.stopPropagation();
-              onView(endpoint);
-            }}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-tertiary)',
-              cursor: 'pointer',
-              padding: 5,
-              display: 'flex',
-              alignItems: 'center',
-              borderRadius: 5
-            }}
-          >
-            <Eye size={15} />
-          </button>
-
-          <button
-            type="button"
-            title="Delete endpoint"
-            onClick={e => {
-              e.stopPropagation();
-              onDelete(endpoint);
-            }}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-tertiary)',
-              cursor: 'pointer',
-              padding: 5,
-              display: 'flex',
-              alignItems: 'center',
-              borderRadius: 5
-            }}
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-function ImportModal({ projectId, onClose }) {
-  const [url, setUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { importSwagger } = useStore();
-  async function handleImport() {
-    if (!url.trim()) return;
-    setLoading(true);
-    try { await importSwagger(projectId, { swagger_url: url }); onClose(); }
-    catch (err) { alert(err.message); }
-    finally { setLoading(false); }
-  }
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Upload size={18} color="var(--accent)" /> Import Swagger / OpenAPI
-        </div>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Swagger URL</label>
-          <input className="input" placeholder="https://api.example.com/swagger.json" value={url}
-            onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleImport()} autoFocus />
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>Supports OpenAPI 3.0, 3.1, Swagger 2.0 · JSON</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleImport} disabled={loading || !url.trim()}>
-            {loading ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Importing…</> : 'Import'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
-  const [mode, setMode] = useState('selected'); // selected | method | tag | all
-  const [method, setMethod] = useState('POST');
-  const [tag, setTag] = useState('');
-  const [limit, setLimit] = useState(5);
-  const [loading, setLoading] = useState(false);
-  const { generateTests, addToast } = useStore();
-
-  // Collect all unique tags
-  const allTags = [...new Set(endpoints.flatMap(e => {
-    try { return JSON.parse(e.tags || '[]'); } catch { return []; }
-  }))];
-
-  const selectedIds = onGenerate.selectedIds || [];
-
-  // Preview how many endpoints will be affected
-  let preview = 0;
-  if (mode === 'selected') preview = selectedIds.length;
-  else if (mode === 'method') preview = endpoints.filter(e => e.method === method).length;
-  else if (mode === 'tag') preview = endpoints.filter(e => { try { return JSON.parse(e.tags || '[]').includes(tag); } catch { return false; } }).length;
-  else preview = endpoints.length;
-
-  async function handleGenerate() {
-    setLoading(true);
-    try {
-      let opts = { limit };
-      if (mode === 'selected' && selectedIds.length) opts.endpoint_ids = selectedIds;
-      else if (mode === 'method') opts.method = method;
-      else if (mode === 'tag') opts.tag = tag;
-      // else: all (no filter)
-
-      const result = await generateTests(projectId, opts);
-      addToast(`Generated ${result?.total || 0} test cases`, 'success');
-      onClose();
-    } catch (err) {
-      addToast(err.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const modeBtn = (m, label) => (
-    <button onClick={() => setMode(m)} style={{
-      flex: 1, padding: '8px 0', borderRadius: 6, fontSize: 12, cursor: 'pointer',
-      background: mode === m ? 'var(--accent-dim)' : 'var(--bg-input)',
-      color: mode === m ? 'var(--accent)' : 'var(--text-secondary)',
-      border: mode === m ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)',
-      fontWeight: mode === m ? 600 : 400
-    }}>{label}</button>
-  );
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ width: 440 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Zap size={18} color="var(--accent)" /> Generate test cases
-        </div>
-
-        {/* Mode selector */}
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Generate for</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {modeBtn('selected', `Selected (${selectedIds.length})`)}
-            {modeBtn('method', 'By method')}
-            {modeBtn('tag', 'By tag')}
-            {modeBtn('all', 'All')}
-          </div>
-        </div>
-
-        {/* Mode-specific options */}
-        {mode === 'selected' && selectedIds.length === 0 && (
-          <div style={{ padding: '10px 12px', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', borderRadius: 6, fontSize: 12, color: 'var(--amber)', marginBottom: 14 }}>
-            ⚠ No endpoints selected. Check boxes in the table first, or choose a different mode.
-          </div>
-        )}
-
-        {mode === 'method' && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>HTTP Method</label>
-            <select className="input" value={method} onChange={e => setMethod(e.target.value)}>
-              {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
-                <option key={m} value={m}>{m} ({endpoints.filter(e => e.method === m).length} endpoints)</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {mode === 'tag' && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Tag / Group</label>
-            <select className="input" value={tag} onChange={e => setTag(e.target.value)}>
-              <option value="">Select a tag…</option>
-              {allTags.map(t => (
-                <option key={t} value={t}>{t} ({endpoints.filter(e => { try { return JSON.parse(e.tags || '[]').includes(t); } catch { return false; } }).length} endpoints)</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Limit */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-            Max endpoints to process at once
-            <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: 6 }}>(AI has per-request limits)</span>
-          </label>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[3, 5, 10, 20].map(n => (
-              <button key={n} onClick={() => setLimit(n)} style={{
-                flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 12, cursor: 'pointer',
-                background: limit === n ? 'var(--accent-dim)' : 'var(--bg-input)',
-                color: limit === n ? 'var(--accent)' : 'var(--text-secondary)',
-                border: limit === n ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)',
-              }}>{n}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div style={{ padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 8, marginBottom: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
-          Will generate tests for <strong style={{ color: 'var(--text-primary)' }}>{Math.min(preview, limit)} endpoint{Math.min(preview, limit) !== 1 ? 's' : ''}</strong>
-          {preview > limit && <span style={{ color: 'var(--amber)' }}> ({preview - limit} will be skipped due to limit)</span>}
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button
-            className="btn btn-primary"
-            onClick={handleGenerate}
-            disabled={loading || (mode === 'selected' && !selectedIds.length) || (mode === 'tag' && !tag)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            {loading
-              ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Generating…</>
-              : <><Zap size={14} /> Generate</>}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { ImportModal } from './ImportModal.jsx';
+import { GenerateModal } from './GenerateModal.jsx';
+import { EndpointRow } from './EndpointRow.jsx';
+import { AddEndpointModal } from './AddEndpointModal.jsx';
 
 export function EndpointsPage() {
   const { projectId } = useParams();
@@ -362,6 +21,7 @@ export function EndpointsPage() {
   const [checkedIds, setCheckedIds] = useState(new Set());
   const [showImport, setShowImport] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
+  const [showAddEndpoint, setShowAddEndpoint] = useState(false);
   useEffect(() => { loadEndpoints(projectId); }, [projectId]);
 
   // Refresh when user switches back to this tab (e.g. after adding via extension)
@@ -450,6 +110,9 @@ export function EndpointsPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" onClick={() => setShowImport(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Upload size={14} /> Import Swagger
+          </button>
+          <button className="btn btn-ghost" onClick={() => setShowAddEndpoint(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <PenLine size={14} /> Add endpoint
           </button>
           <button
             className="btn btn-primary"
@@ -901,6 +564,16 @@ export function EndpointsPage() {
       )}
 
       {showImport && <ImportModal projectId={projectId} onClose={() => setShowImport(false)} />}
+      {showAddEndpoint && (
+        <AddEndpointModal
+          projectId={projectId}
+          onClose={() => setShowAddEndpoint(false)}
+          onAdded={async () => {
+            setShowAddEndpoint(false);
+            await loadEndpoints(projectId);
+          }}
+        />
+      )}
       {showGenerate && (
         <GenerateModal
           projectId={projectId}

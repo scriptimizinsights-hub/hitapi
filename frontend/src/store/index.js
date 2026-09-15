@@ -58,6 +58,11 @@ export const api = {
   endpoints: {
     list: (id) => request(`/projects/${id}/endpoints`),
     stats: (id) => request(`/projects/${id}/endpoints/stats`),
+    create: (projectId, data) =>
+      request(`/projects/${projectId}/endpoints`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
     delete: (projectId, endpointId) =>
       request(`/projects/${projectId}/endpoints/${endpointId}`, {
         method: 'DELETE'
