@@ -1504,7 +1504,8 @@ export async function deleteFlowStep(request, env, { params, user }) {
   );
   if (!step) return error('Step not found', 404);
 
-  await db.run('DELETE FROM flow_steps WHERE id = ?', [params.stepId]);
+  let result = await db.run('DELETE FROM flow_steps WHERE id = ?', [params.stepId]);
+  console.log(`[Suite] Step ${params.stepId} deleted from suite ${params.flowId}, result ${JSON.stringify(result)}`);
 
   // Renumber remaining steps to keep order contiguous
   const remaining = await db.all(
