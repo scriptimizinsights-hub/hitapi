@@ -13,6 +13,8 @@ import { logInternalError } from '../services/errorLogger.js';
 import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
 import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
 import { NormalizeError } from '../utils/normalizeAIResponse.js';
+import { executePublicRequest, checkRateLimit, PublicRequestError, PUBLIC_LIMITS } from '../services/proxy.js';
+
 const { buildFlowStepPrompt } = require('../utils/promptBuilder.js'); // or inline the function
 
 function repos(env) {
@@ -1829,6 +1831,49 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
 
   return json(success({ suite, steps: createdSteps }), 201);
 }
+
+
+// ─── Public API Runner (no login / no project required) ────────────────────
+
+export async function publicRequest(request, env) {
+  const limit = await checkRateLimit(request, env.CACHE);
+  if (!limit.allowed) {
+    return error(`Rate limit exceeded — max ${PUBLIC_LIMITS.RATE_LIMIT_PER_MINUTE} requests per minute`, 429, env);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return error('Request body must be valid JSON', 400, env);
+  }
+
+  try {
+    const result = await executePublicRequest(body);
+    return json(success(result, { rate_limit_remaining: limit.remaining }), 200, env);
+  } catch (err) {
+    const status = err instanceof PublicRequestError ? err.status : 500;
+    return error(err.message || 'Request failed', status, env);
+  }
+}
+
+export async function publicInfo(request, env) {
+  return json(success({
+    public: true,
+    auth_required: false,
+    limits: {
+      timeout_ms: PUBLIC_LIMITS.TIMEOUT_MS,
+      max_request_body_bytes: PUBLIC_LIMITS.MAX_REQUEST_BODY_BYTES,
+      max_response_body_bytes: PUBLIC_LIMITS.MAX_RESPONSE_BODY_BYTES,
+      requests_per_minute: PUBLIC_LIMITS.RATE_LIMIT_PER_MINUTE,
+      methods: PUBLIC_LIMITS.ALLOWED_METHODS
+    }
+  }), 200, env);
+}
+
+
+
+// ─── Health ──────────────────────────────────────────────────────────────────
 
 
 

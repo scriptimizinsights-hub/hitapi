@@ -117,6 +117,10 @@ export const api = {
     deleteRun: (id, runId) => request(`/projects/${id}/runs/${runId}`, { method: 'DELETE' }),
     deleteAll: (id, flowId) => request(`/projects/${id}/flows/${flowId}/runs`, { method: 'DELETE' }),
   },
+  public: {
+    info: () => request('/public'),
+    request: (body) => request('/public/request', { method: 'POST', body: JSON.stringify(body) })
+  },
   admin: {
     checkAdmin: () => request('/admin/check'),
     errors: (params) => request(`/admin/errors?${params}`),

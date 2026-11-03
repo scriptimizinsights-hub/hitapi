@@ -2,6 +2,7 @@
   "name": "hitapi-worker",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8787",
     "build": "wrangler deploy --dry-run",
@@ -10,10 +11,11 @@
     "db:migrate:local": "wrangler d1 migrations apply apiforge-db --local"
   },
   "dependencies": {
-    "itty-router": "^4.0.27"
+    "itty-router": "^4.0.27",
+    "vite": "6.4.3"
   },
   "devDependencies": {
-    "wrangler": "^3.114.0",
-    "@cloudflare/workers-types": "^4.20241022.0"
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "wrangler": "^4.131.2"
   }
 }

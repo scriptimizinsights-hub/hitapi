@@ -16,6 +16,7 @@ import {
   listReports, downloadReport,
   handleQueue,
   healthCheck,
+  publicRequest, publicInfo,
   testLoginProxy,
   // Flow suites
   listFlowSuites, createFlowSuite, getFlowSuite, updateFlowSuite, deleteFlowSuite,
@@ -69,6 +70,8 @@ const ROUTES = [
   // Health
   router('GET', '/health', healthCheck),
   router('GET', '/api/health', healthCheck),
+  router('GET', '/api/public', publicInfo),
+  router('POST', '/api/public/request', publicRequest),
 
   // Projects
   router('GET', '/api/projects', listProjects),
@@ -150,11 +153,14 @@ export default {
 
   async fetch(request, env, ctx) {
     try {
-      // CORS preflight
+      const url = new URL(request.url);
+      if (url.pathname === '/api/public' || url.pathname.startsWith('/api/public/')) {
+        env = { ...env, CORS_ORIGIN: '*' };
+      }
+
+      // Handle CORS preflight requests
       const corsResponse = handleCORS(request, env);
       if (corsResponse) return corsResponse;
-
-      const url = new URL(request.url);
       const method = request.method.toUpperCase();
       let urlPath = url.pathname.replace(/\/$/, '') || '/';
 

@@ -21,6 +21,7 @@ import './styles/global.css';
 import { AdminErrorsPage } from './components/admin/AdminErrorsPage.jsx';
 import { api } from './store/index.js';
 import { LiveFetchPage } from './components/live-fetch/LiveFetchPage.jsx';
+import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -197,6 +198,11 @@ export default function App() {
           <Route path="/" element={
             <AppLayout onNewProject={handleNewProject}>
               <Landing onNewProject={handleNewProject} />
+            </AppLayout>
+          } />
+          <Route path="/playground" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <PlaygroundPage />
             </AppLayout>
           } />
           <Route path="/projects/:projectId/*" element={
