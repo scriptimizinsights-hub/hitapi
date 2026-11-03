@@ -10,8 +10,9 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Send, Plus, Trash2, Copy, Clock, History, Globe2, Monitor, X } from 'lucide-react';
+import { Send, Plus, Trash2, Copy, Clock, History, Globe2, Monitor, X, Terminal } from 'lucide-react';
 import { api, useStore } from '../../store/index.js';
+import { parseCurl, looksLikeCurl } from '../../utils/parseCurl.js';
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const HISTORY_KEY = 'apiforge.playground.history';
@@ -128,6 +129,12 @@ export function PlaygroundPage() {
     const [history, setHistory] = useState(loadHistory);
     const [showHistory, setShowHistory] = useState(false);
 
+    // Paste-cURL import
+    const [showCurl, setShowCurl] = useState(false);
+    const [curlText, setCurlText] = useState('');
+    const [curlError, setCurlError] = useState(null);
+    const [curlNotes, setCurlNotes] = useState([]);
+
     const canHaveBody = !['GET', 'HEAD'].includes(method);
     const setA = (k, v) => setAuth(a => ({ ...a, [k]: v }));
 
@@ -236,6 +243,50 @@ export function PlaygroundPage() {
         if (s.body) setReqTab('body');
     }
 
+    // Fill the whole form from a pasted cURL command. Returns true on success.
+    function applyCurl(text) {
+        setCurlError(null);
+        try {
+            const r = parseCurl(text);
+            const notes = [...r.warnings];
+            let m = r.method;
+            if (!METHODS.includes(m)) { notes.push(`Method ${m} isn't supported here; switched to GET`); m = 'GET'; }
+
+            setMethod(m);
+            setUrl(r.url);
+            setParams([emptyRow()]);
+            setHeaders(r.headers.length ? r.headers.map(h => ({ ...h, enabled: true })) : [emptyRow()]);
+            setBody(r.body || '');
+            setBodyType(r.bodyType === 'none' ? 'json' : r.bodyType);
+            setAuth(a => r.auth
+                ? { ...a, type: 'basic', username: r.auth.username, password: r.auth.password }
+                : { ...a, type: 'none' });
+            setReqTab(r.body ? 'body' : r.headers.length ? 'headers' : 'params');
+            setResponse(null);
+            setErrorMsg(null);
+            setCurlNotes(notes);
+            setShowCurl(false);
+            setCurlText('');
+            addToast(`cURL imported — ${m} ${new URL(r.url).host}`, 'success');
+            return true;
+        } catch (err) {
+            setCurlError(err.message);
+            setShowCurl(true);
+            setCurlText(text);
+            return false;
+        }
+    }
+
+    // Pasting a cURL command straight into the URL box imports it
+    function handleUrlPaste(e) {
+        const text = e.clipboardData?.getData('text') || '';
+        if (looksLikeCurl(text)) { e.preventDefault(); applyCurl(text); }
+    }
+    function handleUrlChange(value) {
+        if (looksLikeCurl(value) && value.includes(' http')) { applyCurl(value); return; }
+        setUrl(value);
+    }
+
     function copy(text, what) {
         navigator.clipboard?.writeText(text).then(
             () => addToast(`${what} copied`, 'success'),
@@ -274,13 +325,57 @@ export function PlaygroundPage() {
 
             {/* Samples */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                <span className="text-xs text-tertiary" style={{ alignSelf: 'center', marginRight: 4 }}>Try:</span>
+                <button className={`btn btn-sm ${showCurl ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setShowCurl(v => !v); setCurlError(null); }}>
+                    <Terminal size={12} /> Paste cURL
+                </button>
+                <span className="text-xs text-tertiary" style={{ alignSelf: 'center', margin: '0 4px 0 8px' }}>Try:</span>
                 {SAMPLES.map(s => (
                     <button key={s.label} className="btn btn-ghost btn-sm" onClick={() => loadSample(s)}>
                         <span className={`method-badge method-${s.method}`}>{s.method}</span> {s.label}
                     </button>
                 ))}
             </div>
+
+            {/* Paste-cURL panel */}
+            {showCurl && (
+                <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>Import from cURL</div>
+                        <button className="btn btn-ghost btn-icon" onClick={() => { setShowCurl(false); setCurlError(null); }} aria-label="Close"><X size={14} /></button>
+                    </div>
+                    <textarea
+                        className="input font-mono"
+                        style={{ width: '100%', height: 150, resize: 'vertical' }}
+                        autoFocus
+                        placeholder={"curl 'https://api.example.com/v1/users' \\\n  -H 'Authorization: Bearer <token>' \\\n  -H 'Content-Type: application/json' \\\n  --data-raw '{\"name\":\"Sunil\"}'"}
+                        value={curlText}
+                        onChange={e => { setCurlText(e.target.value); setCurlError(null); }}
+                        onKeyDown={e => {
+                            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); applyCurl(curlText); }
+                        }}
+                    />
+                    {curlError && (
+                        <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 12 }}>
+                            {curlError}
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => applyCurl(curlText)} disabled={!curlText.trim()}>
+                            <Terminal size={12} /> Import
+                        </button>
+                        <span className="text-xs text-tertiary">
+                            Works with "Copy as cURL" from Chrome/Firefox DevTools (bash or cmd), Postman, Insomnia and Swagger. Tip: you can also paste a cURL straight into the URL box.
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {curlNotes.length > 0 && (
+                <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', color: 'var(--amber)', fontSize: 12, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>{curlNotes.map((n, i) => <div key={i}>{n}</div>)}</div>
+                    <button className="btn btn-ghost btn-icon" onClick={() => setCurlNotes([])} aria-label="Dismiss"><X size={12} /></button>
+                </div>
+            )}
 
             {/* Request bar */}
             <div className="card" style={{ padding: 14, marginBottom: 16 }}>
@@ -289,8 +384,8 @@ export function PlaygroundPage() {
                         value={method} onChange={e => setMethod(e.target.value)} aria-label="HTTP method">
                         {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
-                    <input className="input font-mono" style={{ flex: 1 }} placeholder="https://api.example.com/v1/users"
-                        value={url} onChange={e => setUrl(e.target.value)} aria-label="Request URL" />
+                    <input className="input font-mono" style={{ flex: 1 }} placeholder="https://api.example.com/v1/users — or paste a cURL command"
+                        value={url} onChange={e => handleUrlChange(e.target.value)} onPaste={handleUrlPaste} aria-label="Request URL" />
                     <button className="btn btn-primary" onClick={send} disabled={loading || !url.trim()} title="Send (Ctrl+Enter)">
                         {loading ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Sending…</> : <><Send size={14} /> Send</>}
                     </button>
