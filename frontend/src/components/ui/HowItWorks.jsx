@@ -257,13 +257,7 @@ export function HowItWorks() {
             </div>
 
             {/* Footer */}
-            <div style={{ borderTop: '1px solid var(--border)', padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Zap size={13} color="#8264ff" />
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>HitAPI — AI-powered API testing on Cloudflare</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Powered by Workers AI · D1 · KV · R2 · Queues</div>
-            </div>
+
             <PublicFooter />
         </div>
     );

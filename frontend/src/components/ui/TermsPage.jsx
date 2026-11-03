@@ -200,9 +200,7 @@ export function TermsPage() {
                     </div>
                 </div>
 
-                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                    © 2026 {COMPANY} · <a href="/support" style={{ color: 'var(--accent)' }}>Support</a> · <a href="/privacy" style={{ color: 'var(--accent)' }}>Privacy</a> · <a href="/terms" style={{ color: 'var(--accent)' }}>Terms</a>
-                </div>
+
             </div>
             <PublicFooter />
         </div>

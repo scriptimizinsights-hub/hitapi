@@ -302,9 +302,6 @@ export function SupportPage() {
                     </div>
                 </div>
 
-                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                    © 2026 {COMPANY} · <a href="/privacy" style={{ color: 'var(--accent)' }}>Privacy Policy</a> · <a href="/support" style={{ color: 'var(--accent)' }}>Support</a>
-                </div>
             </div>
             <PublicFooter />
         </div>
