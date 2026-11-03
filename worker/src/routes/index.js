@@ -15,7 +15,6 @@ import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../u
 import { NormalizeError } from '../utils/normalizeAIResponse.js';
 import { executePublicRequest, checkRateLimit, PublicRequestError, PUBLIC_LIMITS } from '../services/proxy.js';
 
-const { buildFlowStepPrompt } = require('../utils/promptBuilder.js'); // or inline the function
 
 function repos(env) {
   const db = new DatabaseAdapter(env.DB);
