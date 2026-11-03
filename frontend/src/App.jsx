@@ -23,6 +23,7 @@ import { api } from './store/index.js';
 import { LiveFetchPage } from './components/live-fetch/LiveFetchPage.jsx';
 import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 import { LogoMark } from './components/ui/Logo.jsx';
+import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -128,10 +129,11 @@ export default function App() {
   useEffect(() => {
     if (user) {
       api.admin.checkAdmin()
-        .then(data => setIsAdmin(data?.isAdmin || false))
-        .catch(() => setIsAdmin(false));
+        .then(data => { setIsAdmin(!!data?.isAdmin); useStore.setState({ isAdmin: !!data?.isAdmin }); })
+        .catch(() => { setIsAdmin(false); useStore.setState({ isAdmin: false }); });
     } else {
       setIsAdmin(false);
+      useStore.setState({ isAdmin: false });
     }
   }, [user]);
   useEffect(() => { loadMe(); }, []);
@@ -199,6 +201,12 @@ export default function App() {
             </AppLayout>
           } />
 
+          <Route path="/admin" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <SuperAdminPage />
+            </AppLayout>
+          } />
+
           <Route path="/projects/:projectId/*" element={
             <AppLayout onNewProject={handleNewProject}>
               <ProjectRoutes />
@@ -224,22 +232,36 @@ export default function App() {
 
 function ProjectRoutes() {
   const { projectId } = useParams();
-  const { projects, setCurrentProject, currentProject, loadProjects } = useStore();
+  const { projects, setCurrentProject, currentProject, user } = useStore();
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // If project not in store, load all projects first
-    if (!projects.length) {
-      loadProjects();
-      return;
-    }
-    if (projectId && (!currentProject || currentProject.id !== projectId)) {
-      const p = projects.find(x => x.id === projectId);
-      if (p) setCurrentProject(p);
-    }
+    setNotFound(false);
+    if (!projectId || currentProject?.id === projectId) return;
+    // One of the user's own projects?
+    const own = projects.find(x => x.id === projectId);
+    if (own) { setCurrentProject(own); return; }
+    // Otherwise fetch it directly (works for the owner, and read-only for super admins)
+    let cancelled = false;
+    api.projects.get(projectId)
+      .then(p => { if (!cancelled && p) setCurrentProject(p); })
+      .catch(() => { if (!cancelled) setNotFound(true); });
+    return () => { cancelled = true; };
   }, [projectId, projects]);
 
+  if (notFound) {
+    return (
+      <div className="page">
+        <div className="card"><div className="empty-state">
+          <h3>Project not found</h3>
+          <p>It may have been deleted, or you don't have access to it.</p>
+        </div></div>
+      </div>
+    );
+  }
+
   // While loading, show spinner instead of crashing
-  if (!currentProject) {
+  if (!currentProject || currentProject.id !== projectId) {
     return (
       <div className="page">
         <div className="empty-state">
@@ -250,7 +272,23 @@ function ProjectRoutes() {
     );
   }
 
-  return (
+  // Super admin looking at someone else's project
+  const viewingAsAdmin = user && currentProject.user_id && currentProject.user_id !== user.id;
+
+  return (<>
+    {viewingAsAdmin && (
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40, padding: '8px 32px', fontSize: 12,
+        background: 'var(--amber-bg)', borderBottom: '1px solid var(--amber-border)', color: 'var(--amber)',
+        display: 'flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(8px)'
+      }}>
+        <span style={{ fontWeight: 600 }}>Super admin view (read-only)</span>
+        <span style={{ color: 'var(--text-secondary)' }}>
+          {currentProject.owner_email ? `Owner: ${currentProject.owner_name || ''} ${currentProject.owner_email}` : "You're viewing another user's project."}
+          {' '}Changes are blocked and stored credentials are hidden.
+        </span>
+      </div>
+    )}
     <Routes>
       <Route path="dashboard" element={<Dashboard />} />
       <Route path="live-fetch" element={<LiveFetchPage />} />
@@ -266,5 +304,5 @@ function ProjectRoutes() {
       <Route path="flows" element={<FlowSuitesPage />} />
       <Route path="*" element={<Navigate to="dashboard" />} />
     </Routes>
-  );
+  </>);
 }

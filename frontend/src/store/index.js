@@ -125,7 +125,12 @@ export const api = {
     checkAdmin: () => request('/admin/check'),
     errors: (params) => request(`/admin/errors?${params}`),
     errorStats: () => request(`/admin/errors/stats`),
+    stats: () => request('/admin/stats'),
+    users: () => request('/admin/users'),
+    projects: (userId) => request(`/admin/projects${userId ? `?user_id=${encodeURIComponent(userId)}` : ''}`),
+    activity: (params = {}) => request(`/admin/activity?${new URLSearchParams(params)}`),
   },
+
 };
 
 // ─── Zustand store ────────────────────────────────────────────────────────
@@ -136,6 +141,7 @@ export const useStore = create((set, get) => ({
   // Auth
   user: null,
   authLoading: true,
+  isAdmin: false,
   login: async (email, password) => {
     const data = await api.auth.login({ email, password });
     setToken(data.token);

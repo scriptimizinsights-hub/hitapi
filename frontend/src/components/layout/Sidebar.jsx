@@ -3,7 +3,7 @@ import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
   HelpCircle, LogOut, User, Lock, GitBranch,
-  AlertTriangle, Send
+  AlertTriangle, Send, Shield
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
@@ -27,7 +27,7 @@ const NAV = [
 export function Sidebar({ onNewProject }) {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { projects, currentProject, setCurrentProject, projectLoading, user, logout } = useStore();
+  const { projects, currentProject, setCurrentProject, projectLoading, user, logout, isAdmin } = useStore();
   const [projectsOpen, setProjectsOpen] = useState(true);
 
   function handleLogout() {
@@ -59,6 +59,26 @@ export function Sidebar({ onNewProject }) {
           </div>
         </div>
       </div>
+
+      {/* Super admin — only visible to admins */}
+      {isAdmin && (
+        <div style={{ padding: '10px 10px 0' }}>
+          <NavLink
+            to="/admin"
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 10px', borderRadius: 7,
+              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: isActive ? 'var(--bg-card)' : 'transparent',
+              fontSize: 13, fontWeight: isActive ? 500 : 400, textDecoration: 'none',
+              borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+            })}
+          >
+            <Shield size={15} />
+            <span style={{ flex: 1 }}>Super Admin</span>
+          </NavLink>
+        </div>
+      )}
 
       {/* Projects section */}
       <div style={{ padding: '10px 10px 0' }}>

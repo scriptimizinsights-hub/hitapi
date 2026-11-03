@@ -34,6 +34,7 @@ import {
   from './routes/index.js';
 
 import { listEndpoints, getEndpointStats, deleteEndpoint, createEndpoint } from './repository/repository.js';
+import { adminStats, adminListUsers, adminListProjects, adminActivity, isSuperAdmin, getProjectOwnerId, redactResponse } from './routes/admin.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
 
@@ -120,6 +121,12 @@ const ROUTES = [
   router('POST', '/api/admin/admins', addAdmin),
   router('DELETE', '/api/admin/admins/:adminId', removeAdmin),
   router('GET', '/api/admin/check', checkAdmin),
+  // Super admin
+  router('GET', '/api/admin/stats', adminStats),
+  router('GET', '/api/admin/users', adminListUsers),
+  router('GET', '/api/admin/projects', adminListProjects),
+  router('GET', '/api/admin/activity', adminActivity),
+
   router('GET', '/api/projects/:id/ai-logs', listAiLogs),
   router('GET', '/api/agent/jobs', pollAgentJobs),
   router('POST', '/api/agent/jobs/:jobId/result', submitAgentJobResult),
@@ -184,12 +191,23 @@ export default {
             const { assertProjectOwner } = await import('./routes/index.js');
             const owns = await assertProjectOwner(env, params.id, authUser.sub);
             if (!owns) {
-              return json({ success: false, error: 'Project not found' }, 404, env);
+              // Super admins may VIEW any project (read-only), seen as its owner
+              const ownerId = await getProjectOwnerId(env, params.id);
+              if (!ownerId || !(await isSuperAdmin(env, authUser))) {
+                return json({ success: false, error: 'Project not found' }, 404, env);
+              }
+              if (method !== 'GET') {
+                return json({ success: false, error: 'Read-only: super admins can view but not change another user\'s project' }, 403, env);
+              }
+              const res = await route.handler(request, env, {
+                params, ctx, user: { ...authUser, sub: ownerId, admin_viewer: authUser.sub },
+              });
+              return redactResponse(res); // never expose stored credentials
             }
           }
         }
 
-        return route.handler(request, env, { params, ctx, user: authUser });
+        return await route.handler(request, env, { params, ctx, user: authUser });
       }
 
       return json({ error: 'Not found', path: urlPath }, 404, env);

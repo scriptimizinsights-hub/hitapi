@@ -15,7 +15,7 @@ import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../u
 import { NormalizeError } from '../utils/normalizeAIResponse.js';
 import { executePublicRequest, checkRateLimit, PublicRequestError, PUBLIC_LIMITS } from '../services/proxy.js';
 import { buildFlowStepPrompt } from '../utils/promptBuilder.js';
-
+import { isSuperAdminDb } from './admin.js';
 
 function repos(env) {
   const db = new DatabaseAdapter(env.DB);
@@ -2122,19 +2122,17 @@ export async function generateFlowStep(request, env, { params }) {
 
 // ── Admin whitelist ───────────────────────────────────────────────────────────
 async function requireAdmin(user, db) {
-  if (!user) throw new Error('Admin access required');
-  const admin = await db.first(
-    'SELECT id FROM admins WHERE email = ?',
-    [user.email]
-  );
-  if (!admin) throw new Error('Admin access required');
+  if (!(await isSuperAdminDb(db, user))) {
+    const err = new Error('Admin access required');
+    err.status = 403;
+    throw err;
+  }
 }
 
 // ── GET /api/admin/errors — all errors (admin only) ───────────────────────────
 export async function listAdminErrors(request, env, { user }) {
   const db = new DatabaseAdapter(env.DB);
-  requireAdmin(user, db);
-
+  await requireAdmin(user, db);
   const url = new URL(request.url);
 
   const scope = url.searchParams.get('scope');    // 'internal' | 'external' | null (all)
@@ -2218,8 +2216,9 @@ export async function listProjectErrors(request, env, { params, user }) {
 
 // ── GET /api/admin/errors/stats — summary counts ─────────────────────────────
 export async function adminErrorStats(request, env, { user }) {
-  requireAdmin(user);
+
   const db = new DatabaseAdapter(env.DB);
+  await requireAdmin(user, db);
 
   const stats = await db.all(
     `SELECT
@@ -2275,13 +2274,8 @@ export async function removeAdmin(request, env, { params, user }) {
 
 export async function checkAdmin(request, env, { user }) {
   const db = new DatabaseAdapter(env.DB);
-  const admin = await db.first(
-    'SELECT id FROM admins WHERE email = ?',
-    [user.email]
-  );
-  return json(success({ isAdmin: !!admin }));
+  return json(success({ isAdmin: await isSuperAdminDb(db, user) }));
 }
-
 
 /**
  * ADD THIS to worker/src/routes/index.js

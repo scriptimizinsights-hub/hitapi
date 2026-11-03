@@ -179,6 +179,8 @@ export async function hitapiLogin(request, env) {
     const valid = await verifyPassword(password, user.password);
     if (!valid) return error('Invalid credentials', 401);
 
+    try { await db.run('UPDATE hitapi_users SET last_login_at = unixepoch() WHERE id = ?', [user.id]); } catch { /* column missing */ }
+
     const secret = env.JWT_SECRET || 'hitapi-dev-secret-change-in-prod';
     const token = await signJWT({ sub: user.id, email: user.email, name: user.name }, secret);
 
