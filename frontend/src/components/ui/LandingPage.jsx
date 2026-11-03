@@ -4,7 +4,7 @@ import { PublicFooter } from './PublicFooter.jsx';
 import {
     Zap, ArrowRight, CheckCircle2, Play, Bug, BarChart3,
     Shield, Globe, Cpu, Upload, ChevronDown, ExternalLink,
-    Terminal, GitBranch, Clock
+    Terminal, GitBranch, Clock, Send
 } from 'lucide-react';
 
 // ── Animated counter ───────────────────────────────────────────────────────────
@@ -141,6 +141,9 @@ export function LandingPage({ onGetStarted }) {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => navigate('/playground')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                        API Playground
+                    </button>
                     <button onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         How it works
                     </button>
@@ -184,6 +187,9 @@ export function LandingPage({ onGetStarted }) {
                     </button>
                     <button onClick={() => navigate('/how-it-works')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
                         <Play size={14} fill="currentColor" /> See how it works
+                    </button>
+                    <button onClick={() => navigate('/playground')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(35,209,139,0.08)', border: '1px solid rgba(35,209,139,0.3)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
+                        <Send size={14} /> Try API Playground — no login
                     </button>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>No credit card · No infrastructure to set up · Free to start</p>

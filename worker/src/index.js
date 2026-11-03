@@ -170,7 +170,7 @@ export default {
         const { matched, params } = matchRoute(route.pattern, urlPath);
         if (!matched) continue;
 
-        const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/api/auth/accept-terms', '/health', '/api/health'];
+        const PUBLIC = ['/api/auth/signup', '/api/auth/login', '/api/auth/accept-terms', '/health', '/api/health', '/api/public'];
         const isPublic = PUBLIC.some(p => urlPath === p || urlPath.startsWith(p));
 
         let authUser = null;

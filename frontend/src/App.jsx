@@ -165,6 +165,8 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
+          {/* API Playground — public, no login required */}
+          <Route path="/playground" element={<PlaygroundPage />} />
           {/* Marketing landing page — root for unauthenticated visitors */}
           <Route path="/" element={
             <LandingPage onGetStarted={() => window.location.href = '/login'} />
@@ -181,6 +183,7 @@ export default function App() {
             </TermsGate>
           } />
         </Routes>
+        <ToastContainer />
       </BrowserRouter>
     );
   }
