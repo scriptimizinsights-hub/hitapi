@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, useStore } from '../../store/index.js';
 import { PublicFooter } from '../ui/PublicFooter.jsx';
 import { parseCurl, looksLikeCurl } from '../../utils/parseCurl.js';
+import { LogoMark } from '../ui/Logo.jsx';
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const HISTORY_KEY = 'apiforge.playground.history';
@@ -325,9 +326,7 @@ export function PlaygroundPage() {
             }}>
                 <button onClick={() => navigate('/')} aria-label="HitAPI home"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', flex: 1, textAlign: 'left' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #8264ff, #5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Zap size={14} color="#fff" />
-                    </div>
+                    <LogoMark size={28} />
                     <span style={{ fontSize: 15, fontWeight: 600 }}>HitAPI</span>
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 2 }}>· API Playground</span>
                 </button>

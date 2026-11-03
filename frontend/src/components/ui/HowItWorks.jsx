@@ -5,7 +5,7 @@ import {
     Zap, Upload, Globe, Cpu, Play, Bug, BarChart3,
     ArrowRight, CheckCircle2, Shield, AlertTriangle, Activity, ExternalLink
 } from 'lucide-react';
-
+import { LogoMark } from './Logo.jsx';
 const STAGES = [
     {
         step: '01', icon: Upload, color: '#8264ff', bg: 'rgba(130,100,255,0.1)', border: 'rgba(130,100,255,0.25)',
@@ -93,9 +93,7 @@ export function HowItWorks() {
                 padding: '14px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #8264ff, #5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Zap size={14} color="#fff" />
-                    </div>
+                    <LogoMark size={28} />
                     <span style={{ fontSize: 15, fontWeight: 600 }}>HitAPI</span>
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>· How it works</span>
                 </div>

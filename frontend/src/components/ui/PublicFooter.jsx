@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Zap, ExternalLink, Mail } from 'lucide-react';
-
+import { LogoMark } from './Logo.jsx';
 const CURRENT_YEAR = new Date().getFullYear();
 
 export function PublicFooter() {
@@ -20,9 +20,7 @@ export function PublicFooter() {
                     {/* Brand */}
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <Zap size={13} color="#fff" />
-                            </div>
+                            <LogoMark size={26} />
                             <span style={{ fontSize: 15, fontWeight: 700 }}>HitAPI</span>
                         </div>
                         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.7, margin: 0 }}>

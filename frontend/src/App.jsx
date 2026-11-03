@@ -22,6 +22,7 @@ import { AdminErrorsPage } from './components/admin/AdminErrorsPage.jsx';
 import { api } from './store/index.js';
 import { LiveFetchPage } from './components/live-fetch/LiveFetchPage.jsx';
 import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
+import { LogoMark } from './components/ui/Logo.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -65,14 +66,7 @@ function Landing({ onNewProject }) {
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
       <div style={{ textAlign: 'center', maxWidth: 480, marginBottom: 48 }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14,
-          background: 'linear-gradient(135deg, #8264ff, #5ca8ff)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px'
-        }}>
-          <span style={{ fontSize: 24 }}>⚡</span>
-        </div>
+        <LogoMark size={52} style={{ margin: '0 auto 20px' }} />
         <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 10 }}>HitAPI</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.7 }}>
           AI-powered API testing on Cloudflare. Import your Swagger spec, generate tests automatically, run them, and detect bugs instantly.

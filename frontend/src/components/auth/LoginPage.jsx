@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/index.js';
 import { CURRENT_TERMS_VERSION } from '../ui/TermsGate.jsx';
-
+import { LogoMark } from '../ui/Logo.jsx';
 export function LoginPage({ onAuth }) {
     const { login, signup } = useStore();
     const [mode, setMode] = useState(() => {
@@ -48,9 +48,10 @@ export function LoginPage({ onAuth }) {
 
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                        <span style={{ fontSize: 22 }}>⚡</span>
-                    </div>
+
+
+                    <LogoMark size={48} style={{ margin: '0 auto 12px' }} />
+
                     <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>HitAPI</h1>
                     <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: '4px 0 0' }}>AI-powered API Testing</p>
                 </div>

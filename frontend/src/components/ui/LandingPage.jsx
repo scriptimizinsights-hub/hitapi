@@ -6,7 +6,7 @@ import {
     Shield, Globe, Cpu, Upload, ChevronDown, ExternalLink,
     Terminal, GitBranch, Clock, Send
 } from 'lucide-react';
-
+import { LogoMark } from './Logo.jsx';
 // ── Animated counter ───────────────────────────────────────────────────────────
 function Counter({ to, suffix = '', prefix = '', duration = 1500 }) {
     const [val, setVal] = useState(0);
@@ -134,9 +134,7 @@ export function LandingPage({ onGetStarted }) {
                 display: 'flex', alignItems: 'center', height: 60,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Zap size={14} color="#fff" />
-                    </div>
+                    <LogoMark size={28} />
                     <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>HitAPI</span>
                 </div>
 

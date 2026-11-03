@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Github, Globe } from 'lucide-react';
 import { useState } from 'react';
+import { LogoMark } from './Logo.jsx';
 
 const COMPANY = 'Scriptimiz Insight LLP';
 const EMAIL = 'support@hitapi.dev';
@@ -84,7 +85,7 @@ export function SupportPage() {
                     padding: '14px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚡</div>
+                        <LogoMark size={26} />
                         <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
                     </div>
                     <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -97,7 +98,7 @@ export function SupportPage() {
 
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: 48 }}>
-                    <div style={{ fontSize: 40, marginBottom: 16 }}>⚡</div>
+                    <LogoMark size={40} />
                     <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 10 }}>
                         HitAPI Support
                     </h1>

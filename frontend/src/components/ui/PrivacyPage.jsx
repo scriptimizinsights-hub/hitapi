@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, Shield, Mail, MapPin } from 'lucide-react';
-
+import { Logo, LogoMark } from './Logo.jsx';
 const LAST_UPDATED = 'June 30, 2026';
 const COMPANY = 'Scriptimiz Insight LLP';
 const EMAIL = 'support@hitapi.dev';
@@ -52,7 +52,7 @@ export function PrivacyPage() {
                     padding: '14px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#8264ff,#5ca8ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>⚡</div>
+                        <LogoMark size={26} />
                         <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
                     </div>
                     <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
