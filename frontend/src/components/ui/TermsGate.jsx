@@ -7,7 +7,7 @@ import { useStore } from '../../store/index.js';
 export const CURRENT_TERMS_VERSION = '2026-06-30';
 
 // Pages that must always be accessible without terms acceptance
-const PUBLIC_PATHS = ['/terms', '/privacy', '/how-it-works', '/support'];
+const PUBLIC_PATHS = ['/terms', '/privacy', '/how-it-works', '/support', '/playground'];
 
 export function TermsGate({ children }) {
     const { user, acceptTerms } = useStore();

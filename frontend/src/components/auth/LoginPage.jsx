@@ -4,7 +4,10 @@ import { CURRENT_TERMS_VERSION } from '../ui/TermsGate.jsx';
 
 export function LoginPage({ onAuth }) {
     const { login, signup } = useStore();
-    const [mode, setMode] = useState('login'); // 'login' | 'signup'
+    const [mode, setMode] = useState(() => {
+        try { return new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' : 'login'; }
+        catch { return 'login'; }
+    }); // 'login' | 'signup'
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

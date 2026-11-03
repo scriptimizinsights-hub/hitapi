@@ -14,6 +14,7 @@ import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
 import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
 import { NormalizeError } from '../utils/normalizeAIResponse.js';
 import { executePublicRequest, checkRateLimit, PublicRequestError, PUBLIC_LIMITS } from '../services/proxy.js';
+import { buildFlowStepPrompt } from '../utils/promptBuilder.js';
 
 
 function repos(env) {
