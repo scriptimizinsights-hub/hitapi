@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { PublicFooter } from './PublicFooter.jsx';
-import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Github, Globe } from 'lucide-react';
+import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Globe } from 'lucide-react';
 import { useState } from 'react';
 import { LogoMark } from './Logo.jsx';
 
@@ -118,15 +118,6 @@ export function SupportPage() {
                             desc: 'Step-by-step guides for setup, auth, and test generation.',
                             action: 'View how it works',
                             href: '/how-it-works'
-                        },
-                        {
-                            icon: Github,
-                            color: 'var(--green)',
-                            bg: 'var(--green-bg)',
-                            title: 'GitHub Issues',
-                            desc: 'Report bugs or request features on our public repository.',
-                            action: 'Open GitHub',
-                            href: 'https://github.com/sunilyadav/hitapi'
                         },
                         {
                             icon: Mail,

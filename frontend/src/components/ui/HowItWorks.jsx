@@ -137,9 +137,7 @@ export function HowItWorks() {
                     <button onClick={() => navigate('/')} className="btn btn-primary" style={{ fontSize: 15, padding: '11px 26px', display: 'flex', alignItems: 'center', gap: 8 }}>
                         Start testing <ArrowRight size={16} />
                     </button>
-                    <a href="https://github.com/yadavsunil9699" target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ fontSize: 15, padding: '11px 26px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        View on GitHub <ExternalLink size={14} />
-                    </a>
+
                 </div>
             </div>
 
