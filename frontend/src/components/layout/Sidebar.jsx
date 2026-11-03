@@ -20,7 +20,7 @@ const NAV = [
   { to: 'flows', icon: GitBranch, label: 'Flow Suites', dividerBefore: true },
   { to: 'settings', icon: Settings, label: 'Settings' },
   { to: 'errors', icon: AlertTriangle, label: 'Platform Errors' },
-  { to: 'playground', icon: Send, label: 'Playground' },
+
   // { to: 'login-flow', icon: Lock, label: 'Login flow' },
 ];
 

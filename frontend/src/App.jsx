@@ -194,17 +194,14 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
+          <Route path="/playground" element={<PlaygroundPage />} />
 
           <Route path="/" element={
             <AppLayout onNewProject={handleNewProject}>
               <Landing onNewProject={handleNewProject} />
             </AppLayout>
           } />
-          <Route path="/playground" element={
-            <AppLayout onNewProject={handleNewProject}>
-              <PlaygroundPage />
-            </AppLayout>
-          } />
+
           <Route path="/projects/:projectId/*" element={
             <AppLayout onNewProject={handleNewProject}>
               <ProjectRoutes />
