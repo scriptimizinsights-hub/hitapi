@@ -140,7 +140,7 @@ import { create } from 'zustand';
 export const useStore = create((set, get) => ({
   // Auth
   user: null,
-  authLoading: true,
+  authLoading: (() => { try { return !!getToken(); } catch { return false; } })(),
   isAdmin: false,
   login: async (email, password) => {
     const data = await api.auth.login({ email, password });

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, Shield, Mail, MapPin } from 'lucide-react';
 import { Logo, LogoMark } from './Logo.jsx';
@@ -40,8 +40,7 @@ function Note({ children }) {
 
 export function PrivacyPage() {
     const navigate = useNavigate();
-    const isPublic = !window.location.pathname.includes('/projects/');
-
+    const isPublic = !useLocation().pathname.includes('/projects/');
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-app)' }}>
             {isPublic && (

@@ -1,0 +1,4 @@
+# Keep the Cloudflare Pages preview domain (hitapi.pages.dev and preview
+# deployments) out of Google, so only https://hitapi.dev is indexed.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex

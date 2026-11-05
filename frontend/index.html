@@ -10,9 +10,37 @@
   <meta name="theme-color" content="#0a0a0f" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO: build step (scripts/prerender.mjs) replaces this block per page from src/seo/pages.js -->
+  <!--seo:start-->
+  <title>HitAPI: AI API Testing and Free Online API Tester</title>
   <meta name="description"
-    content="HitAPI — AI-powered API testing on Cloudflare. Import Swagger, generate tests, detect bugs instantly." />
-  <title>HitAPI — AI API Testing</title>
+    content="Import a Swagger/OpenAPI spec and HitAPI writes API tests with AI, runs them on your live API and explains what broke. Plus a free online API tester." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://hitapi.dev/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="HitAPI" />
+  <meta property="og:title" content="HitAPI: AI API Testing and Free Online API Tester" />
+  <meta property="og:description"
+    content="Import a Swagger/OpenAPI spec and HitAPI writes API tests with AI, runs them on your live API and explains what broke. Plus a free online API tester." />
+  <meta property="og:url" content="https://hitapi.dev/" />
+  <meta property="og:image" content="https://hitapi.dev/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="HitAPI — AI API testing and free online API tester" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="HitAPI: AI API Testing and Free Online API Tester" />
+  <meta name="twitter:description"
+    content="Import a Swagger/OpenAPI spec and HitAPI writes API tests with AI, runs them on your live API and explains what broke. Plus a free online API tester." />
+  <meta name="twitter:image" content="https://hitapi.dev/og-image.png" />
+  <script
+    type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://hitapi.dev/#organization","name":"HitAPI","url":"https://hitapi.dev/","logo":"https://hitapi.dev/icon-512.png","email":"support@hitapi.dev"},{"@type":"WebSite","@id":"https://hitapi.dev/#website","name":"HitAPI","url":"https://hitapi.dev/","publisher":{"@id":"https://hitapi.dev/#organization"}},{"@type":"SoftwareApplication","name":"HitAPI","url":"https://hitapi.dev/","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"Import a Swagger/OpenAPI spec and HitAPI writes API tests with AI, runs them on your live API and explains what broke. Plus a free online API tester.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://hitapi.dev/#organization"}}]}</script>
+  <!--seo:end-->
+  <script>
+    // Only https://hitapi.dev should be used; send visitors from the Pages preview domain there.
+    if (location.hostname === 'hitapi.pages.dev') location.replace('https://hitapi.dev' + location.pathname + location.search + location.hash);
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -22,6 +50,20 @@
 
 <body>
   <div id="root"></div>
+  <script>
+    // Pages are pre-rendered for search engines. For app pages and logged-in users, drop the
+    // static copy before it's drawn so nobody sees a flash of the wrong page.
+    (function () {
+      var p = location.pathname.replace(/\/+$/, '') || '/';
+      var prerendered = ['/', '/playground', '/how-it-works', '/support', '/privacy', '/terms'];
+      var loggedIn = false;
+      try { loggedIn = !!localStorage.getItem('hitapi_token'); } catch (e) { }
+      if (loggedIn || prerendered.indexOf(p) === -1) {
+        var r = document.getElementById('root');
+        if (r) r.innerHTML = '';
+      }
+    })();
+  </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

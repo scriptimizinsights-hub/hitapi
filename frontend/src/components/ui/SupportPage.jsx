@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, Mail, MapPin, MessageCircle, Book, Zap, ChevronDown, ChevronUp, ExternalLink, Globe } from 'lucide-react';
 import { useState } from 'react';
@@ -72,7 +72,7 @@ function FAQ({ item }) {
 
 export function SupportPage() {
     const navigate = useNavigate();
-    const isPublic = !window.location.pathname.includes('/projects/');
+    const isPublic = !useLocation().pathname.includes('/projects/');
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-app)' }}>

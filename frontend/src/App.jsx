@@ -24,6 +24,7 @@ import { LiveFetchPage } from './components/live-fetch/LiveFetchPage.jsx';
 import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 import { LogoMark } from './components/ui/Logo.jsx';
 import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
+import { RouteMeta } from './seo/RouteMeta.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -155,6 +156,7 @@ export default function App() {
   if (!user) {
     return (
       <BrowserRouter>
+        <RouteMeta />
         <Routes>
           {/* Always public */}
           <Route path="/how-it-works" element={<HowItWorks />} />
@@ -186,6 +188,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <RouteMeta />
       <TermsGate>
         <Routes>
           {/* Public pages — no sidebar */}

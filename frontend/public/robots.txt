@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /projects/
+Disallow: /admin
+
+Sitemap: https://hitapi.dev/sitemap.xml
