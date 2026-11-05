@@ -7,6 +7,7 @@ import {
     Terminal, GitBranch, Clock, Send
 } from 'lucide-react';
 import { LogoMark } from './Logo.jsx';
+import { DemoVideo } from './DemoVideo.jsx';
 // ── Animated counter ───────────────────────────────────────────────────────────
 function Counter({ to, suffix = '', prefix = '', duration = 1500 }) {
     const [val, setVal] = useState(0);
@@ -183,14 +184,23 @@ export function LandingPage({ onGetStarted }) {
                     <button onClick={go} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
                         Start testing for free <ArrowRight size={16} />
                     </button>
-                    <button onClick={() => navigate('/how-it-works')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
-                        <Play size={14} fill="currentColor" /> See how it works
+                    <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
+                        <Play size={14} fill="currentColor" /> Watch the demo
                     </button>
                     <button onClick={() => navigate('/playground')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(35,209,139,0.08)', border: '1px solid rgba(35,209,139,0.3)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
                         <Send size={14} /> Try API Playground — no login
                     </button>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>No credit card · No infrastructure to set up · Free to start</p>
+            </section>
+
+            {/* ── Product demo video ── */}
+            <section id="demo" style={{ padding: '0 40px 90px', scrollMarginTop: 80 }}>
+                <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>See HitAPI in action</div>
+                    <h2 style={{ fontSize: 'clamp(26px,3.5vw,38px)', fontWeight: 700, letterSpacing: '-0.03em', margin: 0 }}>From Swagger spec to bug report in about a minute</h2>
+                </div>
+                <DemoVideo />
             </section>
 
             {/* ── Stats ── */}

@@ -6,6 +6,7 @@ import {
     ArrowRight, CheckCircle2, Shield, AlertTriangle, Activity, ExternalLink
 } from 'lucide-react';
 import { LogoMark } from './Logo.jsx';
+import { DemoVideo } from './DemoVideo.jsx';
 const STAGES = [
     {
         step: '01', icon: Upload, color: '#8264ff', bg: 'rgba(130,100,255,0.1)', border: 'rgba(130,100,255,0.25)',
@@ -139,6 +140,12 @@ export function HowItWorks() {
                     </button>
 
                 </div>
+            </div>
+
+            {/* Product demo video */}
+            <div style={{ padding: '0 40px 80px' }}>
+                <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 18 }}>Watch the 1-minute demo</div>
+                <DemoVideo maxWidth={960} />
             </div>
 
             {/* Stats */}

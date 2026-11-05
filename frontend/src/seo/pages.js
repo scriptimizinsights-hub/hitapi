@@ -78,6 +78,18 @@ export function metaFor(pathname) {
     };
 }
 
+// Product demo video (public/media) — lets Google show it in video results
+const DEMO_VIDEO = {
+  '@type': 'VideoObject',
+  '@id': `${SITE.url}/#demo-video`,
+  name: 'HitAPI product demo: AI API testing in about a minute',
+  description: 'See HitAPI import a Swagger/OpenAPI spec, write API tests with AI, run them against a live API, explain bugs with a root cause and fix, run multi-step flows, and test any API for free in the API Playground.',
+  thumbnailUrl: `${SITE.url}/media/hitapi-demo-poster.jpg`,
+  contentUrl: `${SITE.url}/media/hitapi-demo.mp4`,
+  uploadDate: '2026-11-05',
+  duration: 'PT1M11S',
+};
+
 /** schema.org structured data (JSON-LD) for a public page, or null. */
 export function jsonLdFor(path) {
     const org = {
@@ -110,8 +122,12 @@ export function jsonLdFor(path) {
                     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
                     publisher: { '@id': `${SITE.url}/#organization` },
                 },
+                { ...DEMO_VIDEO, publisher: { '@id': `${SITE.url}/#organization` } },
             ],
         };
+    }
+    if (path === '/how-it-works') {
+        return { '@context': 'https://schema.org', ...DEMO_VIDEO, publisher: org };
     }
     if (path === '/playground') {
         return {
