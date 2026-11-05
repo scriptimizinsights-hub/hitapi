@@ -1,16 +1,21 @@
 # Local Agent
 
-The optional Local Agent lets HitAPI enqueue HTTP jobs for the browser extension to execute, including requests to local development APIs.
+HitAPI's servers can't reach `localhost` on your machine. The Local Agent lets suite steps that call your local API run from your browser instead.
 
 ## Use
 
-1. Sign in to HitAPI in the extension popup.
-2. Turn on **Local Agent**.
-3. Keep the extension installed and signed in while jobs are needed. The agent checks for jobs immediately when enabled and then approximately every 30 seconds.
-4. Turn the toggle off to stop scheduled polling.
+1. Sign in to the extension.
+2. Turn on **Local Agent**. Within a couple of seconds it shows **Connected**, and the dashboard shows the agent as connected.
+3. Run a suite on hitapi.dev or from the popup. Steps whose URL is local are sent to the extension, run in your browser, and the results go back to HitAPI.
 
-For each queued job, the extension sends the configured method, URL, headers, and body using the browser's `fetch`. It posts the response status and headers back to HitAPI, with a JSON response body or text truncated to 2,000 characters. Network errors are reported as job errors.
+## How it works
 
-## Security note
+- While it's on, the extension asks HitAPI for work every 2 seconds. HitAPI waits up to 25 seconds for each local step, so steps are picked up well in time.
+- A Chrome alarm restarts polling if Chrome pauses the background worker, and polling resumes after you sign in again.
+- Each job has 20 seconds to respond. If your local server is down, the step fails with "Couldn't reach … Is your local server running?". If the agent is off, the step fails after 25 seconds with a message asking you to turn it on.
 
-The Local Agent executes request URLs and headers supplied by queued HitAPI jobs. Enable it only for an account and environment you trust, and be cautious with access to localhost and private-network services. The current popup does not show a host allowlist, job preview, or per-job approval. An authenticated HitAPI account is required for job polling and result reporting.
+## Safety
+
+- The agent only calls local or private-network addresses: `localhost`, `127.x`, `::1`, `*.local`, `10.x`, `192.168.x` and `172.16–31.x`. Anything else is refused.
+- Requests are sent without your browser cookies.
+- Turn the agent off when you don't need it.

@@ -176,7 +176,7 @@ function buildHeaders(step, context, project, suite) {
 }
 
 // ── Execute a single step ─────────────────────────────────────────────────────
-async function executeStep(step, context, project, suite) {
+async function executeStep(step, context, project, suite, db = null) {
     // Resolve URL — replace {{var}} placeholders first
     let url = step.url_override || `${project.base_url}${step.endpoint_path || ''}`;
     url = resolve(url, context);
@@ -447,7 +447,7 @@ export async function runSubChecks(step, happyResult, context, project) {
 }
 
 // ── Main: run a full flow suite ───────────────────────────────────────────────
-export async function runFlowSuite(suite, steps, project, initialContext = {}) {
+export async function runFlowSuite(suite, steps, project, initialContext = {}, { db = null } = {}) {
     let context = { ...initialContext }; // start with context from previous chunk
     const results = [];
     let passed = 0, failed = 0;
@@ -527,7 +527,7 @@ export async function runFlowSuite(suite, steps, project, initialContext = {}) {
         }
 
         // Execute step normally
-        const result = await executeStep(step, context, project, suite);
+        const result = await executeStep(step, context, project, suite, db);
 
         // Note: sub-checks run separately after all steps complete
         // to avoid multiplying subrequests (25 steps × 5 checks = 125 requests)
@@ -636,6 +636,7 @@ const LOCAL_JOB_TIMEOUT_MS = 25000; // must be less than the Worker's own execut
 const LOCAL_JOB_POLL_INTERVAL_MS = 500;
 
 async function executeViaLocalAgent(db, { projectId, userId, runId, stepId, method, url, headers, body }) {
+    if (!db) throw new Error('Local Agent is unavailable for this run (no database handle). This is a HitAPI bug.');
     const jobId = db.uuid();
 
     await db.run(

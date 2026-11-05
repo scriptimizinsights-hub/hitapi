@@ -1,6 +1,6 @@
 # HitAPI Extension Features
 
-Feature documentation for the HitAPI browser extension. Each page describes the current implementation; planned or unavailable behavior is identified explicitly.
+How each feature of the HitAPI browser extension (v1.6) works. For the code layout, see the [extension README](../../README.md).
 
 ## Features
 

@@ -1,3 +1,8 @@
 # Context Menu
 
-The extension adds **Open HitAPI** to the browser page context menu. Selecting it asks Chrome to open the extension popup. This is a shortcut to the same popup workflow; it does not start monitoring by itself or provide additional page-specific actions.
+Right-click any web page:
+
+- **Open HitAPI** opens the extension popup.
+- **Capture API calls on this tab** starts capture for the tab, then opens the popup.
+
+Opening the popup from the menu needs Chrome 127 or later. On older versions, capture still starts and the toolbar badge shows the count.

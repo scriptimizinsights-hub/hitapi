@@ -1,18 +1,20 @@
 # OpenAPI Import
 
-Import an OpenAPI/Swagger JSON document into the selected HitAPI project.
+Import an OpenAPI 3 or Swagger 2 spec, in **JSON or YAML**, into the selected project.
 
 ## Use
 
-1. Open the extension popup and select a project.
-2. Enter a URL that returns an OpenAPI JSON document in **Import Swagger from this tab**.
-3. Select **Import**. The popup reports how many endpoints were imported when the service responds successfully.
+1. Select a project and select **📥** next to the project picker.
+2. Paste the spec URL, for example `http://localhost:3000/openapi.json`, `/v3/api-docs` or `/openapi.yaml`. If the current tab is showing a spec file, its URL is filled in for you.
+3. Select **Import**. The popup shows how many new endpoints were added and how many existing ones were updated.
 
-The extension fetches the URL from the active tab's page context, reads the response as JSON, and posts the specification to the HitAPI project import endpoint.
+## How it works
 
-## Requirements and limits
+- The extension downloads the spec itself. It has permission to reach any site, so CORS doesn't block it, and localhost works.
+- If that fails, it retries from inside the current tab, which helps for docs behind a login.
+- The spec is checked before it is sent. You get a specific message if the URL is a web page (such as the Swagger UI page) instead of a spec, if the file isn't valid JSON or YAML, if it has no `openapi`/`swagger` field, or if it has no paths.
+- Importing the same spec again doesn't create duplicates. Endpoints that already exist (same method and path, including ones captured by the extension) are updated with the spec's details.
 
-- The user must be signed in and have a project selected.
-- The active tab must permit the page-context fetch. Browser origin and CORS restrictions may prevent fetching a URL from a different origin.
-- The current implementation expects JSON; it does not parse YAML or upload a local file.
-- The OpenAPI document is sent to HitAPI for import. Avoid importing specifications containing secrets or data that should not be shared with the service.
+## Privacy
+
+The spec is sent to HitAPI. Don't import specs that contain secrets.

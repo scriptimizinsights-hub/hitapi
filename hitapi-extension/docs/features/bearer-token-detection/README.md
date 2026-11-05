@@ -1,10 +1,13 @@
 # Bearer Token Detection
 
-While monitoring an origin, the extension checks captured request headers for an `Authorization` value beginning with `Bearer `. A detected token is saved in `chrome.storage.local` with its origin and detection time. The popup shows a token-detected notice and offers a **Copy** action.
+While a tab is being captured, the extension looks for an `Authorization: Bearer …` header on its requests. When it finds one, the Capture tab shows **🔑 Bearer token detected** with a masked preview (for example `eyJh••••••oken`) and a **Copy** button.
 
-## Scope and privacy
+## Using the token
 
-- Detection applies to matching requests observed while monitoring is active.
-- The extension stores the most recently detected token for each origin; stopping capture does not remove it.
-- The popup currently offers no token deletion or redaction control. Clear extension data or remove the `detectedTokens` entry from extension storage to delete it.
-- Treat the token as a secret. Anyone who can access the browser profile or extension storage may be able to access it. The token is not automatically sent to HitAPI by detection itself.
+When you create a **new** suite from a captured request that carried a token, you can choose to save the token on that suite. The suite's steps then run as you. The token is stored once, as the suite's login token, and is never copied into individual steps.
+
+## Privacy
+
+- The token is kept in `chrome.storage.session`: in memory only, never written to disk, and cleared when the tab closes or Chrome quits.
+- Older versions kept detected tokens on disk (`detectedTokens` in `chrome.storage.local`). Version 1.6 deletes that data automatically.
+- Detection by itself never sends a token anywhere.

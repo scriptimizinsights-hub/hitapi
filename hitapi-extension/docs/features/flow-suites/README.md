@@ -1,23 +1,30 @@
 # Flow Suite Management and Execution
 
-The popup can add captured requests to HitAPI flow suites and start suite runs.
+## Add a captured request to a suite
 
-## Add a captured request
+1. Select a project.
+2. In **Capture**, select a request to open it.
+3. Choose an existing suite, or **➕ New suite…** and type a name.
+4. Select **+ Add**.
 
-1. Select a project in the popup.
-2. Capture a request, then expand it.
-3. Choose an existing suite and select **Add**, or create a new suite by name.
+What gets saved:
 
-The extension sends the captured method, URL, request headers, and body to HitAPI to create a flow step. It omits `cookie`, `host`, `content-length`, `connection`, `origin`, and `referer` headers before sending the request to the backend.
+- method, URL and request body (bodies over 10,000 characters are skipped, and the toast says so)
+- headers your API needs, such as `Content-Type` or custom `X-…` headers
+- **not saved:** credentials (`Authorization`, cookies, API keys, CSRF tokens) and headers the browser sets itself (`User-Agent`, `sec-*`, `Accept-Language`, `Origin`, `Referer`, and similar). The HitAPI server applies the same filter.
+- **login token:** for a new suite, you can tick "Save this request's login token on the new suite". It is stored once as the suite's static token. Existing suites keep their own auth settings.
+
+If saving fails, the popup shows the reason instead of a success message.
 
 ## Run a suite
 
-1. Open **Run Suites**.
-2. Select **Run** on a suite.
-3. The popup polls the run status until it completes and displays the passed and failed step counts. The extension badge shows the resulting count and pass/fail state.
+1. Open **▶ Run suites**.
+2. Select **▶ Run**. The card shows progress, then the passed and failed counts, and the toolbar badge shows the result.
 
-## Current boundaries
+- A suite with no steps can't be run; its button is disabled.
+- If a run can't start, or a status check fails, the card shows the reason and the button is usable again.
+- Suites whose steps call `localhost` need the [Local Agent](../local-agent/README.md).
 
-- Suite contents and run details are managed by the HitAPI service; this popup shows suite names, step counts, run state, and aggregate pass/fail totals.
-- The popup does not provide suite editing or per-step response inspection.
-- A request marked as added is tracked in popup state only; that visual marker is not a persistent server-side indication.
+## Not available in the extension
+
+Editing steps and viewing per-step responses are done on the dashboard.

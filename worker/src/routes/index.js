@@ -99,18 +99,18 @@ export async function importSwagger(request, env, { params }) {
   console.log(`[Swagger Import] Project ${params.id}:`, body ? `Fetching from ${JSON.stringify(body)}` : 'Using provided spec');
 
   let fullSpec;
-  if (body.spec) {
-    fullSpec = typeof body.spec === 'string' ? JSON.parse(body.spec) : body.spec;
-  } else if (body.url) {
-    const res = await fetch(body.url);
-    if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
-    fullSpec = await res.json();
-  } else if (body.swagger_url) {
-    const res = await fetch(body.swagger_url);
-    if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
-    fullSpec = await res.json();
-  } else {
-    return error('Provide either "url" or "spec"', 400);
+  try {
+    if (body.spec) {
+      fullSpec = typeof body.spec === 'string' ? JSON.parse(body.spec) : body.spec;
+    } else if (body.url || body.swagger_url) {
+      const res = await fetch(body.url || body.swagger_url);
+      if (!res.ok) return error(`Failed to fetch spec: HTTP ${res.status}`, 400);
+      fullSpec = await res.json();
+    } else {
+      return error('Provide either "url" or "spec"', 400);
+    }
+  } catch (e) {
+    return error(`Could not read the spec (it must be OpenAPI/Swagger JSON): ${e.message}`, 400);
   }
 
   // NEW — unwrap common envelope patterns
@@ -119,12 +119,41 @@ export async function importSwagger(request, env, { params }) {
     fullSpec = fullSpec.result;
   }
 
-  const endpoints = extractEndpoints(fullSpec);
+  if (!fullSpec || typeof fullSpec !== 'object' || (!fullSpec.openapi && !fullSpec.swagger) || !fullSpec.paths) {
+    return error('This is not an OpenAPI/Swagger spec (it needs an "openapi" or "swagger" field and "paths")', 400);
+  }
+
+  let endpoints;
+  try { endpoints = extractEndpoints(fullSpec); }
+  catch (e) { return error(`Could not read the endpoints in this spec: ${e.message}`, 400); }
 
   if (!endpoints.length) return error('No endpoints found in spec', 400);
 
+  // Endpoints the project already has (same method + path, e.g. from an earlier
+  // import or captured by the browser extension) are updated with the spec's
+  // details instead of being added a second time.
+  const existing = await db.all('SELECT id, method, path FROM endpoints WHERE project_id = ?', [params.id]);
+  const existingIds = new Map(existing.map(e => [`${String(e.method).toUpperCase()} ${e.path}`, e.id]));
+  const asDb = (v) => (v === undefined || v === null ? null : typeof v === 'object' ? JSON.stringify(v) : v);
+  let imported = 0, updated = 0;
+
   console.log(`[Swagger Import] Project ${params.id}: Found ${endpoints.length} endpoints`);
   for (const ep of endpoints) {
+    const key = `${String(ep.method).toUpperCase()} ${ep.path}`;
+    const existingId = existingIds.get(key);
+    if (existingId) {
+      await db.run(
+        `UPDATE endpoints SET summary = ?, description = ?, parameters = ?, request_body = ?,
+                responses = ?, tags = ?, security = ? WHERE id = ?`,
+        [asDb(ep.summary), asDb(ep.description), asDb(ep.parameters), asDb(ep.requestBody),
+         asDb(ep.responses), asDb(ep.tags), asDb(ep.security), existingId]
+      );
+      updated++;
+      continue;
+    }
+    existingIds.set(key, true); // a spec listing the same endpoint twice adds it once
+    imported++;
+
     const toDbValue = (v) => {
       if (v === undefined || v === null) return null;
       if (typeof v === 'object') return JSON.stringify(v);
@@ -153,14 +182,14 @@ export async function importSwagger(request, env, { params }) {
   }
 
   // Clear cached endpoints for this project
-  await env.CACHE.delete(`endpoints:${params.id}`);
+  await env.CACHE?.delete(`endpoints:${params.id}`);
 
   console.log(
     `[Swagger Import] Cache cleared: endpoints:${params.id}`
   );
 
 
-  return json(success({ imported: endpoints.length }), 201);
+  return json(success({ imported, updated, total: endpoints.length }), 201);
 }
 
 // ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -606,7 +635,7 @@ export async function handleQueue(batch, env) {
 
         // Run this chunk — gets fresh subrequest budget
         const { results, context: newContext, summary } = await runFlowSuite(
-          suite, chunk, project, prevContext
+          suite, chunk, project, prevContext, { db }
         );
 
         // Save chunk results to DB immediately
@@ -1088,7 +1117,7 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
 
     if (activeCount <= CHUNK_SIZE) {
       // Small suite — single run
-      const run = await runFlowSuite(suite, steps, project, {});
+      const run = await runFlowSuite(suite, steps, project, {}, { db });
       results = run.results;
       context = run.context;
       passed = run.summary.passed;
@@ -1100,7 +1129,7 @@ export async function runFlowSuiteInline(db, env, suite, allSteps, project, runI
       for (let i = 0; i < steps.length; i += CHUNK_SIZE) {
         const chunk = steps.slice(i, i + CHUNK_SIZE);
         console.log(`[Flow] Running chunk ${Math.floor(i / CHUNK_SIZE) + 1}: steps ${i + 1}-${Math.min(i + CHUNK_SIZE, steps.length)}, context keys: ${Object.keys(context).join(',')}`);
-        const run = await runFlowSuite(suite, chunk, project, context);
+        const run = await runFlowSuite(suite, chunk, project, context, { db });
         results.push(...run.results);
         // Pass extracted vars (token, IDs) to next chunk
         Object.assign(context, run.context);
@@ -1362,7 +1391,7 @@ export async function quickCreateFromCapture(request, env, { params, user }) {
   if (!project) return error('Project not found', 404);
 
   const body = await parseBody(request);
-  const { method, url, headers, requestBody, suiteId, newSuiteName, stepName } = body;
+  const { method, url, headers, requestBody, suiteId, newSuiteName, stepName, authToken } = body;
 
   if (!method || !url) return error('method and url are required', 400);
   if (!suiteId && !newSuiteName) return error('Either suiteId or newSuiteName is required', 400);
@@ -1398,6 +1427,15 @@ export async function quickCreateFromCapture(request, env, { params, user }) {
     if (!suite) return error('Flow suite not found', 404);
   }
 
+  // 2b. A NEW suite can take the login token seen on the captured request, so
+  //     its steps run as that user. Stored once on the suite (auth_type 'static'),
+  //     never copied into each step. Existing suites keep their auth settings.
+  let authSet = false;
+  if (suiteCreated && typeof authToken === 'string' && authToken.trim()) {
+    await db.run(`UPDATE flow_suites SET auth_type = 'static', static_token = ? WHERE id = ?`, [authToken.trim(), targetSuiteId]);
+    authSet = true;
+  }
+
   // 3. Add step referencing the new endpoint
   const maxOrder = await db.first(`SELECT MAX(step_order) as m FROM flow_steps WHERE suite_id = ?`, [targetSuiteId]);
   const nextOrder = (maxOrder?.m ?? -1) + 1;
@@ -1422,6 +1460,7 @@ export async function quickCreateFromCapture(request, env, { params, user }) {
     suite_id: targetSuiteId,
     step_id: stepId,
     suite_created: suiteCreated,
+    auth_set: authSet,
   }), 201);
 }
 
@@ -1429,11 +1468,20 @@ function safeParse(str) {
   try { return JSON.parse(str); } catch { return str; }
 }
 
+// Browser-set headers and credentials are never stored on a step.
+// (Auth is set on the suite instead; see quickCreateFromCapture.)
+const EXT_SKIP_HEADERS = new Set([
+  'cookie', 'host', 'content-length', 'connection', 'origin', 'referer', 'user-agent',
+  'accept-encoding', 'accept-language', 'cache-control', 'pragma', 'priority', 'dnt',
+  'authorization', 'proxy-authorization', 'x-api-key', 'x-auth-token', 'x-access-token',
+  'x-csrf-token', 'x-xsrf-token',
+]);
+
 function sanitizeExtHeaders(headers) {
-  const skip = ['cookie', 'host', 'content-length', 'connection', 'origin', 'referer'];
   const result = {};
   for (const [k, v] of Object.entries(headers || {})) {
-    if (!skip.includes(k.toLowerCase())) result[k] = v;
+    const key = k.toLowerCase();
+    if (!EXT_SKIP_HEADERS.has(key) && !key.startsWith('sec-')) result[k] = v;
   }
   return result;
 }
@@ -2467,7 +2515,8 @@ export async function pollAgentJobs(request, env, { user }) {
   // Heartbeat — powers the "Agent connected" indicator
   await db.run(
     `INSERT INTO local_agent_heartbeats (user_id, last_seen_at) VALUES (?, unixepoch())
-     ON CONFLICT(user_id) DO UPDATE SET last_seen_at = unixepoch()`,
+     ON CONFLICT(user_id) DO UPDATE SET last_seen_at = unixepoch()
+     WHERE local_agent_heartbeats.last_seen_at < unixepoch() - 5`,
     [user.sub]
   );
 

@@ -1,24 +1,29 @@
 # API Monitoring and Request Capture
 
-The popup can monitor HTTP API requests for the origin of the active browser tab.
+Capture the API calls a browser tab makes, then save them as test steps or report them as bugs.
 
 ## Use
 
-1. Open a regular website tab and open the HitAPI extension popup.
-2. Sign in and select or create a HitAPI project.
-3. Select **Start** in the monitor bar.
-4. Interact with the site. Captured requests appear in the **Capture** tab.
-5. Expand a request to add it to a flow suite or report a bug. Use **Clear** to remove the current list, or **Stop** to end monitoring.
+1. Open a website, then open the HitAPI popup.
+2. Sign in and select or create a project.
+3. Select **▶ Start**. The popup shows **● Capturing this tab**.
+4. Use the site. Requests appear in the **Capture** tab as they happen.
+5. Select a request to add it to a suite or report it as a bug. **Clear** empties the list; **■ Stop** ends capture.
 
-## Captured data and filtering
+## What is captured
 
-For completed `xmlhttprequest` requests, the extension records method, URL, request headers, request body when available, timestamp, and response status. It displays the URL path, method, and status in the list. Requests with common analytics, telemetry, font, CDN, static-asset, and HitAPI service URL patterns are filtered out.
+- Every `fetch` / `XMLHttpRequest` the tab makes, **including calls to other domains** (for example `app.example.com` calling `api.example.com`).
+- Method, URL, status, duration, request headers, request body (up to 10,000 characters), and response headers.
+- Requests that fail without a response (connection refused, CORS errors) are listed as **ERR** with the reason.
+- Not captured: analytics and telemetry hosts, static files (scripts, styles, images, fonts), CORS preflight (`OPTIONS`) requests, and requests cancelled by page navigation.
 
-Monitoring is keyed by origin, not by individual tab. Requests to that origin can therefore be captured from other tabs while monitoring is active. The popup refreshes the displayed list every 1.5 seconds while open.
+## How it behaves
 
-## Limits and privacy
+- Capture is per tab. Each tab's toolbar badge shows its own count, and capture keeps running while you use other tabs.
+- The list updates live while the popup is open. Your scroll position, an open request, a chosen suite and anything you've typed are kept as new requests arrive.
+- Captured requests are kept in `chrome.storage.session`, so capture keeps working when Chrome pauses the extension's background worker. They are held in memory only, never written to disk, and are cleared when you close the tab or quit Chrome.
+- Each tab keeps the 100 most recent requests.
 
-- The capture list is held in background service-worker memory, is limited to 100 completed requests per origin, and is not restored after the worker or browser restarts.
-- Only `xmlhttprequest` traffic is observed. Response bodies, response headers, and request duration are not captured.
-- Requests that fail before completion are discarded from the list.
-- Request headers and bodies may contain credentials or personal data. Capture is local to the extension until a user sends a request to HitAPI, such as adding it to a suite. Review sensitive values before doing so.
+## Privacy
+
+Request headers and bodies can contain credentials or personal data. They stay in the extension until you choose to save a request to HitAPI. When you do, credentials and browser-set headers are removed first (see [Flow suites](../flow-suites/README.md)).

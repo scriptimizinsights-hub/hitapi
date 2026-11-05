@@ -1,5 +1,10 @@
 # DevTools Panel
 
-The extension registers a **HitAPI** tab in Chrome DevTools. The current panel is a placeholder: it directs users to the toolbar popup to view and act on captured requests. It does not independently capture, display, or inspect network traffic.
+Open DevTools (F12) and choose the **HitAPI** tab. The panel is the same app as the toolbar popup, shown for the tab DevTools is inspecting:
 
-Use the extension popup for request monitoring, capture, suite actions, and OpenAPI import. A live DevTools request inspector is not implemented yet.
+- start and stop capture
+- watch requests arrive live
+- add requests to suites and report bugs
+- import specs and run suites
+
+Unlike the popup, the panel stays open while you click around the page, which makes it the easier way to capture longer flows.
