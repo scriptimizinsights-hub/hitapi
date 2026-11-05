@@ -1,0 +1,442 @@
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #14141c;
+  --bg-hover: #1a1a24;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f2f2f5;
+  --text-secondary: #a8a8b8;
+  --text-tertiary: #6c6c7c;
+  --accent: #8264ff;
+  --green: #23d18b;
+  --green-bg: rgba(35, 209, 139, 0.1);
+  --red: #ff5c5c;
+  --red-bg: rgba(255, 92, 92, 0.1);
+  --amber: #ffb547;
+  --blue: #5ca8ff;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 380px;
+  height: 560px;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── Layout shell ── */
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 560px;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #8264ff, #5ca8ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.header-user {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Monitor bar ── */
+.monitor-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.monitor-bar.active {
+  background: rgba(35, 209, 139, 0.05);
+}
+
+.monitor-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.monitor-origin {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  flex-shrink: 0;
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  border-bottom: 2px solid transparent;
+}
+
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Content — ONLY scrollable area ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding: 10px 12px;
+}
+
+/* ── Footer ── */
+.footer {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 10px;
+}
+
+/* ── Buttons ── */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all .15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  padding: 7px 14px;
+}
+
+.btn-primary:hover {
+  background: #9277ff;
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-hover);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(255, 92, 92, 0.3);
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+/* ── Inputs ── */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+input[type="url"],
+select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+/* ── Login ── */
+.login-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  gap: 10px;
+}
+
+.login-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8264ff, #5ca8ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.login-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.login-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+
+.card:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Request item ── */
+.req-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 5px;
+  overflow: hidden;
+}
+
+.req-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.req-row:hover {
+  background: var(--bg-hover);
+}
+
+.req-actions {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* ── Method badges ── */
+.m {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  font-family: monospace;
+}
+
+.m-GET {
+  background: rgba(92, 168, 255, 0.15);
+  color: var(--blue);
+}
+
+.m-POST {
+  background: rgba(35, 209, 139, 0.15);
+  color: var(--green);
+}
+
+.m-PUT {
+  background: rgba(255, 181, 71, 0.15);
+  color: var(--amber);
+}
+
+.m-DELETE {
+  background: rgba(255, 92, 92, 0.15);
+  color: var(--red);
+}
+
+.m-PATCH {
+  background: rgba(255, 126, 179, 0.15);
+  color: #ff7eb3;
+}
+
+/* ── Suite card ── */
+.suite-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Empty state ── */
+.empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.empty .icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+/* ── Misc ── */
+.error {
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid rgba(255, 92, 92, 0.25);
+  color: var(--red);
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.badge {
+  font-size: 9px;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
+.url {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+.status-ok {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.status-err {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.added-tag {
+  font-size: 10px;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+
+.spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
