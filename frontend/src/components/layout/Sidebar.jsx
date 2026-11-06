@@ -3,7 +3,7 @@ import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
   HelpCircle, LogOut, User, Lock, GitBranch,
-  AlertTriangle, Send, Shield
+  Send, Shield
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
@@ -19,7 +19,6 @@ const NAV = [
   { to: 'monitors', icon: Bell, label: 'Monitors' },
   { to: 'flows', icon: GitBranch, label: 'Flow Suites', dividerBefore: true },
   { to: 'settings', icon: Settings, label: 'Settings' },
-  { to: 'errors', icon: AlertTriangle, label: 'Platform Errors' },
 
   // { to: 'login-flow', icon: Lock, label: 'Login flow' },
 ];
