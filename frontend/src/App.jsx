@@ -70,14 +70,14 @@ function Landing({ onNewProject }) {
       <div style={{ textAlign: 'center', maxWidth: 480, marginBottom: 48 }}>
         <LogoMark size={52} style={{ margin: '0 auto 20px' }} />
         <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 10 }}>HitAPI</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.7 }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-lg)', lineHeight: 1.7 }}>
           AI-powered API testing on Cloudflare. Import your Swagger spec, generate tests automatically, run them, and detect bugs instantly.
         </p>
       </div>
 
       {projects.length > 0 ? (
         <div style={{ width: '100%', maxWidth: 480 }}>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+          <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
             Your projects
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -91,17 +91,17 @@ function Landing({ onNewProject }) {
                 <div style={{
                   width: 36, height: 36, borderRadius: 8, flexShrink: 0,
                   background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, fontWeight: 700, color: 'var(--accent)'
+                  fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--accent)'
                 }}>
                   {p.name.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace' }}>{p.base_url}</div>
+                  <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, marginBottom: 2 }}>{p.name}</div>
+                  <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace' }}>{p.base_url}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                <div style={{ display: 'flex', gap: 8, fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>
                   <span>{p.endpoint_count || 0} endpoints</span>
-                  <span className={`badge ${p.environment === 'production' ? 'badge-red' : 'badge-accent'}`} style={{ fontSize: 9 }}>
+                  <span className={`badge ${p.environment === 'production' ? 'badge-red' : 'badge-accent'}`} style={{ fontSize: 'var(--fs-2xs)' }}>
                     {p.environment}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ function Landing({ onNewProject }) {
           </button>
         </div>
       ) : (
-        <button className="btn btn-primary" onClick={onNewProject} style={{ fontSize: 15, padding: '12px 28px' }}>
+        <button className="btn btn-primary" onClick={onNewProject} style={{ fontSize: 'var(--fs-lg)', padding: '12px 28px' }}>
           Create your first project
         </button>
       )}
@@ -281,7 +281,7 @@ function ProjectRoutes() {
   return (<>
     {viewingAsAdmin && (
       <div style={{
-        position: 'sticky', top: 0, zIndex: 40, padding: '8px 32px', fontSize: 12,
+        position: 'sticky', top: 0, zIndex: 40, padding: '8px 32px', fontSize: 'var(--fs-base)',
         background: 'var(--amber-bg)', borderBottom: '1px solid var(--amber-border)', color: 'var(--amber)',
         display: 'flex', alignItems: 'center', gap: 8, backdropFilter: 'blur(8px)'
       }}>

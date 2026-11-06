@@ -21,16 +21,16 @@ export function PublicFooter() {
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                             <LogoMark size={26} />
-                            <span style={{ fontSize: 15, fontWeight: 700 }}>HitAPI</span>
+                            <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 700 }}>HitAPI</span>
                         </div>
-                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.7, margin: 0 }}>
+                        <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', lineHeight: 1.7, margin: 0 }}>
                             AI-powered API testing.<br />No setup. Free to start.
                         </p>
                     </div>
 
                     {/* Product */}
                     <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Product</div>
+                        <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Product</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <FooterLink onClick={() => navigate('/how-it-works')}>How it works</FooterLink>
                             <FooterLink onClick={() => window.open('https://chromewebstore.google.com/search/HitAPI', '_blank')}>
@@ -43,7 +43,7 @@ export function PublicFooter() {
 
                     {/* Legal */}
                     <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Legal</div>
+                        <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Legal</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <FooterLink onClick={() => navigate('/privacy')}>Privacy Policy</FooterLink>
                             <FooterLink onClick={() => navigate('/terms')}>Terms &amp; Conditions</FooterLink>
@@ -52,7 +52,7 @@ export function PublicFooter() {
 
                     {/* Support */}
                     <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Support</div>
+                        <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Support</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <FooterLink onClick={() => navigate('/support')}>Help &amp; Support</FooterLink>
                             <FooterLink onClick={() => window.location.href = 'mailto:support@hitapi.dev'}>
@@ -70,10 +70,10 @@ export function PublicFooter() {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     flexWrap: 'wrap', gap: 8,
                 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                    <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>
                         © {CURRENT_YEAR} Scriptimiz Insight LLP · Mumbai, India
                     </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                    <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>
                         Made with ⚡ on Cloudflare
                     </span>
                 </div>
@@ -88,7 +88,7 @@ function FooterLink({ onClick, children }) {
             onClick={onClick}
             style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 13, color: 'var(--text-secondary)', textAlign: 'left',
+                fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', textAlign: 'left',
                 padding: 0, display: 'flex', alignItems: 'center',
                 transition: 'color .15s',
             }}

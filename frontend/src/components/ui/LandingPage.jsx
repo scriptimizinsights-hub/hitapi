@@ -34,16 +34,16 @@ function Counter({ to, suffix = '', prefix = '', duration = 1500 }) {
 
 // ── Typing animation for the hero code block ──────────────────────────────────
 const TYPING_LINES = [
-    { text: '# Import your Swagger spec', color: '#6c6c7c' },
+    { text: '# Import your Swagger spec', color: 'var(--text-tertiary)' },
     { text: 'swagger_url: https://api.example.com/docs', color: '#23d18b' },
     { text: '', color: '' },
-    { text: '# AI generates 47 test cases', color: '#6c6c7c' },
+    { text: '# AI generates 47 test cases', color: 'var(--text-tertiary)' },
     { text: '✓ POST /auth/signup         201', color: '#23d18b' },
     { text: '✓ POST /auth/login          200', color: '#23d18b' },
     { text: '✓ GET  /users/me            200', color: '#23d18b' },
     { text: '✗ DELETE /admin/users/1     500  ← bug found', color: '#ff5c5c' },
     { text: '', color: '' },
-    { text: '# AI bug analysis', color: '#6c6c7c' },
+    { text: '# AI bug analysis', color: 'var(--text-tertiary)' },
     { text: 'severity: HIGH', color: '#ffb547' },
     { text: 'root_cause: FK constraint on activities', color: '#a8a8b8' },
     { text: 'fix: Delete related records first', color: '#8264ff' },
@@ -78,7 +78,7 @@ function TypingDemo() {
             borderRadius: 14,
             padding: '20px 24px',
             fontFamily: 'JetBrains Mono, SF Mono, monospace',
-            fontSize: 13,
+            fontSize: 'var(--fs-md)',
             lineHeight: 1.9,
             minHeight: 280,
         }}>
@@ -87,7 +87,7 @@ function TypingDemo() {
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f57' }} />
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#febc2e' }} />
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28c840' }} />
-                <span style={{ marginLeft: 8, fontSize: 11, color: '#6c6c7c' }}>hitapi — terminal</span>
+                <span style={{ marginLeft: 8, fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>hitapi — terminal</span>
             </div>
 
             {TYPING_LINES.slice(0, visibleLines).map((line, i) => (
@@ -136,23 +136,23 @@ export function LandingPage({ onGetStarted }) {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
                     <LogoMark size={28} />
-                    <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>HitAPI</span>
+                    <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 700, letterSpacing: '-0.01em' }}>HitAPI</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button onClick={() => navigate('/playground')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                    <button onClick={() => navigate('/playground')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         API Playground
                     </button>
-                    <button onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                    <button onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         How it works
                     </button>
-                    <button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                    <button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         Privacy
                     </button>
-                    <button onClick={go} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>
+                    <button onClick={go} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>
                         Sign in
                     </button>
-                    <button onClick={go} style={{ background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', borderRadius: 7 }}>
+                    <button onClick={go} style={{ background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-md)', fontWeight: 600, cursor: 'pointer', padding: '7px 16px', borderRadius: 7 }}>
                         Get started free
                     </button>
                 </div>
@@ -164,7 +164,7 @@ export function LandingPage({ onGetStarted }) {
                 <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 800, height: 500, background: 'radial-gradient(ellipse, rgba(130,100,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
                 <div style={{ position: 'absolute', top: 200, left: '20%', width: 300, height: 300, background: 'radial-gradient(ellipse, rgba(92,168,255,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(130,100,255,0.1)', border: '1px solid rgba(130,100,255,0.25)', borderRadius: 20, padding: '5px 14px', fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 28, letterSpacing: '.04em' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(130,100,255,0.1)', border: '1px solid rgba(130,100,255,0.25)', borderRadius: 20, padding: '5px 14px', fontSize: 'var(--fs-base)', color: 'var(--accent)', fontWeight: 600, marginBottom: 28, letterSpacing: '.04em' }}>
                     <Zap size={11} fill="currentColor" /> NOW LIVE ON CHROME WEB STORE
                 </div>
 
@@ -181,23 +181,23 @@ export function LandingPage({ onGetStarted }) {
                 </p>
 
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-                    <button onClick={go} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
+                    <button onClick={go} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-lg)', fontWeight: 600, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
                         Start testing for free <ArrowRight size={16} />
                     </button>
-                    <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
+                    <button onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-lg)', cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
                         <Play size={14} fill="currentColor" /> Watch the demo
                     </button>
-                    <button onClick={() => navigate('/playground')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(35,209,139,0.08)', border: '1px solid rgba(35,209,139,0.3)', color: 'var(--text-primary)', fontSize: 15, cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
+                    <button onClick={() => navigate('/playground')} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(35,209,139,0.08)', border: '1px solid rgba(35,209,139,0.3)', color: 'var(--text-primary)', fontSize: 'var(--fs-lg)', cursor: 'pointer', padding: '13px 28px', borderRadius: 10 }}>
                         <Send size={14} /> Try API Playground — no login
                     </button>
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>No credit card · No infrastructure to set up · Free to start</p>
+                <p style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>No credit card · No infrastructure to set up · Free to start</p>
             </section>
 
             {/* ── Product demo video ── */}
             <section id="demo" style={{ padding: '0 40px 90px', scrollMarginTop: 80 }}>
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>See HitAPI in action</div>
+                    <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>See HitAPI in action</div>
                     <h2 style={{ fontSize: 'clamp(26px,3.5vw,38px)', fontWeight: 700, letterSpacing: '-0.03em', margin: 0 }}>From Swagger spec to bug report in about a minute</h2>
                 </div>
                 <DemoVideo />
@@ -216,7 +216,7 @@ export function LandingPage({ onGetStarted }) {
                             <div style={{ fontSize: 38, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.03em', marginBottom: 6 }}>
                                 <Counter to={s.val} suffix={s.suffix} />
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.label}</div>
+                            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.label}</div>
                         </div>
                     ))}
                 </div>
@@ -226,11 +226,11 @@ export function LandingPage({ onGetStarted }) {
             <section style={{ padding: '60px 40px 100px' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
                     <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 16 }}>Watch it work</div>
+                        <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 16 }}>Watch it work</div>
                         <h2 style={{ fontSize: 'clamp(28px,4vw,42px)', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: 20 }}>
                             From Swagger URL to<br />bug report in 60 seconds.
                         </h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.8, marginBottom: 32 }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-lg)', lineHeight: 1.8, marginBottom: 32 }}>
                             Paste your API spec URL. HitAPI discovers every endpoint, generates test cases covering happy paths, edge cases, and attack vectors — then runs them and tells you exactly what's broken.
                         </p>
                         {[
@@ -244,8 +244,8 @@ export function LandingPage({ onGetStarted }) {
                                     <Icon size={15} color="var(--accent)" />
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{label}</div>
-                                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{desc}</div>
+                                    <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 2 }}>{label}</div>
+                                    <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>{desc}</div>
                                 </div>
                             </div>
                         ))}
@@ -259,7 +259,7 @@ export function LandingPage({ onGetStarted }) {
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
                     <div style={{ textAlign: 'center', marginBottom: 56 }}>
                         <h2 style={{ fontSize: 'clamp(26px,4vw,40px)', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 12 }}>Everything your API testing needs</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 480, margin: '0 auto' }}>Built on Cloudflare's edge — no servers to run, no infra to manage.</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-lg)', maxWidth: 480, margin: '0 auto' }}>Built on Cloudflare's edge — no servers to run, no infra to manage.</p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
@@ -302,8 +302,8 @@ export function LandingPage({ onGetStarted }) {
                                 <div style={{ width: 40, height: 40, borderRadius: 11, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                                     <Icon size={18} color={color} />
                                 </div>
-                                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{title}</div>
-                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{desc}</div>
+                                <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, marginBottom: 8 }}>{title}</div>
+                                <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.7 }}>{desc}</div>
                             </div>
                         ))}
                     </div>
@@ -327,26 +327,26 @@ export function LandingPage({ onGetStarted }) {
                             }}>
                                 <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{label}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{desc}</div>
+                                    <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 2 }}>{label}</div>
+                                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{desc}</div>
                                 </div>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 700, color: status === 'passed' ? 'var(--green)' : 'var(--red)', flexShrink: 0 }}>{result}</span>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)', fontWeight: 700, color: status === 'passed' ? 'var(--green)' : 'var(--red)', flexShrink: 0 }}>{result}</span>
                             </div>
                         ))}
                         <div style={{ padding: '12px 16px', background: 'rgba(255,92,92,0.06)', border: '1px solid rgba(255,92,92,0.2)', borderRadius: 10, marginTop: 4 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)', marginBottom: 4 }}>🐛 HIGH — SQL Injection vulnerability</div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--red)', marginBottom: 4 }}>🐛 HIGH — SQL Injection vulnerability</div>
+                            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                                 Endpoint accepts SQL injection payload without validation.<br />
                                 <span style={{ color: 'var(--green)' }}>Fix: Add input sanitization layer before DB query.</span>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 16 }}>Security testing built in</div>
+                        <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--green)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 16 }}>Security testing built in</div>
                         <h2 style={{ fontSize: 'clamp(26px,4vw,40px)', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: 20 }}>
                             4 security checks on every endpoint. Automatically.
                         </h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.8 }}>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-lg)', lineHeight: 1.8 }}>
                             After every test suite run, HitAPI automatically probes each endpoint for common vulnerabilities: auth bypass, input validation gaps, SQL injection, and incorrect method handling. When something fails, AI explains exactly what the vulnerability is and how to fix it.
                         </p>
                     </div>
@@ -358,12 +358,12 @@ export function LandingPage({ onGetStarted }) {
             <section style={{ padding: '80px 40px 100px' }}>
                 <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
                     <h2 style={{ fontSize: 'clamp(28px,4vw,44px)', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 12 }}>Free while we're in early access</h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 15, marginBottom: 48 }}>We're building in public. HitAPI is free to use right now.</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-lg)', marginBottom: 48 }}>We're building in public. HitAPI is free to use right now.</p>
 
                     <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(130,100,255,0.3)', borderRadius: 20, padding: '44px 48px', position: 'relative', overflow: 'hidden' }}>
                         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(130,100,255,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
                         <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-0.04em', marginBottom: 8 }}>$0 <span style={{ fontSize: 20, fontWeight: 400, color: 'var(--text-tertiary)' }}>/ month</span></div>
-                        <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32 }}>Everything included. No credit card required.</div>
+                        <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', marginBottom: 32 }}>Everything included. No credit card required.</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, textAlign: 'left', marginBottom: 36 }}>
                             {[
                                 'Unlimited projects',
@@ -375,13 +375,13 @@ export function LandingPage({ onGetStarted }) {
                                 'Full run history',
                                 'Chrome extension',
                             ].map(f => (
-                                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-md)' }}>
                                     <CheckCircle2 size={15} color="var(--green)" style={{ flexShrink: 0 }} />
                                     {f}
                                 </div>
                             ))}
                         </div>
-                        <button onClick={go} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '13px 32px', borderRadius: 10 }}>
+                        <button onClick={go} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-lg)', fontWeight: 600, cursor: 'pointer', padding: '13px 32px', borderRadius: 10 }}>
                             Get started free <ArrowRight size={16} />
                         </button>
                     </div>
@@ -394,13 +394,13 @@ export function LandingPage({ onGetStarted }) {
                     <h2 style={{ fontSize: 'clamp(28px,4vw,48px)', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 16 }}>
                         Stop writing tests manually.
                     </h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1.7, marginBottom: 36 }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-xl)', lineHeight: 1.7, marginBottom: 36 }}>
                         Import your Swagger spec and get a complete AI-generated test suite in under 60 seconds. For free.
                     </p>
-                    <button onClick={go} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 16, fontWeight: 600, cursor: 'pointer', padding: '14px 36px', borderRadius: 10 }}>
+                    <button onClick={go} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-xl)', fontWeight: 600, cursor: 'pointer', padding: '14px 36px', borderRadius: 10 }}>
                         <Zap size={17} fill="currentColor" /> Start testing now
                     </button>
-                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 24, fontSize: 13, color: 'var(--text-tertiary)' }}>
+                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 24, fontSize: 'var(--fs-md)', color: 'var(--text-tertiary)' }}>
                         <span>✓ Free forever</span>
                         <span>✓ No setup</span>
                         <span>✓ No credit card</span>

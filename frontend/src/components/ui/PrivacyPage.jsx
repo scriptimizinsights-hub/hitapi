@@ -11,10 +11,10 @@ const PRODUCT = 'HitAPI';
 function Section({ title, children }) {
     return (
         <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)', paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)', paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
                 {title}
             </h2>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.9 }}>
+            <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.9 }}>
                 {children}
             </div>
         </div>
@@ -32,7 +32,7 @@ function Li({ children }) {
 
 function Note({ children }) {
     return (
-        <div style={{ padding: '10px 14px', background: 'rgba(255,181,71,0.07)', border: '1px solid rgba(255,181,71,0.2)', borderRadius: 7, fontSize: 12, color: 'var(--amber)', marginTop: 10, lineHeight: 1.7 }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(255,181,71,0.07)', border: '1px solid rgba(255,181,71,0.2)', borderRadius: 7, fontSize: 'var(--fs-base)', color: 'var(--amber)', marginTop: 10, lineHeight: 1.7 }}>
             {children}
         </div>
     );
@@ -52,7 +52,7 @@ export function PrivacyPage() {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <LogoMark size={26} />
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
+                        <span style={{ fontSize: 'var(--fs-md)', fontWeight: 600 }}>HitAPI</span>
                     </div>
                     <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <ArrowLeft size={13} /> Back
@@ -68,10 +68,10 @@ export function PrivacyPage() {
                         <Shield size={26} color="var(--accent)" />
                         <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em' }}>Privacy Policy</h1>
                     </div>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', marginBottom: 16 }}>
                         <strong style={{ color: 'var(--text-primary)' }}>{PRODUCT}</strong> by {COMPANY} &nbsp;·&nbsp; Last updated: {LAST_UPDATED}
                     </p>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                    <p style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                         This Privacy Policy describes how {COMPANY} ("we", "us", "our") collects, uses, stores, and protects information when you use HitAPI at hitapi.dev. By using the Service, you agree to the practices described here.
                     </p>
                 </div>
@@ -168,11 +168,11 @@ export function PrivacyPage() {
                     <p style={{ marginBottom: 10 }}>We do not sell your data. We do not share your data with third parties for advertising. The following subprocessors may process your data as part of providing the HitAPI service:</p>
 
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: 12 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--fs-base)', marginBottom: 12 }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                     {['Provider', 'Purpose', 'Data processed'].map(h => (
-                                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase', fontSize: 11 }}>{h}</th>
+                                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase', fontSize: 'var(--fs-sm)' }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -224,7 +224,7 @@ export function PrivacyPage() {
                         HitAPI offers an optional Chrome browser extension that lets you capture API requests, detect authentication tokens, and run test suites without leaving the page you are testing. The extension collects and stores the following:
                     </p>
                     <Li><strong>Login credentials</strong> — Your email address and password are sent to HitAPI's servers to authenticate you, using the same login flow as the web dashboard. Your session token is then stored in the extension's local browser storage to keep you signed in.</Li>
-                    <Li><strong>Captured request metadata</strong> — While you browse a website with the extension active, it observes outgoing API requests made by that page (URL, HTTP method, headers, and request body) using the Chrome <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>webRequest</code> API. This data is held temporarily in local browser storage, scoped to the current tab, and is only sent to HitAPI's servers if you explicitly choose to add a captured request to a test suite or report it as a bug.</Li>
+                    <Li><strong>Captured request metadata</strong> — While you browse a website with the extension active, it observes outgoing API requests made by that page (URL, HTTP method, headers, and request body) using the Chrome <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)' }}>webRequest</code> API. This data is held temporarily in local browser storage, scoped to the current tab, and is only sent to HitAPI's servers if you explicitly choose to add a captured request to a test suite or report it as a bug.</Li>
                     <Li><strong>Detected authentication tokens</strong> — If the extension observes a Bearer token in a request made by the page you are viewing, it stores that token locally so you can copy it for use in a test configuration. Detected tokens are not automatically transmitted to HitAPI's servers.</Li>
                     <Note>
                         The extension requires broad host permissions (access to all websites) because it is a general-purpose API testing tool — it cannot know in advance which site you intend to test. It does not read page content, text, images, or DOM elements; it only observes network request metadata.
@@ -247,17 +247,17 @@ export function PrivacyPage() {
                 <div className="card" style={{ padding: '24px 28px', borderColor: 'rgba(130,100,255,0.25)', background: 'rgba(130,100,255,0.04)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                         <Mail size={17} color="var(--accent)" />
-                        <h2 style={{ fontSize: 15, fontWeight: 600 }}>14. Contact Us</h2>
+                        <h2 style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>14. Contact Us</h2>
                     </div>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.7 }}>
+                    <p style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.7 }}>
                         For any questions, concerns, data requests, or to exercise your rights under this Privacy Policy:
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-md)' }}>
                             <Mail size={14} color="var(--accent)" />
                             <a href={`mailto:${EMAIL}`} style={{ color: 'var(--accent)' }}>{EMAIL}</a>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-md)' }}>
                             <MapPin size={14} color="var(--text-tertiary)" style={{ marginTop: 2, flexShrink: 0 }} />
                             <span style={{ color: 'var(--text-secondary)' }}>{COMPANY}<br />{ADDRESS}</span>
                         </div>

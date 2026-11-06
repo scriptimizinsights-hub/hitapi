@@ -41,7 +41,7 @@ function AutoTextarea({ value, onFocus, onChange, error, minHeight = 44, maxHeig
                 background: 'var(--bg-card)',
                 color: 'var(--text-primary)',
                 fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 10.5,
+                fontSize: 'var(--fs-xs)',
                 lineHeight: 1.5,
                 outline: 'none',
             }}
@@ -910,7 +910,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <div style={{
                                 width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 10, fontWeight: 700, flexShrink: 0,
+                                fontSize: 'var(--fs-xs)', fontWeight: 700, flexShrink: 0,
                                 background: i + 1 < step ? 'var(--green)' : i + 1 === step ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
                                 color: i + 1 <= step ? '#fff' : 'var(--text-tertiary)',
                             }}>
@@ -920,7 +920,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         </div>
                     ))}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600 }}>
                     {STEP_LABELS[step - 1]}
                 </div>
             </div>
@@ -930,7 +930,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                 {currentStepKey === 'auth_method' && (
                     <div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Choose how HitAPI should authenticate when running this suite.
                         </div>
 
@@ -944,10 +944,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                     background: authType === 'flow' ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
                                 }}
                             >
-                                <div style={{ fontSize: 13, fontWeight: 600, color: authType === 'flow' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: authType === 'flow' ? 'var(--accent)' : 'var(--text-primary)' }}>
                                     🔐 Auto login flow
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 3 }}>
                                     HitAPI will run signup → login steps and extract the token automatically
                                 </div>
                             </div>
@@ -961,10 +961,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                     background: authType === 'static' ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
                                 }}
                             >
-                                <div style={{ fontSize: 13, fontWeight: 600, color: authType === 'static' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: authType === 'static' ? 'var(--accent)' : 'var(--text-primary)' }}>
                                     🔑 Static API token
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 3 }}>
                                     Provide a fixed token — no login step needed. Good for API keys that never expire.
                                 </div>
                             </div>
@@ -978,10 +978,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                     background: authType === 'none' ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
                                 }}
                             >
-                                <div style={{ fontSize: 13, fontWeight: 600, color: authType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: authType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>
                                     🌐 No authentication
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 3 }}>
                                     API is public — no Authorization header needed
                                 </div>
                             </div>
@@ -997,11 +997,11 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                         style={{
                                             width: '100%', padding: '8px 10px', borderRadius: 6,
                                             background: 'var(--bg-card)', border: '1px solid var(--border)',
-                                            color: 'var(--text-primary)', fontSize: 12,
+                                            color: 'var(--text-primary)', fontSize: 'var(--fs-base)',
                                             fontFamily: 'JetBrains Mono, monospace',
                                         }}
                                     />
-                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>
                                         This token will be sent as <code>Authorization: Bearer &lt;token&gt;</code> on every step
                                     </div>
                                 </div>
@@ -1013,7 +1013,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                 {currentStepKey === 'signup' && (
                     <div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Select the endpoint that creates a new user. This runs first, then login uses the same credentials.
                             <br />If your API doesn't have signup, click <strong>Skip</strong>.
                         </div>
@@ -1021,7 +1021,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         <EndpointPicker endpoints={endpoints.filter(e => e.method === 'POST')}
                             value={signupId} onChange={setSignupId} placeholder="Skip — no signup needed" />
                         {signupEp && (
-                            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--green-bg)', borderRadius: 8, fontSize: 12, color: 'var(--green)', border: '1px solid var(--green-border)' }}>
+                            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--green-bg)', borderRadius: 8, fontSize: 'var(--fs-base)', color: 'var(--green)', border: '1px solid var(--green-border)' }}>
                                 ✓ Will POST to <code style={{ fontFamily: 'JetBrains Mono, monospace' }}>{signupEp.path}</code>
                             </div>
                         )}
@@ -1030,16 +1030,16 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                 {currentStepKey === 'login' && (
                     <div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Select the login endpoint. HitAPI will automatically try multiple credential combinations
-                            (<code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>email+password</code>,{' '}
-                            <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>username+password</code>, etc.) until one works.
+                            (<code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)' }}>email+password</code>,{' '}
+                            <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)' }}>username+password</code>, etc.) until one works.
                         </div>
                         <Label>Login endpoint</Label>
                         <EndpointPicker endpoints={endpoints.filter(e => e.method === 'POST')}
                             value={loginId} onChange={setLoginId} placeholder="Skip — use static Bearer token" />
                         {loginEp && (
-                            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--green-bg)', borderRadius: 8, fontSize: 12, color: 'var(--green)', border: '1px solid var(--green-border)' }}>
+                            <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--green-bg)', borderRadius: 8, fontSize: 'var(--fs-base)', color: 'var(--green)', border: '1px solid var(--green-border)' }}>
                                 ✓ Will POST to <code style={{ fontFamily: 'JetBrains Mono, monospace' }}>{loginEp.path}</code>
                             </div>
                         )}
@@ -1048,7 +1048,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                 {currentStepKey === 'token' && (
                     <div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                             Where is the token in the login response? HitAPI will try common paths automatically, but you can specify a custom one.
                         </div>
                         <Label>Token path in response</Label>
@@ -1065,11 +1065,11 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                         border: `2px solid ${tokenPath === opt ? 'var(--accent)' : 'var(--border)'}`,
                                         background: tokenPath === opt ? 'var(--accent)' : 'transparent'
                                     }} />
-                                    <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: tokenPath === opt ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                                    <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)', color: tokenPath === opt ? 'var(--accent)' : 'var(--text-secondary)' }}>
                                         {opt === 'custom' ? 'Custom path…' : opt}
                                     </code>
-                                    {opt === 'token' && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>most common</span>}
-                                    {opt === 'access_token' && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>OAuth2</span>}
+                                    {opt === 'token' && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>most common</span>}
+                                    {opt === 'access_token' && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>OAuth2</span>}
                                 </label>
                             ))}
                         </div>
@@ -1079,7 +1079,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                 <Input value={customToken} onChange={setCustomToken} placeholder="data.access_token" />
                             </div>
                         )}
-                        <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--accent-dim)', borderRadius: 8, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--accent-dim)', borderRadius: 8, fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                             💡 HitAPI will also try 15 common token paths automatically as fallback.
                         </div>
                     </div>
@@ -1087,22 +1087,22 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                 {currentStepKey === 'endpoints' && (
                     <div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.6 }}>
                             Select which endpoints to include in the suite. These will run after login with the token automatically injected.
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                             <button onClick={() => setSelected(new Set(otherEps.map(e => e.id)))}
-                                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.3)' }}>
+                                style={{ fontSize: 'var(--fs-sm)', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.3)' }}>
                                 Select all ({otherEps.length})
                             </button>
                             <button onClick={() => {
                                 const secured = otherEps.filter(e => { try { const s = JSON.parse(e.security || '[]'); return s.length > 0; } catch { return false; } });
                                 setSelected(new Set(secured.map(e => e.id)));
-                            }} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                            }} style={{ fontSize: 'var(--fs-sm)', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                                 <Lock size={10} style={{ marginRight: 4 }} />Secured only
                             </button>
                             <button onClick={() => setSelected(new Set())}
-                                style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                                style={{ fontSize: 'var(--fs-sm)', padding: '4px 10px', borderRadius: 5, cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                                 Clear
                             </button>
                         </div>
@@ -1125,15 +1125,15 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                         }}>
                                             {checked && <Check size={9} color="#fff" />}
                                         </div>
-                                        <span className={`method-badge method-${ep.method}`} style={{ fontSize: 9, flexShrink: 0 }}>{ep.method}</span>
-                                        <span style={{ fontSize: 12, flex: 1, color: 'var(--text-secondary)' }}>{ep.path}</span>
+                                        <span className={`method-badge method-${ep.method}`} style={{ fontSize: 'var(--fs-2xs)', flexShrink: 0 }}>{ep.method}</span>
+                                        <span style={{ fontSize: 'var(--fs-base)', flex: 1, color: 'var(--text-secondary)' }}>{ep.path}</span>
                                         {isSecured && <Lock size={10} color="var(--accent)" style={{ flexShrink: 0 }} />}
-                                        {ep.summary && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>{ep.summary.slice(0, 25)}</span>}
+                                        {ep.summary && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>{ep.summary.slice(0, 25)}</span>}
                                     </div>
                                 );
                             })}
                         </div>
-                        <div style={{ marginTop: 10, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ marginTop: 10, fontSize: 'var(--fs-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--text-tertiary)' }}>
                                 {selected.size} endpoint{selected.size !== 1 ? 's' : ''} selected
                             </span>
@@ -1141,7 +1141,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                 const total = (signupId ? 1 : 0) + (loginId ? 1 : 0) + selected.size;
                                 const over = total > 100;
                                 return (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: over ? 'var(--red)' : total > 90 ? 'var(--amber)' : 'var(--green)' }}>
+                                    <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: over ? 'var(--red)' : total > 90 ? 'var(--amber)' : 'var(--green)' }}>
                                         {total}/100 steps {over ? '⚠ over limit' : ''}
                                     </span>
                                 );
@@ -1197,10 +1197,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             }}>
                                 <div className="spinner" style={{ width: 14, height: 14, flexShrink: 0 }} />
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--accent)' }}>
                                         Generating request bodies with AI
                                     </div>
-                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 1 }}>
                                         {aiProgress.done} of {aiProgress.total} endpoints done
                                     </div>
                                 </div>
@@ -1221,10 +1221,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                             display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
                             padding: '0 2px',
                         }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                            <div style={{ fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--text-primary)' }}>
                                 Steps <span style={{ color: 'var(--text-tertiary)', fontWeight: 500 }}>({reviewSteps.length})</span>
                             </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <ChevronLeft size={11} style={{ transform: 'rotate(90deg)' }} />
                                 reorder · <Lock size={10} /> fixed steps can't move
                             </div>
@@ -1286,25 +1286,25 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                 width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                                                 background: `${s.color}1a`, border: `1px solid ${s.color}33`,
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 10, fontWeight: 700, color: s.color,
+                                                fontSize: 'var(--fs-xs)', fontWeight: 700, color: s.color,
                                             }}>
                                                 {s.order}
                                             </div>
 
-                                            <span className={`method-badge method-${method}`} style={{ fontSize: 9, flexShrink: 0, minWidth: 44, textAlign: 'center' }}>
+                                            <span className={`method-badge method-${method}`} style={{ fontSize: 'var(--fs-2xs)', flexShrink: 0, minWidth: 44, textAlign: 'center' }}>
                                                 {method}
                                             </span>
 
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{
-                                                    fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 500,
+                                                    fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)', fontWeight: 500,
                                                     color: 'var(--text-primary)', overflow: 'hidden',
                                                     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                                 }}>
                                                     {s.name && !s.name.startsWith(method) ? s.name + ' · ' : ''}{s.path}
                                                 </div>
                                                 {ep?.summary && (
-                                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                         {ep.summary}
                                                     </div>
                                                 )}
@@ -1315,7 +1315,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                                                 {aiCases.length > 0 && (
                                                     <span style={{
-                                                        fontSize: 9, fontWeight: 600, padding: '3px 7px', borderRadius: 20,
+                                                        fontSize: 'var(--fs-2xs)', fontWeight: 600, padding: '3px 7px', borderRadius: 20,
                                                         background: 'rgba(130,100,255,0.14)', color: 'var(--accent)',
                                                         display: 'flex', alignItems: 'center', gap: 3,
                                                     }}>
@@ -1324,7 +1324,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                 )}
                                                 {isEdited && (
                                                     <span style={{
-                                                        fontSize: 9, fontWeight: 600, padding: '3px 7px', borderRadius: 20,
+                                                        fontSize: 'var(--fs-2xs)', fontWeight: 600, padding: '3px 7px', borderRadius: 20,
                                                         background: 'rgba(50,200,120,0.14)', color: 'var(--green)',
                                                     }}>
                                                         Edited
@@ -1332,7 +1332,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                 )}
                                                 {s.fixed && (
                                                     <span style={{
-                                                        fontSize: 9, fontWeight: 600, padding: '3px 7px', borderRadius: 20,
+                                                        fontSize: 'var(--fs-2xs)', fontWeight: 600, padding: '3px 7px', borderRadius: 20,
                                                         background: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)',
                                                         display: 'flex', alignItems: 'center', gap: 3,
                                                     }}>
@@ -1358,7 +1358,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                             width: 22, height: 22, borderRadius: 5, cursor: i <= firstMovable ? 'default' : 'pointer',
                                                             background: 'transparent', border: 'none',
                                                             color: i <= firstMovable ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                                                            fontSize: 12, opacity: i <= firstMovable ? 0.35 : 1,
+                                                            fontSize: 'var(--fs-base)', opacity: i <= firstMovable ? 0.35 : 1,
                                                         }}
                                                     >
                                                         ↑
@@ -1371,7 +1371,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                             cursor: i === reviewSteps.length - 1 ? 'default' : 'pointer',
                                                             background: 'transparent', border: 'none',
                                                             color: i === reviewSteps.length - 1 ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                                                            fontSize: 12, opacity: i === reviewSteps.length - 1 ? 0.35 : 1,
+                                                            fontSize: 'var(--fs-base)', opacity: i === reviewSteps.length - 1 ? 0.35 : 1,
                                                         }}
                                                     >
                                                         ↓
@@ -1390,9 +1390,9 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                                                 {/* Endpoint schema — collapsed as reference material, not a form */}
                                                 {ep?.request_body && (
-                                                    <details style={{ fontSize: 11 }}>
+                                                    <details style={{ fontSize: 'var(--fs-sm)' }}>
                                                         <summary style={{
-                                                            cursor: 'pointer', fontSize: 10, fontWeight: 600,
+                                                            cursor: 'pointer', fontSize: 'var(--fs-xs)', fontWeight: 600,
                                                             color: 'var(--text-tertiary)', marginTop: 10, userSelect: 'none',
                                                         }}>
                                                             OpenAPI request schema
@@ -1400,7 +1400,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                         <pre style={{
                                                             margin: '8px 0 0 0', padding: 10,
                                                             background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
-                                                            borderRadius: 6, fontSize: 10, lineHeight: 1.5,
+                                                            borderRadius: 6, fontSize: 'var(--fs-xs)', lineHeight: 1.5,
                                                             overflow: 'auto', maxHeight: 160, color: 'var(--text-tertiary)',
                                                         }}>
                                                             {JSON.stringify(safeJSON(ep.request_body), null, 2)}
@@ -1413,7 +1413,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                 {aiCases.length > 0 && (
                                                     <div>
                                                         <div style={{
-                                                            fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase',
+                                                            fontSize: 'var(--fs-xs)', fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase',
                                                             color: 'var(--text-tertiary)', marginBottom: 8,
                                                         }}>
                                                             AI-generated cases · {aiCases.length}
@@ -1446,11 +1446,11 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
 
                                                                         <div style={{ padding: '9px 12px 9px 4px' }}>
                                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                                                                <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                                                <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
                                                                                     {caseIndex + 1}. {aiCase.name}
                                                                                 </div>
                                                                                 <span style={{
-                                                                                    fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 20,
+                                                                                    fontSize: 'var(--fs-2xs)', fontWeight: 700, padding: '1px 6px', borderRadius: 20,
                                                                                     background: isErrorCase ? 'rgba(230,90,90,0.12)' : 'rgba(50,200,120,0.12)',
                                                                                     color: isErrorCase ? 'var(--red)' : 'var(--green)',
                                                                                 }}>
@@ -1463,7 +1463,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                                                     style={{
                                                                                         width: 18, height: 18, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                                         background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)',
-                                                                                        cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: 0,
+                                                                                        cursor: 'pointer', fontSize: 'var(--fs-sm)', lineHeight: 1, padding: 0,
                                                                                     }}
                                                                                 >
                                                                                     ✕
@@ -1471,7 +1471,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                                             </div>
 
                                                                             {aiCase.reasoning && (
-                                                                                <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 3 }}>
+                                                                                <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', lineHeight: 1.45, marginTop: 3 }}>
                                                                                     {aiCase.reasoning}
                                                                                 </div>
                                                                             )}
@@ -1485,14 +1485,14 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                                                         error={caseBodyError}
                                                                                     />
                                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 }}>
-                                                                                        <span style={{ fontSize: 9.5, color: caseBodyError ? 'var(--red)' : 'transparent' }}>
+                                                                                        <span style={{ fontSize: 'var(--fs-2xs)', color: caseBodyError ? 'var(--red)' : 'transparent' }}>
                                                                                             {caseBodyError ? `⚠ ${caseBodyError}` : '·'}
                                                                                         </span>
                                                                                         <button
                                                                                             type="button"
                                                                                             onClick={() => saveTestCaseBody(endpointId, caseIndex)}
                                                                                             style={{
-                                                                                                padding: '3px 9px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                                                                                                padding: '3px 9px', borderRadius: 5, fontSize: 'var(--fs-xs)', fontWeight: 600,
                                                                                                 border: 'none', background: 'rgba(130,100,255,0.14)',
                                                                                                 color: 'var(--accent)', cursor: 'pointer',
                                                                                             }}
@@ -1514,11 +1514,11 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                 {hasBody && endpointId && aiCases.length === 0 && (
                                                     <div>
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                            <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                                                 Request body
                                                             </div>
                                                             {isSaved && (
-                                                                <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600 }}>✓ Saved</span>
+                                                                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--green)', fontWeight: 600 }}>✓ Saved</span>
                                                             )}
                                                         </div>
 
@@ -1531,10 +1531,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                             maxHeight={320}
                                                         />
                                                         {bodyError && (
-                                                            <div style={{ marginTop: 5, fontSize: 10, color: 'var(--red)' }}>⚠ {bodyError}</div>
+                                                            <div style={{ marginTop: 5, fontSize: 'var(--fs-xs)', color: 'var(--red)' }}>⚠ {bodyError}</div>
                                                         )}
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 7 }}>
-                                                            <span style={{ fontSize: 9.5, color: 'var(--text-tertiary)' }}>
+                                                            <span style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)' }}>
                                                                 Edit this JSON before creating the suite.
                                                             </span>
                                                             <div style={{ display: 'flex', gap: 6 }}>
@@ -1542,7 +1542,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                                     <button
                                                                         onClick={() => resetRequestBody(endpointId)}
                                                                         style={{
-                                                                            padding: '5px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                                                                            padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-xs)', fontWeight: 600,
                                                                             border: '1px solid var(--border)', background: 'transparent',
                                                                             color: 'var(--text-tertiary)', cursor: 'pointer',
                                                                         }}
@@ -1553,7 +1553,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                                 <button
                                                                     onClick={() => saveRequestBody(endpointId)}
                                                                     style={{
-                                                                        padding: '5px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                                                                        padding: '5px 10px', borderRadius: 5, fontSize: 'var(--fs-xs)', fontWeight: 600,
                                                                         border: '1px solid var(--accent)', background: 'var(--accent-dim)',
                                                                         color: 'var(--accent)', cursor: 'pointer',
                                                                     }}
@@ -1568,10 +1568,10 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                                                 {/* PATH PARAMS — inline chips */}
                                                 {ep?.path && /\{[^}]+\}/.test(ep.path) && (
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)' }}>Path params:</span>
+                                                        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)' }}>Path params:</span>
                                                         {(ep.path.match(/\{(\w+)\}/g) || []).map(p => p.slice(1, -1)).map(param => (
                                                             <code key={param} style={{
-                                                                fontFamily: 'JetBrains Mono, monospace', fontSize: 10,
+                                                                fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)',
                                                                 padding: '2px 7px', borderRadius: 5,
                                                                 background: 'rgba(130,100,255,0.08)', color: 'var(--accent)',
                                                             }}>
@@ -1590,7 +1590,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         {authType === 'flow' && !signupEp && !loginEp && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: 8,
-                                padding: '10px 14px', background: 'var(--red-bg)', borderRadius: 10, fontSize: 12, color: 'var(--red)',
+                                padding: '10px 14px', background: 'var(--red-bg)', borderRadius: 10, fontSize: 'var(--fs-base)', color: 'var(--red)',
                             }}>
                                 ⚠ Select at least a login or signup endpoint to continue
                             </div>
@@ -1598,7 +1598,7 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
                         {error && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: 8,
-                                padding: '10px 14px', background: 'var(--red-bg)', borderRadius: 10, fontSize: 12, color: 'var(--red)',
+                                padding: '10px 14px', background: 'var(--red-bg)', borderRadius: 10, fontSize: 'var(--fs-base)', color: 'var(--red)',
                             }}>
                                 ⚠ {error}
                             </div>
@@ -1610,16 +1610,16 @@ export function SmartWizard({ projectId, endpoints, onCreated, onClose }) {
             {/* Footer navigation — always visible */}
             <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', flexShrink: 0, background: 'var(--bg-card)' }}>
                 <button onClick={() => step > 1 ? setStep(s => s - 1) : onClose()}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 'var(--fs-md)' }}>
                     <ChevronLeft size={14} /> {step > 1 ? 'Back' : 'Cancel'}
                 </button>
                 {step < TOTAL ? (
-                    <button onClick={() => setStep(s => s + 1)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500 }}>
+                    <button onClick={() => setStep(s => s + 1)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: 'pointer', background: 'var(--accent-solid)', color: '#fff', border: 'none', fontSize: 'var(--fs-md)', fontWeight: 500 }}>
                         Next <ChevronRight size={14} />
                     </button>
                 ) : (
                     <button onClick={handleCreate} disabled={creating || (authType === 'flow' && !signupId && !loginId) || (authType === 'static' && !staticToken.trim())}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: creating ? 'not-allowed' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, opacity: creating ? 0.7 : 1 }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: creating ? 'not-allowed' : 'pointer', background: 'var(--accent-solid)', color: '#fff', border: 'none', fontSize: 'var(--fs-md)', fontWeight: 500, opacity: creating ? 0.7 : 1 }}>
                         {creating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Creating…</> : <><Check size={14} /> Create suite</>}
                     </button>
                 )}

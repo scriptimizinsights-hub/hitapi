@@ -86,14 +86,14 @@ export function AddEndpointModal({ projectId, onClose, onAdded }) {
 
                 {/* Header */}
                 <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600 }}>Add Endpoint</div>
-                    <button onClick={onClose} style={{ width: 30, height: 30, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-input)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16 }}>×</button>
+                    <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>Add Endpoint</div>
+                    <button onClick={onClose} style={{ width: 30, height: 30, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-input)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--fs-xl)' }}>×</button>
                 </div>
 
                 {/* Mode tabs */}
                 <div style={{ display: 'flex', gap: 6, padding: '14px 22px 0' }}>
                     <button onClick={() => setMode('manual')} style={{
-                        flex: 1, padding: '9px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        flex: 1, padding: '9px 12px', borderRadius: 7, fontSize: 'var(--fs-base)', fontWeight: 600, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         background: mode === 'manual' ? 'var(--accent-dim)' : 'var(--bg-card)',
                         color: mode === 'manual' ? 'var(--accent)' : 'var(--text-secondary)',
@@ -102,7 +102,7 @@ export function AddEndpointModal({ projectId, onClose, onAdded }) {
                         <PenLine size={13} /> Manual entry
                     </button>
                     <button onClick={() => setMode('curl')} style={{
-                        flex: 1, padding: '9px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        flex: 1, padding: '9px 12px', borderRadius: 7, fontSize: 'var(--fs-base)', fontWeight: 600, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         background: mode === 'curl' ? 'var(--accent-dim)' : 'var(--bg-card)',
                         color: mode === 'curl' ? 'var(--accent)' : 'var(--text-secondary)',
@@ -117,7 +117,7 @@ export function AddEndpointModal({ projectId, onClose, onAdded }) {
 
                     {mode === 'curl' && (
                         <div>
-                            <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 6 }}>
+                            <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 6 }}>
                                 Paste a curl command
                             </label>
                             <textarea
@@ -128,25 +128,25 @@ export function AddEndpointModal({ projectId, onClose, onAdded }) {
                                 style={{
                                     width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 7,
                                     background: 'var(--bg-input)', border: `1px solid ${curlError ? 'var(--red)' : 'var(--border)'}`,
-                                    color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace', fontSize: 11.5,
+                                    color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)',
                                     lineHeight: 1.6, resize: 'vertical', outline: 'none',
                                 }}
                             />
-                            {curlError && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 6 }}>⚠ {curlError}</div>}
+                            {curlError && <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--red)', marginTop: 6 }}>⚠ {curlError}</div>}
                             <button
                                 onClick={handleParseCurl}
                                 disabled={!curlText.trim()}
                                 style={{
                                     marginTop: 12, display: 'flex', alignItems: 'center', gap: 6,
-                                    padding: '8px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                                    padding: '8px 14px', borderRadius: 7, fontSize: 'var(--fs-base)', fontWeight: 600,
                                     cursor: curlText.trim() ? 'pointer' : 'not-allowed',
-                                    background: 'var(--accent)', color: '#fff', border: 'none',
+                                    background: 'var(--accent-solid)', color: '#fff', border: 'none',
                                     opacity: curlText.trim() ? 1 : 0.5,
                                 }}
                             >
                                 <Terminal size={13} /> Parse curl → fill fields
                             </button>
-                            <div style={{ fontSize: 10.5, color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.5 }}>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 8, lineHeight: 1.5 }}>
                                 Parses <code>-X</code>/<code>--request</code>, <code>-H</code>/<code>--header</code>, <code>-d</code>/<code>--data(-raw|-binary)</code>, and the URL. After parsing you'll review the fields on the Manual entry tab before saving.
                             </div>
                         </div>
@@ -155,55 +155,55 @@ export function AddEndpointModal({ projectId, onClose, onAdded }) {
                     {mode === 'manual' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {parsed && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', background: 'var(--green-bg)', borderRadius: 6, fontSize: 11, color: 'var(--green)', border: '1px solid var(--green-border)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', background: 'var(--green-bg)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--green)', border: '1px solid var(--green-border)' }}>
                                     <Check size={12} /> Parsed from curl — review before saving
                                 </div>
                             )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10 }}>
                                 <div>
-                                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Method</label>
+                                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Method</label>
                                     <select value={method} onChange={e => setMethod(e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}>
+                                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }}>
                                         {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Path</label>
+                                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Path</label>
                                     <input value={path} onChange={e => setPath(e.target.value)} placeholder="/api/goals/{id}"
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }} />
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)', fontFamily: 'JetBrains Mono, monospace' }} />
                                 </div>
                             </div>
 
                             <div>
-                                <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Summary <span style={{ fontWeight: 400 }}>(optional)</span></label>
+                                <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Summary <span style={{ fontWeight: 400 }}>(optional)</span></label>
                                 <input value={summary} onChange={e => setSummary(e.target.value)} placeholder="Create a savings goal"
-                                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }} />
+                                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }} />
                             </div>
 
                             <div>
-                                <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Tags <span style={{ fontWeight: 400 }}>(comma-separated, optional)</span></label>
+                                <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Tags <span style={{ fontWeight: 400 }}>(comma-separated, optional)</span></label>
                                 <input value={tags} onChange={e => setTags(e.target.value)} placeholder="goals, finance"
-                                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }} />
+                                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }} />
                             </div>
 
                             <div>
-                                <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Parameters <span style={{ fontWeight: 400 }}>(JSON array, optional)</span></label>
+                                <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Parameters <span style={{ fontWeight: 400 }}>(JSON array, optional)</span></label>
                                 <textarea value={parameters} onChange={e => setParameters(e.target.value)} rows={3}
-                                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }} />
+                                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }} />
                             </div>
 
                             {['POST', 'PUT', 'PATCH'].includes(method) && (
                                 <div>
-                                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Request body <span style={{ fontWeight: 400 }}>(JSON, optional)</span></label>
+                                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Request body <span style={{ fontWeight: 400 }}>(JSON, optional)</span></label>
                                     <textarea value={requestBody} onChange={e => setRequestBody(e.target.value)} rows={5}
                                         placeholder={'{\n  "name": "Emergency Fund"\n}'}
-                                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }} />
+                                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }} />
                                 </div>
                             )}
 
                             {error && (
-                                <div style={{ padding: '8px 10px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 12, color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
+                                <div style={{ padding: '8px 10px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 'var(--fs-base)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
                                     ⚠ {error}
                                 </div>
                             )}
@@ -213,14 +213,14 @@ export function AddEndpointModal({ projectId, onClose, onAdded }) {
 
                 {/* Footer */}
                 <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 7, fontSize: 12, cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                    <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 7, fontSize: 'var(--fs-base)', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                         Cancel
                     </button>
                     {mode === 'manual' && (
                         <button onClick={handleSave} disabled={saving} style={{
                             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 7,
-                            fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
-                            background: 'var(--accent)', color: '#fff', border: 'none', opacity: saving ? 0.7 : 1,
+                            fontSize: 'var(--fs-base)', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+                            background: 'var(--accent-solid)', color: '#fff', border: 'none', opacity: saving ? 0.7 : 1,
                         }}>
                             {saving ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Saving…</> : <>Add endpoint</>}
                         </button>

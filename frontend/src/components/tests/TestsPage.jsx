@@ -28,7 +28,7 @@ function CopyBtn({ text }) {
   return (
     <button onClick={copy} style={{
       display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px',
-      borderRadius: 4, fontSize: 10, cursor: 'pointer',
+      borderRadius: 4, fontSize: 'var(--fs-xs)', cursor: 'pointer',
       background: copied ? 'var(--green-bg)' : 'rgba(255,255,255,0.06)',
       color: copied ? 'var(--green)' : 'var(--text-tertiary)',
       border: `1px solid ${copied ? 'var(--green-border)' : 'var(--border)'}`,
@@ -49,13 +49,13 @@ function CodeBlock({ label, data, color, badge }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: color || 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
-          {badge && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)' }}>{badge}</span>}
+          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: color || 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+          {badge && <span style={{ fontSize: 'var(--fs-2xs)', padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', color: 'var(--text-tertiary)' }}>{badge}</span>}
         </div>
         <CopyBtn text={str} />
       </div>
       <pre style={{
-        fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+        fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)',
         background: 'rgba(0,0,0,0.35)', borderRadius: 6, padding: '10px 12px',
         color: 'var(--text-secondary)', margin: 0, overflow: 'auto',
         maxHeight: 220, lineHeight: 1.65, border: '1px solid rgba(255,255,255,0.06)',
@@ -85,13 +85,13 @@ function CurlPanel({ method, url, headers, body }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Terminal size={12} color="var(--green)" />
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>cURL</span>
-          <span style={{ fontSize: 9, color: 'var(--text-tertiary)', padding: '1px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 10 }}>copy & run in terminal</span>
+          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>cURL</span>
+          <span style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)', padding: '1px 6px', background: 'rgba(255,255,255,0.05)', borderRadius: 10 }}>copy & run in terminal</span>
         </div>
         <CopyBtn text={curl} />
       </div>
       <pre style={{
-        fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+        fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)',
         background: 'rgba(0,30,0,0.4)', borderRadius: 6, padding: '10px 14px',
         color: '#4ade80', margin: 0, overflow: 'auto', maxHeight: 160,
         lineHeight: 1.7, border: '1px solid rgba(74,222,128,0.15)',
@@ -103,24 +103,24 @@ function CurlPanel({ method, url, headers, body }) {
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 function StatusBadge({ status, code, ms }) {
-  if (!status) return <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Not run</span>;
+  if (!status) return <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>Not run</span>;
   const color = status === 'passed' ? 'var(--green)' : status === 'failed' ? 'var(--red)' : 'var(--amber)';
   const Icon = status === 'passed' ? CheckCircle2 : status === 'failed' ? XCircle : AlertTriangle;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <Icon size={13} color={color} />
-      <span style={{ fontSize: 11, color, fontWeight: 600 }}>
+      <span style={{ fontSize: 'var(--fs-sm)', color, fontWeight: 600 }}>
         {status === 'passed' ? 'Passed' : status === 'failed' ? 'Failed' : 'Error'}
       </span>
       {code && (
         <span style={{
-          fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700,
+          fontSize: 'var(--fs-xs)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700,
           color: code < 300 ? 'var(--green)' : code < 400 ? 'var(--amber)' : 'var(--red)',
           padding: '1px 5px', background: 'rgba(0,0,0,0.2)', borderRadius: 3
         }}>{code}</span>
       )}
       {ms && (
-        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 2 }}>
+        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 2 }}>
           <Clock size={10} />{ms}ms
         </span>
       )}
@@ -137,8 +137,8 @@ function SectionHeader({ icon: Icon, color, title, subtitle, right }) {
           <Icon size={13} color={color} />
         </div>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>{subtitle}</div>}
+          <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 1 }}>{subtitle}</div>}
         </div>
       </div>
       {right}
@@ -202,16 +202,16 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
         <td>
           {endpoint && <span className={`method-badge method-${endpoint.method}`}>{endpoint.method}</span>}
         </td>
-        <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
           {endpoint?.path || '—'}
         </td>
-        <td style={{ fontSize: 13 }}>{tc.name}</td>
+        <td style={{ fontSize: 'var(--fs-md)' }}>{tc.name}</td>
         <td>
-          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: meta.bg, color: meta.color }}>
+          <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: meta.bg, color: meta.color }}>
             {meta.label}
           </span>
         </td>
-        <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600 }}>
+        <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', fontWeight: 600 }}>
           {tc.expected_status || '—'}
         </td>
         <td>
@@ -220,7 +220,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
         <td onClick={e => e.stopPropagation()}>
           <button onClick={runSingle} disabled={running} style={{
             display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-            borderRadius: 5, fontSize: 11, cursor: running ? 'not-allowed' : 'pointer',
+            borderRadius: 5, fontSize: 'var(--fs-sm)', cursor: running ? 'not-allowed' : 'pointer',
             background: 'var(--accent-dim)', color: 'var(--accent)',
             border: '1px solid rgba(130,100,255,0.25)', opacity: running ? 0.6 : 1, flexShrink: 0
           }}>
@@ -242,8 +242,8 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', background: 'var(--accent-dim)', borderRadius: 8, border: '1px solid rgba(130,100,255,0.2)', marginBottom: 16 }}>
                   <Cpu size={14} color="var(--accent)" style={{ marginTop: 1, flexShrink: 0 }} />
                   <div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>AI reasoning — </span>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{tc.ai_reasoning}</span>
+                    <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>AI reasoning — </span>
+                    <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>{tc.ai_reasoning}</span>
                   </div>
                 </div>
               )}
@@ -263,9 +263,9 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {/* Method + Full URL */}
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Full URL</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>
-                        {endpoint && <span className={`method-badge method-${endpoint.method}`} style={{ fontSize: 8, padding: '2px 5px' }}>{endpoint.method}</span>}
+                      <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Full URL</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: 6, fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)' }}>
+                        {endpoint && <span className={`method-badge method-${endpoint.method}`} style={{ fontSize: 'var(--fs-2xs)', padding: '2px 5px' }}>{endpoint.method}</span>}
                         <span style={{ color: 'var(--blue)', wordBreak: 'break-all', flex: 1 }}>{fullUrl}</span>
                         <CopyBtn text={fullUrl} />
                       </div>
@@ -283,7 +283,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                     {inputPayload
                       ? <CodeBlock label="Request body" data={inputPayload} color="var(--amber)" />
                       : (
-                        <div style={{ padding: '8px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                        <div style={{ padding: '8px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
                           No request body
                         </div>
                       )
@@ -291,8 +291,8 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
 
                     {/* Expected */}
                     <div style={{ display: 'flex', gap: 8, padding: '7px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expected status</span>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>{tc.expected_status || 'Any'}</span>
+                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Expected status</span>
+                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-md)', fontWeight: 700, color: 'var(--green)' }}>{tc.expected_status || 'Any'}</span>
                     </div>
 
                     {/* Expected schema */}
@@ -311,7 +311,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                   />
 
                   <pre style={{
-                    fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+                    fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)',
                     background: 'rgba(0,0,0,0.4)', borderRadius: 6, padding: '12px 14px',
                     color: '#4ade80', margin: 0, overflow: 'auto',
                     lineHeight: 1.8, border: '1px solid rgba(74,222,128,0.12)',
@@ -321,13 +321,13 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
 
                   {/* Quick tips */}
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Useful flags</div>
+                    <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Useful flags</div>
                     {[
                       ['-v', 'verbose — show full request + response headers'],
                       ['-i', 'include response headers in output'],
                       ['--max-time 10', 'timeout after 10 seconds'],
                     ].map(([flag, desc]) => (
-                      <div key={flag} style={{ display: 'flex', gap: 8, fontSize: 10 }}>
+                      <div key={flag} style={{ display: 'flex', gap: 8, fontSize: 'var(--fs-xs)' }}>
                         <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--green)', background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>{flag}</code>
                         <span style={{ color: 'var(--text-tertiary)' }}>{desc}</span>
                       </div>
@@ -348,7 +348,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                   {!result ? (
                     <div style={{ padding: '32px 16px', textAlign: 'center', borderRadius: 8, border: '1px dashed rgba(255,255,255,0.08)' }}>
                       <Play size={24} color="var(--text-tertiary)" style={{ marginBottom: 10 }} />
-                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
                         Click <strong style={{ color: 'var(--accent)' }}>Run</strong> to fire this request and see the actual response from your API
                       </div>
                     </div>
@@ -362,7 +362,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                         border: `1px solid ${result.status === 'passed' ? 'rgba(35,209,139,0.2)' : 'rgba(255,92,92,0.2)'}`
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                          <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                             Expected <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: 'var(--green)' }}>{tc.expected_status}</span>
                             {' '}→ Got{' '}
                             <span style={{
@@ -370,7 +370,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                               color: result.actual_status < 300 ? 'var(--green)' : result.actual_status < 400 ? 'var(--amber)' : 'var(--red)'
                             }}>{result.actual_status || '—'}</span>
                           </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)' }}>
+                          <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)' }}>
                             {result.status === 'passed' ? '✓ Match' : '✗ Mismatch'}
                           </span>
                         </div>
@@ -379,8 +379,8 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                       {/* Failure reason */}
                       {result.failure_reason && (
                         <div style={{ padding: '8px 10px', background: 'var(--red-bg)', borderRadius: 6, borderLeft: '2px solid var(--red)' }}>
-                          <div style={{ fontSize: 10, color: 'var(--red)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase' }}>Failure reason</div>
-                          <div style={{ fontSize: 11, color: 'var(--red)', lineHeight: 1.5 }}>{result.failure_reason}</div>
+                          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--red)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase' }}>Failure reason</div>
+                          <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--red)', lineHeight: 1.5 }}>{result.failure_reason}</div>
                         </div>
                       )}
 
@@ -388,7 +388,7 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                       {result.actual_headers && Object.keys(result.actual_headers).length > 0 && (
                         <div>
                           <button onClick={() => setShowRespHeaders(h => !h)} style={{
-                            display: 'flex', alignItems: 'center', gap: 5, fontSize: 10,
+                            display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-xs)',
                             color: 'var(--text-tertiary)', background: 'none', cursor: 'pointer', padding: '3px 0',
                             textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600
                           }}>
@@ -406,19 +406,19 @@ function TestCaseRow({ tc, endpoint, lastResult, onRunSingle, baseUrl, authType,
                           data={result.actual_body}
                           color={result.status === 'passed' ? 'var(--green)' : 'var(--red)'}
                         />
-                        : <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '6px 0' }}>No response body</div>
+                        : <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '6px 0' }}>No response body</div>
                       }
 
                       {/* Response time bar */}
                       {result.response_time_ms && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
                           <Clock size={11} color="var(--text-tertiary)" />
-                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Response time:</span>
+                          <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>Response time:</span>
                           <span style={{
-                            fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600,
+                            fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)', fontWeight: 600,
                             color: result.response_time_ms < 300 ? 'var(--green)' : result.response_time_ms < 1000 ? 'var(--amber)' : 'var(--red)'
                           }}>{result.response_time_ms}ms</span>
-                          <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                             {result.response_time_ms < 300 ? '⚡ Fast' : result.response_time_ms < 1000 ? '⏱ OK' : '🐢 Slow'}
                           </span>
                         </div>
@@ -596,14 +596,14 @@ export function TestsPage() {
           { key: 'security', label: 'Security', count: counts.security || 0, color: 'var(--pink)' },
         ].map(({ key, label, count, color }) => (
           <button key={key} onClick={() => setTypeFilter(key)} style={{
-            padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+            padding: '5px 14px', borderRadius: 20, fontSize: 'var(--fs-base)', cursor: 'pointer',
             background: typeFilter === key ? 'var(--accent-dim)' : 'var(--bg-card)',
             color: typeFilter === key ? 'var(--accent)' : 'var(--text-secondary)',
             border: typeFilter === key ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)',
             fontWeight: typeFilter === key ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5
           }}>
             {label}
-            <span style={{ fontSize: 10, color: color || 'var(--text-tertiary)', fontWeight: 700 }}>{count}</span>
+            <span style={{ fontSize: 'var(--fs-xs)', color: color || 'var(--text-tertiary)', fontWeight: 700 }}>{count}</span>
           </button>
         ))}
       </div>

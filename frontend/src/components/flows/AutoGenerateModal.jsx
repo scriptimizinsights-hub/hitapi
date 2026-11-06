@@ -31,12 +31,12 @@ export function AutoGenerateModal({ onConfirm, onClose, generating }) {
                 {/* Header */}
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Zap size={16} color="var(--accent)" />
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>Auto-generate suite</div>
+                    <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600 }}>Auto-generate suite</div>
                 </div>
 
                 {/* Body */}
                 <div style={{ padding: '18px 20px' }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
                         Choose how HitAPI should authenticate when running this suite.
                     </div>
 
@@ -55,10 +55,10 @@ export function AutoGenerateModal({ onConfirm, onClose, generating }) {
                                 transition: 'all .12s',
                             }}
                         >
-                            <div style={{ fontSize: 13, fontWeight: 600, color: authType === opt.key ? 'var(--accent)' : 'var(--text-primary)' }}>
+                            <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: authType === opt.key ? 'var(--accent)' : 'var(--text-primary)' }}>
                                 {opt.icon} {opt.label}
                             </div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>
+                            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 3 }}>
                                 {opt.hint}
                             </div>
                         </div>
@@ -76,19 +76,19 @@ export function AutoGenerateModal({ onConfirm, onClose, generating }) {
                                     style={{
                                         width: '100%', padding: '9px 11px', borderRadius: 7,
                                         background: 'var(--bg-input, rgba(255,255,255,0.03))', border: '1px solid var(--border)',
-                                        color: 'var(--text-primary)', fontSize: 12,
+                                        color: 'var(--text-primary)', fontSize: 'var(--fs-base)',
                                         fontFamily: 'JetBrains Mono, monospace',
                                     }}
                                 />
                             </form>
-                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 5 }}>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 5 }}>
                                 Sent as <code>Authorization: Bearer &lt;token&gt;</code> on every step
                             </div>
                         </div>
                     )}
 
                     {error && (
-                        <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 11, color: 'var(--red)' }}>
+                        <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--red)' }}>
                             {error}
                         </div>
                     )}
@@ -97,11 +97,11 @@ export function AutoGenerateModal({ onConfirm, onClose, generating }) {
                 {/* Footer */}
                 <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
                     <button onClick={onClose}
-                        style={{ padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>
+                        style={{ padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 'var(--fs-md)' }}>
                         Cancel
                     </button>
                     <button onClick={handleConfirm} disabled={generating}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 7, cursor: generating ? 'not-allowed' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, opacity: generating ? 0.7 : 1 }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 7, cursor: generating ? 'not-allowed' : 'pointer', background: 'var(--accent-solid)', color: '#fff', border: 'none', fontSize: 'var(--fs-md)', fontWeight: 500, opacity: generating ? 0.7 : 1 }}>
                         {generating ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Generating…</> : <><Zap size={13} /> Generate</>}
                     </button>
                 </div>

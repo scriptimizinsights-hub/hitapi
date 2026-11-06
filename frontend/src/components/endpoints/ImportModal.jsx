@@ -21,10 +21,10 @@ export function ImportModal({ projectId, onClose }) {
                     <Upload size={18} color="var(--accent)" /> Import Swagger / OpenAPI
                 </div>
                 <div style={{ marginBottom: 20 }}>
-                    <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Swagger URL</label>
+                    <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Swagger URL</label>
                     <input className="input" placeholder="https://api.example.com/swagger.json" value={url}
                         onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleImport()} autoFocus />
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>Supports OpenAPI 3.0, 3.1, Swagger 2.0 · JSON</div>
+                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 6 }}>Supports OpenAPI 3.0, 3.1, Swagger 2.0 · JSON</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button className="btn btn-ghost" onClick={onClose}>Cancel</button>

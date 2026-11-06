@@ -58,11 +58,11 @@ function FAQ({ item }) {
                     textAlign: 'left', gap: 12
                 }}
             >
-                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', flex: 1 }}>{item.q}</span>
+                <span style={{ fontSize: 'var(--fs-md)', fontWeight: 500, color: 'var(--text-primary)', flex: 1 }}>{item.q}</span>
                 {open ? <ChevronUp size={16} color="var(--accent)" /> : <ChevronDown size={16} color="var(--text-tertiary)" />}
             </button>
             {open && (
-                <div style={{ padding: '0 20px 18px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                <div style={{ padding: '0 20px 18px', fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                     {item.a}
                 </div>
             )}
@@ -86,7 +86,7 @@ export function SupportPage() {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <LogoMark size={26} />
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
+                        <span style={{ fontSize: 'var(--fs-md)', fontWeight: 600 }}>HitAPI</span>
                     </div>
                     <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <ArrowLeft size={13} /> Back
@@ -102,7 +102,7 @@ export function SupportPage() {
                     <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 10 }}>
                         HitAPI Support
                     </h1>
-                    <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
+                    <p style={{ fontSize: 'var(--fs-lg)', color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7 }}>
                         Get help with HitAPI — AI-powered API testing built on Cloudflare. We're here to help you ship faster.
                     </p>
                 </div>
@@ -140,9 +140,9 @@ export function SupportPage() {
                                 <div style={{ width: 40, height: 40, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                                     <Icon size={18} color={color} />
                                 </div>
-                                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
-                                <div style={{ fontSize: 12, color, display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto' }}>
+                                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 6 }}>{title}</div>
+                                <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>{desc}</div>
+                                <div style={{ fontSize: 'var(--fs-base)', color, display: 'flex', alignItems: 'center', gap: 4, marginTop: 'auto' }}>
                                     {action.length > 30 ? action.slice(0, 30) + '…' : action} <ExternalLink size={11} />
                                 </div>
                             </div>
@@ -178,11 +178,11 @@ export function SupportPage() {
                                     width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                                     background: 'var(--accent-dim)', border: '1px solid rgba(130,100,255,0.3)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 12, fontWeight: 700, color: 'var(--accent)'
+                                    fontSize: 'var(--fs-base)', fontWeight: 700, color: 'var(--accent)'
                                 }}>{step}</div>
                                 <div>
-                                    <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3 }}>{title}</div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{desc}</div>
+                                    <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, marginBottom: 3 }}>{title}</div>
+                                    <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{desc}</div>
                                 </div>
                             </div>
                         ))}
@@ -205,11 +205,11 @@ export function SupportPage() {
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                         }}>
                             <div>
-                                <div style={{ fontSize: 10, color: '#ff5c5c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                                <div style={{ fontSize: 'var(--fs-xs)', color: '#ff5c5c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
                                     Sponsored by
                                 </div>
                                 <div style={{ fontSize: 18, fontWeight: 600 }}>Scriptimiz Insight LLP</div>
-                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
+                                <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', marginTop: 2 }}>
                                     Custom Software Solutions &amp; Web Development · Mumbai, India
                                 </div>
                             </div>
@@ -221,7 +221,7 @@ export function SupportPage() {
 
                         {/* Services grid */}
                         <div style={{ padding: '20px 24px' }}>
-                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>
                                 Our services
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
@@ -234,20 +234,20 @@ export function SupportPage() {
                                     { title: 'E-Commerce Solutions', desc: 'Online stores, payment integration &amp; fulfilment systems' },
                                 ].map(({ title, desc }) => (
                                     <div key={title} style={{ padding: '12px 14px', background: 'var(--bg-input)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                                        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{title}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</div>
+                                        <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, marginBottom: 4 }}>{title}</div>
+                                        <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</div>
                                     </div>
                                 ))}
                             </div>
 
                             {/* Tech stack */}
-                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
                                 Expert in
                             </div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
                                 {['Java', 'Spring Boot', 'Microservices', 'React', 'Node.js', 'MySQL', 'PostgreSQL', 'AWS', 'Docker', 'REST APIs'].map(tech => (
                                     <span key={tech} style={{
-                                        fontSize: 11, padding: '3px 10px', borderRadius: 20,
+                                        fontSize: 'var(--fs-sm)', padding: '3px 10px', borderRadius: 20,
                                         background: 'rgba(255,92,92,0.08)', color: '#ff5c5c',
                                         border: '1px solid rgba(255,92,92,0.2)', fontWeight: 500
                                     }}>{tech}</span>
@@ -256,16 +256,16 @@ export function SupportPage() {
 
                             {/* Contact row */}
                             <div style={{ display: 'flex', gap: 20, padding: '14px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-md)' }}>
                                     <Mail size={13} color="var(--text-tertiary)" />
                                     <a href="mailto:scriptimizinsights@gmail.com" style={{ color: '#ff5c5c' }}>scriptimizinsights@gmail.com</a>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>
                                     <MapPin size={13} color="var(--text-tertiary)" />
                                     Gokul Nagar, Akurli Road, Kandivali East, Mumbai — 400101
                                 </div>
                                 <a href="https://scriptimiz.com" target="_blank" rel="noopener noreferrer"
-                                    style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#ff5c5c' }}>
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-md)', color: '#ff5c5c' }}>
                                     <Globe size={13} /> scriptimiz.com
                                 </a>
                             </div>
@@ -277,15 +277,15 @@ export function SupportPage() {
                     <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 18 }}>Contact us</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                         <div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>Email</div>
-                            <a href={`mailto:${EMAIL}`} style={{ color: 'var(--accent)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>Email</div>
+                            <a href={`mailto:${EMAIL}`} style={{ color: 'var(--accent)', fontSize: 'var(--fs-md)', display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <Mail size={13} /> {EMAIL}
                             </a>
-                            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>We respond within 24–48 hours</div>
+                            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', marginTop: 4 }}>We respond within 24–48 hours</div>
                         </div>
                         <div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>Office</div>
-                            <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>Office</div>
+                            <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                                 <MapPin size={13} style={{ marginTop: 2, flexShrink: 0 }} color="var(--text-tertiary)" />
                                 <span>{COMPANY}<br />{ADDRESS}</span>
                             </div>

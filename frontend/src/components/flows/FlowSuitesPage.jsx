@@ -31,7 +31,7 @@ function CopyBtn({ text }) {
     return (
         <button onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
             style={{
-                display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 4, fontSize: 10, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 4, fontSize: 'var(--fs-xs)', cursor: 'pointer',
                 background: copied ? 'var(--green-bg)' : 'rgba(255,255,255,0.06)',
                 color: copied ? 'var(--green)' : 'var(--text-tertiary)',
                 border: `1px solid ${copied ? 'var(--green-border)' : 'var(--border)'}`
@@ -61,7 +61,7 @@ function CurlButton({ url, method, headers, body }) {
     };
     return (
         <button onClick={copy} style={{
-            fontSize: 9, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+            fontSize: 'var(--fs-2xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', flexShrink: 0,
             background: copied ? 'rgba(35,209,139,0.1)' : 'rgba(255,255,255,0.05)',
             color: copied ? 'var(--green)' : 'var(--text-tertiary)',
             border: `1px solid ${copied ? 'rgba(35,209,139,0.3)' : 'var(--border)'}`,
@@ -94,23 +94,23 @@ function SubCheckCard({ check, baseUrl, method }) {
             overflow: 'hidden',
         }}>
             <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer' }}>
-                <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
-                <span style={{ fontSize: 11, color, fontWeight: 500, flex: 1 }}>
+                <span style={{ fontSize: 'var(--fs-base)', flexShrink: 0 }}>{icon}</span>
+                <span style={{ fontSize: 'var(--fs-sm)', color, fontWeight: 500, flex: 1 }}>
                     {passed ? '✓' : '✗'} {check.label}
                 </span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
                     {checkMethod} → <span style={{ color }}>{check.actual_status ?? 'error'}</span>
                     {' '}(exp: {Array.isArray(check.expected_status) ? check.expected_status.join('/') : check.expected_status})
                 </span>
                 <CurlButton url={baseUrl} method={checkMethod} headers={checkHeaders} body={checkBody} />
-                <span style={{ color: 'var(--text-tertiary)', fontSize: 11, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--fs-sm)', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
             </div>
             {open && (
                 <div style={{ borderTop: `1px solid ${passed ? 'rgba(35,209,139,0.1)' : 'rgba(255,92,92,0.1)'}`, padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Request</div>
+                        <div style={{ fontSize: 'var(--fs-2xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Request</div>
                         <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px' }}>
-                            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                                 <div><span style={{ color: 'var(--amber)' }}>Method:</span> {checkMethod}</div>
                                 <div><span style={{ color: 'var(--amber)' }}>URL:</span> {baseUrl}</div>
                                 {check.check_type === 'auth' && <div><span style={{ color: 'var(--red)' }}>Auth:</span> none (removed)</div>}
@@ -120,19 +120,19 @@ function SubCheckCard({ check, baseUrl, method }) {
                         </div>
                     </div>
                     <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: passed ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Response</div>
+                        <div style={{ fontSize: 'var(--fs-2xs)', fontWeight: 600, color: passed ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Response</div>
                         <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 5, padding: '6px 8px', minHeight: 40 }}>
                             {check.actual_body ? (
-                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
                                     {JSON.stringify(check.actual_body, null, 2)}
                                 </pre>
                             ) : (
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-tertiary)' }}>No response body</span>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)' }}>No response body</span>
                             )}
                         </div>
                     </div>
                     {check.failure_reason && !passed && (
-                        <div style={{ gridColumn: '1/-1', fontSize: 10, color: 'var(--red)', padding: '4px 6px', background: 'rgba(255,92,92,0.06)', borderRadius: 4 }}>
+                        <div style={{ gridColumn: '1/-1', fontSize: 'var(--fs-xs)', color: 'var(--red)', padding: '4px 6px', background: 'rgba(255,92,92,0.06)', borderRadius: 4 }}>
                             ✗ {check.failure_reason}
                         </div>
                     )}
@@ -298,7 +298,7 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
         }}>
             {/* Header with AI button */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Plus size={14} /> Add New Step
                 </div>
                 <button
@@ -306,7 +306,7 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
                     disabled={generating || !form.endpoint_id}
                     style={{
                         display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '6px 12px', borderRadius: 7, fontSize: 12,
+                        padding: '6px 12px', borderRadius: 7, fontSize: 'var(--fs-base)',
                         cursor: generating || !form.endpoint_id ? 'not-allowed' : 'pointer',
                         background: generating ? 'rgba(130,100,255,0.1)' : 'linear-gradient(135deg, rgba(130,100,255,0.2), rgba(92,168,255,0.2))',
                         color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.35)',
@@ -320,14 +320,14 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
             </div>
 
             {error && (
-                <div style={{ padding: '8px 10px', background: 'var(--red-bg)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 6, fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>
+                <div style={{ padding: '8px 10px', background: 'var(--red-bg)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 6, fontSize: 'var(--fs-base)', color: 'var(--red)', marginBottom: 12 }}>
                     {error}
                 </div>
             )}
 
             {/* AI reasoning hint */}
             {aiHint && (
-                <div style={{ padding: '8px 10px', background: 'rgba(130,100,255,0.08)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--accent)', marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <div style={{ padding: '8px 10px', background: 'rgba(130,100,255,0.08)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--accent)', marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                     <span style={{ flexShrink: 0 }}>✨</span> <span>{aiHint}</span>
                 </div>
             )}
@@ -335,11 +335,11 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {/* Endpoint selector */}
                 <div style={{ gridColumn: '1/-1' }}>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Endpoint</label>
+                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Endpoint</label>
                     <select
                         value={form.endpoint_id}
                         onChange={handleEndpointChange}
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }}
                     >
                         {endpoints.map(ep => (
                             <option key={ep.id} value={ep.id}>{ep.method} {ep.path}</option>
@@ -349,22 +349,22 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
 
                 {/* Step name */}
                 <div style={{ gridColumn: '1/-1' }}>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
                         Step name
-                        {generating && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--accent)' }}>✨ filling…</span>}
+                        {generating && <span style={{ marginLeft: 6, fontSize: 'var(--fs-xs)', color: 'var(--accent)' }}>✨ filling…</span>}
                     </label>
                     <input
                         type="text"
                         value={form.name}
                         onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                         placeholder="e.g. Convert JSON to CSV"
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: generating ? 'rgba(130,100,255,0.05)' : 'var(--bg-card)', border: `1px solid ${generating ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`, color: 'var(--text-primary)', fontSize: 12, transition: 'all .2s' }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: generating ? 'rgba(130,100,255,0.05)' : 'var(--bg-card)', border: `1px solid ${generating ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`, color: 'var(--text-primary)', fontSize: 'var(--fs-base)', transition: 'all .2s' }}
                     />
                 </div>
 
                 {/* Path params */}
                 <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
                         Path params <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(JSON)</span>
                     </label>
                     <textarea
@@ -372,13 +372,13 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
                         onChange={e => setForm(f => ({ ...f, input_params: e.target.value }))}
                         placeholder={'{\n  "from": "json",\n  "to": "csv"\n}'}
                         rows={4}
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
                     />
                 </div>
 
                 {/* Request body */}
                 <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
                         Request body <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(JSON)</span>
                     </label>
                     <textarea
@@ -386,24 +386,24 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
                         onChange={e => setForm(f => ({ ...f, input_payload: e.target.value }))}
                         placeholder={'{\n  "input": "id,name\\n1,Ada"\n}'}
                         rows={4}
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
                     />
                 </div>
 
                 {/* Expected status */}
                 <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Expected status</label>
+                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>Expected status</label>
                     <input
                         type="number"
                         value={form.expected_status}
                         onChange={e => setForm(f => ({ ...f, expected_status: e.target.value }))}
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }}
                     />
                 </div>
 
                 {/* Extract vars */}
                 <div>
-                    <label style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
                         Extract vars <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(JSON array, optional)</span>
                     </label>
                     <textarea
@@ -411,7 +411,7 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
                         onChange={e => setForm(f => ({ ...f, extract_vars: e.target.value }))}
                         placeholder={'[\n  {"var": "token", "path": "data.token"}\n]'}
                         rows={3}
-                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', resize: 'vertical' }}
                     />
                 </div>
 
@@ -424,7 +424,7 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
                         onChange={e => setForm(f => ({ ...f, skip_if_failed: e.target.checked }))}
                         style={{ width: 14, height: 14, cursor: 'pointer' }}
                     />
-                    <label htmlFor="skip_if_failed" style={{ fontSize: 12, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <label htmlFor="skip_if_failed" style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                         Skip following steps if this step fails
                     </label>
                 </div>
@@ -434,14 +434,14 @@ function AddStepForm({ projectId, suiteId, onAdded, onCancel }) {
             <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
                 <button
                     onClick={onCancel}
-                    style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                    style={{ padding: '7px 16px', borderRadius: 6, fontSize: 'var(--fs-base)', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', opacity: saving ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 6 }}
+                    style={{ padding: '7px 16px', borderRadius: 6, fontSize: 'var(--fs-base)', cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--accent-solid)', color: '#fff', border: 'none', opacity: saving ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                     {saving ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Saving…</> : <><Plus size={12} /> Add Step</>}
                 </button>
@@ -471,41 +471,41 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                     {expanded ? <ChevronDown size={13} color="var(--accent)" /> : <ChevronRight size={13} color="var(--text-tertiary)" />}
                 </td>
                 <td style={{ width: 28 }}>
-                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)' }}>
                         {result.step_order}
                     </div>
                 </td>
                 <td style={{ width: 22 }}><StatusIcon status={result.status} /></td>
-                <td style={{ fontSize: 13 }}>{result.step_name}</td>
+                <td style={{ fontSize: 'var(--fs-md)' }}>{result.step_name}</td>
                 <td>{result.request_method && <span className={`method-badge method-${result.request_method}`}>{result.request_method}</span>}</td>
-                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>
+                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
                     {result.request_url ? result.request_url.replace(/^https?:\/\/[^/]+/, '') : '—'}
                 </td>
                 <td style={{
-                    fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600,
+                    fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', fontWeight: 600,
                     color: !result.actual_status ? 'var(--text-tertiary)' : result.actual_status < 300 ? 'var(--green)' : result.actual_status < 400 ? 'var(--amber)' : 'var(--red)'
                 }}>
                     {result.status === 'skipped' ? 'skipped' : (result.actual_status || '—')}
                 </td>
-                <td style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                <td style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                     {result.response_time_ms ? `${result.response_time_ms}ms` : '—'}
                 </td>
                 <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <button onClick={onMoveUp} disabled={isFirst} title="Move up"
-                            style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: isFirst ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isFirst ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                            style={{ fontSize: 'var(--fs-xs)', padding: '2px 6px', borderRadius: 4, cursor: isFirst ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isFirst ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                             ↑
                         </button>
                         <button onClick={onMoveDown} disabled={isLast} title="Move down"
-                            style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: isLast ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isLast ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                            style={{ fontSize: 'var(--fs-xs)', padding: '2px 6px', borderRadius: 4, cursor: isLast ? 'not-allowed' : 'pointer', background: 'rgba(255,255,255,0.04)', color: isLast ? 'var(--border)' : 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                             ↓
                         </button>
                         <button onClick={() => { setEditing(e => !e); setExpanded(true); }}
-                            style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: editing ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)', color: editing ? 'var(--accent)' : 'var(--text-tertiary)', border: `1px solid ${editing ? 'rgba(130,100,255,0.3)' : 'var(--border)'}` }}>
+                            style={{ fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: editing ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)', color: editing ? 'var(--accent)' : 'var(--text-tertiary)', border: `1px solid ${editing ? 'rgba(130,100,255,0.3)' : 'var(--border)'}` }}>
                             {editing ? '✕' : '✎'}
                         </button>
                         <button onClick={onDeleteStep} title="Delete step"
-                            style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
+                            style={{ fontSize: 'var(--fs-xs)', padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
                             ✕
                         </button>
                     </div>
@@ -568,24 +568,24 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                         <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                                 {result.request_method && (
-                                    <span className={`method-badge method-${result.request_method}`} style={{ fontSize: 9 }}>{result.request_method}</span>
+                                    <span className={`method-badge method-${result.request_method}`} style={{ fontSize: 'var(--fs-2xs)' }}>{result.request_method}</span>
                                 )}
-                                <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--blue)', flex: 1, wordBreak: 'break-all' }}>
+                                <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', color: 'var(--blue)', flex: 1, wordBreak: 'break-all' }}>
                                     {result.request_url || '—'}
                                 </code>
                                 {result.actual_status && (
                                     <span style={{
-                                        fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, flexShrink: 0, padding: '2px 10px', borderRadius: 6,
+                                        fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-md)', fontWeight: 700, flexShrink: 0, padding: '2px 10px', borderRadius: 6,
                                         background: result.actual_status < 300 ? 'var(--green-bg)' : 'var(--red-bg)',
                                         color: result.actual_status < 300 ? 'var(--green)' : 'var(--red)',
                                         border: `1px solid ${result.actual_status < 300 ? 'rgba(35,209,139,0.25)' : 'rgba(255,92,92,0.25)'}`
                                     }}>{result.actual_status}</span>
                                 )}
-                                <span style={{ fontSize: 11, fontWeight: 600, flexShrink: 0, color: result.status === 'passed' ? 'var(--green)' : result.status === 'skipped' ? 'var(--amber)' : 'var(--red)' }}>
+                                <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, flexShrink: 0, color: result.status === 'passed' ? 'var(--green)' : result.status === 'skipped' ? 'var(--amber)' : 'var(--red)' }}>
                                     {result.status === 'passed' ? '✓ Passed' : result.status === 'skipped' ? '⊘ Skipped' : `✗ ${result.failure_reason || 'Failed'}`}
                                 </span>
                                 {result.response_time_ms && (
-                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>{result.response_time_ms}ms</span>
+                                    <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>{result.response_time_ms}ms</span>
                                 )}
                                 {result.request_url && (
                                     <CurlButton url={result.request_url} method={result.request_method} headers={reqHeaders} body={reqBody} />
@@ -593,42 +593,42 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                             </div>
 
                             {result.status === 'skipped' ? (
-                                <div style={{ padding: '8px 12px', background: 'var(--amber-bg)', borderRadius: 6, fontSize: 11, color: 'var(--amber)', border: '1px solid rgba(255,181,71,0.2)' }}>
+                                <div style={{ padding: '8px 12px', background: 'var(--amber-bg)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--amber)', border: '1px solid rgba(255,181,71,0.2)' }}>
                                     ⊘ {result.failure_reason || 'Skipped'}
                                 </div>
                             ) : (
                                 <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 12 }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Request</div>
+                                        <div style={{ fontSize: 'var(--fs-2xs)', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Request</div>
                                         {reqHeaders && (
                                             <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 5, padding: '5px 8px' }}>
-                                                <div style={{ fontSize: 9, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Headers</div>
+                                                <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Headers</div>
                                                 {reqHeaders['Authorization'] ? (
-                                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', wordBreak: 'break-all', lineHeight: 1.4 }}>
+                                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)', wordBreak: 'break-all', lineHeight: 1.4 }}>
                                                         Authorization: Bearer {String(reqHeaders['Authorization']).replace('Bearer ', '').slice(0, 20)}…
                                                     </div>
                                                 ) : (
-                                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-tertiary)' }}>Content-Type: application/json</div>
+                                                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)' }}>Content-Type: application/json</div>
                                                 )}
                                             </div>
                                         )}
                                         {reqBody ? (
                                             <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 5, padding: '5px 8px' }}>
-                                                <div style={{ fontSize: 9, color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Body</div>
-                                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                                <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--amber)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Body</div>
+                                                <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)', margin: 0, maxHeight: 80, overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                                                     {JSON.stringify(reqBody, null, 2)}
                                                 </pre>
                                             </div>
                                         ) : (
-                                            <div style={{ padding: '5px 8px', background: 'rgba(255,92,92,0.06)', borderRadius: 5, border: '1px solid rgba(255,92,92,0.15)', fontSize: 9, color: 'var(--red)' }}>
+                                            <div style={{ padding: '5px 8px', background: 'rgba(255,92,92,0.06)', borderRadius: 5, border: '1px solid rgba(255,92,92,0.15)', fontSize: 'var(--fs-2xs)', color: 'var(--red)' }}>
                                                 ⚠ No body sent
                                             </div>
                                         )}
                                         {extracted && Object.entries(extracted).filter(([k]) => !k.startsWith('__')).length > 0 && (
                                             <div style={{ background: 'var(--accent-dim)', borderRadius: 5, padding: '5px 8px', borderLeft: '2px solid var(--accent)' }}>
-                                                <div style={{ fontSize: 9, color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Extracted</div>
+                                                <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 3 }}>Extracted</div>
                                                 {Object.entries(extracted).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
-                                                    <div key={k} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                    <div key={k} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-2xs)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                                                         <span style={{ color: 'var(--accent)' }}>{'{{' + k + '}}'}</span> = {String(v).slice(0, 30)}{String(v).length > 30 ? '…' : ''}
                                                     </div>
                                                 ))}
@@ -636,10 +636,10 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                         )}
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: 9, fontWeight: 600, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Response body</div>
+                                        <div style={{ fontSize: 'var(--fs-2xs)', fontWeight: 600, color: result.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Response body</div>
                                         {body ? (
                                             <pre style={{
-                                                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, lineHeight: 1.7,
+                                                fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', lineHeight: 1.7,
                                                 background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '10px 12px',
                                                 color: 'var(--text-secondary)', margin: 0,
                                                 maxHeight: 200, overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
@@ -648,7 +648,7 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
                                                 {JSON.stringify(body, null, 2)}
                                             </pre>
                                         ) : (
-                                            <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic', border: '1px solid var(--border)' }}>
+                                            <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', fontStyle: 'italic', border: '1px solid var(--border)' }}>
                                                 No response body
                                             </div>
                                         )}
@@ -658,7 +658,7 @@ function StepResult({ result, projectId, suiteId, stepDef, context, onStepSaved,
 
                             {subChecks.length > 0 && (
                                 <div style={{ marginTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 10 }}>
-                                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
+                                    <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>
                                         Security & Validation checks — {subChecks.filter(c => c.status === 'passed').length}/{subChecks.length} passed
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -683,12 +683,12 @@ function StepsList({ steps, suiteId, projectId, onAddedStep }) {
 
     if (!steps?.length && !showAddForm) return (
         <div style={{ padding: '20px 18px' }}>
-            <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12, marginBottom: 14 }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)', marginBottom: 14 }}>
                 No steps yet — add your first step below
             </div>
             <button
                 onClick={() => setShowAddForm(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 auto', padding: '8px 16px', borderRadius: 7, fontSize: 12, cursor: 'pointer', background: 'var(--accent)', color: '#fff', border: 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 auto', padding: '8px 16px', borderRadius: 7, fontSize: 'var(--fs-base)', cursor: 'pointer', background: 'var(--accent-solid)', color: '#fff', border: 'none' }}
             >
                 <Plus size={13} /> Add Step
             </button>
@@ -713,17 +713,17 @@ function StepsList({ steps, suiteId, projectId, onAddedStep }) {
                         {steps.map((step, i) => (
                             <tr key={step.id}>
                                 <td>
-                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)' }}>
                                         {step.step_order || i + 1}
                                     </div>
                                 </td>
                                 <td>
                                     <span className={`method-badge method-${step.method}`}>{step.method}</span>
                                 </td>
-                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>
+                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
                                     {step.endpoint_path || step.name}
                                 </td>
-                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)' }}>
+                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                                     {step.expected_status || '—'}
                                 </td>
                                 <td>
@@ -736,7 +736,7 @@ function StepsList({ steps, suiteId, projectId, onAddedStep }) {
                                                 onAddedStep();
                                             } catch (e) { addToast(e.message, 'error'); }
                                         }}
-                                        style={{ fontSize: 10, padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}
+                                        style={{ fontSize: 'var(--fs-xs)', padding: '3px 6px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}
                                     >
                                         ✕
                                     </button>
@@ -761,7 +761,7 @@ function StepsList({ steps, suiteId, projectId, onAddedStep }) {
                         onClick={() => setShowAddForm(true)}
                         style={{
                             display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '7px 14px', borderRadius: 7, fontSize: 12,
+                            padding: '7px 14px', borderRadius: 7, fontSize: 'var(--fs-base)',
                             cursor: 'pointer', width: '100%', justifyContent: 'center',
                             background: 'rgba(130,100,255,0.06)',
                             color: 'var(--accent)',
@@ -923,8 +923,8 @@ function SuiteCard({ suite, projectId, onDelete }) {
                     <GitBranch size={16} color="var(--accent)" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{suite.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{suite.description}</div>
+                    <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600 }}>{suite.name}</div>
+                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 2 }}>{suite.description}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     {lastRun && (
@@ -932,11 +932,11 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             <div style={{ fontSize: 20, fontWeight: 700, color: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)' }}>
                                 {passRate}%
                             </div>
-                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{lastRun.summary.passed}/{lastRun.summary.total} passed · last run</div>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{lastRun.summary.passed}/{lastRun.summary.total} passed · last run</div>
                         </div>
                     )}
                     <button onClick={handleRun} disabled={running} className="btn btn-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--fs-base)' }}>
                         {running
                             ? <><div className="spinner" style={{ width: 12, height: 12 }} /> {lastRun ? 'Running…' : 'Queued…'}</>
                             : <><Play size={11} fill="currentColor" /> Run</>}
@@ -947,7 +947,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         title="Add step to this suite"
                         style={{
                             display: 'flex', alignItems: 'center', gap: 5,
-                            padding: '6px 10px', borderRadius: 6, fontSize: 11,
+                            padding: '6px 10px', borderRadius: 6, fontSize: 'var(--fs-sm)',
                             cursor: 'pointer', whiteSpace: 'nowrap',
                             background: 'rgba(130,100,255,0.08)',
                             color: 'var(--accent)',
@@ -960,7 +960,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         <button onClick={e => { e.stopPropagation(); setShowSkipPanel(s => !s); if (!steps) loadSteps(); }}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                                borderRadius: 6, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                                borderRadius: 6, fontSize: 'var(--fs-sm)', cursor: 'pointer', whiteSpace: 'nowrap',
                                 background: skipStepIds.size > 0 ? 'var(--amber-bg)' : 'var(--bg-card)',
                                 color: skipStepIds.size > 0 ? 'var(--amber)' : 'var(--text-secondary)',
                                 border: `1px solid ${skipStepIds.size > 0 ? 'rgba(255,181,71,0.3)' : 'var(--border)'}`,
@@ -979,17 +979,17 @@ function SuiteCard({ suite, projectId, onDelete }) {
             {/* Skip panel */}
             {showSkipPanel && (
                 <div onClick={e => e.stopPropagation()} style={{ borderTop: '1px solid var(--border)', padding: '14px 18px', background: 'rgba(255,181,71,0.04)' }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--amber)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>⊘ Select steps to skip in next run</span>
                         <div style={{ display: 'flex', gap: 8 }}>
                             <button onClick={() => {
                                 const failedIds = new Set((lastRun?.results || []).filter(r => r.status === 'failed' || r.status === 'error').map(r => r.step_id).filter(Boolean));
                                 setSkipStepIds(failedIds);
-                            }} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
+                            }} style={{ fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
                                 Select all failed
                             </button>
                             <button onClick={() => setSkipStepIds(new Set())}
-                                style={{ fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                                style={{ fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                                 Clear all
                             </button>
                         </div>
@@ -1009,21 +1009,21 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                     border: `1px solid ${isChecked ? 'rgba(255,181,71,0.3)' : 'var(--border)'}`,
                                 }}>
                                     <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, border: `2px solid ${isChecked ? 'var(--amber)' : 'var(--border)'}`, background: isChecked ? 'var(--amber)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        {isChecked && <span style={{ fontSize: 9, color: '#000', fontWeight: 800 }}>✓</span>}
+                                        {isChecked && <span style={{ fontSize: 'var(--fs-2xs)', color: '#000', fontWeight: 800 }}>✓</span>}
                                     </div>
-                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{order}</div>
-                                    <div style={{ flex: 1, fontSize: 12 }}>{stepName}</div>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-xs)', fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{order}</div>
+                                    <div style={{ flex: 1, fontSize: 'var(--fs-base)' }}>{stepName}</div>
                                     {status && (
-                                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: status === 'passed' ? 'var(--green-bg)' : status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)', color: status === 'passed' ? 'var(--green)' : status === 'failed' ? 'var(--red)' : 'var(--amber)' }}>
+                                        <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: status === 'passed' ? 'var(--green-bg)' : status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)', color: status === 'passed' ? 'var(--green)' : status === 'failed' ? 'var(--red)' : 'var(--amber)' }}>
                                             {status === 'passed' ? '✓ Passed' : status === 'failed' ? '✗ Failed' : '— Skipped'}
                                         </span>
                                     )}
-                                    {isChecked && <span style={{ fontSize: 10, color: 'var(--amber)', fontStyle: 'italic', flexShrink: 0 }}>will skip</span>}
+                                    {isChecked && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--amber)', fontStyle: 'italic', flexShrink: 0 }}>will skip</span>}
                                 </div>
                             );
                         })}
                     </div>
-                    <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                    <div style={{ marginTop: 10, fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                         {skipStepIds.size > 0 ? `${skipStepIds.size} step${skipStepIds.size > 1 ? 's' : ''} will be skipped · click Run to execute` : 'Click steps above to mark them for skipping'}
                     </div>
                 </div>
@@ -1041,7 +1041,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                         ].map(tab => (
                             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                                 style={{
-                                    padding: '8px 16px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                                    padding: '8px 16px', fontSize: 'var(--fs-base)', fontWeight: 500, cursor: 'pointer',
                                     background: 'transparent', border: 'none',
                                     borderBottom: activeTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
                                     color: activeTab === tab.key ? 'var(--accent)' : 'var(--text-tertiary)',
@@ -1069,20 +1069,20 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             {running && (
                                 <div style={{ padding: '24px', textAlign: 'center' }}>
                                     <div className="spinner" style={{ width: 28, height: 28, margin: '0 auto 12px' }} />
-                                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Executing steps in sequence…</div>
+                                    <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>Executing steps in sequence…</div>
                                 </div>
                             )}
 
                             {lastRun && !running && (
                                 <>
                                     <div style={{ padding: '10px 18px', background: 'rgba(0,0,0,0.15)', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>✓ {lastRun.summary.passed} passed</span>
-                                        {lastRun.summary.failed > 0 && <span style={{ fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>✗ {lastRun.summary.failed} failed</span>}
+                                        <span style={{ fontSize: 'var(--fs-base)', color: 'var(--green)', fontWeight: 600 }}>✓ {lastRun.summary.passed} passed</span>
+                                        {lastRun.summary.failed > 0 && <span style={{ fontSize: 'var(--fs-base)', color: 'var(--red)', fontWeight: 600 }}>✗ {lastRun.summary.failed} failed</span>}
                                         <div style={{ flex: 1, minWidth: 80, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
                                             <div style={{ height: '100%', width: `${passRate}%`, background: passRate === 100 ? 'var(--green)' : passRate > 50 ? 'var(--amber)' : 'var(--red)', transition: 'width .4s' }} />
                                         </div>
                                         {lastRun.context && Object.entries(lastRun.context).filter(([k]) => !k.startsWith('__')).map(([k, v]) => (
-                                            <span key={k} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: 'JetBrains Mono, monospace' }}>
+                                            <span key={k} style={{ fontSize: 'var(--fs-xs)', padding: '2px 8px', borderRadius: 10, background: 'var(--accent-dim)', color: 'var(--accent)', fontFamily: 'JetBrains Mono, monospace' }}>
                                                 {`{{${k}}}`} ✓
                                             </span>
                                         ))}
@@ -1114,8 +1114,8 @@ function SuiteCard({ suite, projectId, onDelete }) {
                                                                 <td colSpan={9} style={{ padding: '5px 14px 2px', background: 'rgba(130,100,255,0.04)', borderTop: '1px solid rgba(130,100,255,0.15)' }}>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                         <div style={{ width: 3, height: 11, borderRadius: 2, background: 'var(--accent)', flexShrink: 0 }} />
-                                                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>{group}</span>
-                                                                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 2 }}>· CRUD group</span>
+                                                                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', color: 'var(--accent)', fontWeight: 600 }}>{group}</span>
+                                                                        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 2 }}>· CRUD group</span>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -1170,7 +1170,7 @@ function SuiteCard({ suite, projectId, onDelete }) {
                             )}
 
                             {!lastRun && !running && (
-                                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 12 }}>
+                                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)' }}>
                                     No runs yet — click <strong style={{ color: 'var(--accent)' }}>Run</strong> to execute all steps
                                 </div>
                             )}
@@ -1253,10 +1253,10 @@ export function FlowSuitesPage() {
             <div style={{ padding: '14px 18px', background: 'var(--accent-dim)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 10, marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <GitBranch size={15} color="var(--accent)" />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>How flow suites work</span>
+                    <span style={{ fontSize: 'var(--fs-md)', fontWeight: 600, color: 'var(--accent)' }}>How flow suites work</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 10 }}>
-                    Steps run in sequence. Values extracted from each response (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)', fontSize: 11 }}>{'{{token}}'}</code>) are automatically injected into all following steps as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>Authorization: Bearer {'{{token}}'}</code>.
+                <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 10 }}>
+                    Steps run in sequence. Values extracted from each response (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)', fontSize: 'var(--fs-sm)' }}>{'{{token}}'}</code>) are automatically injected into all following steps as <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)' }}>Authorization: Bearer {'{{token}}'}</code>.
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {[
@@ -1267,7 +1267,7 @@ export function FlowSuitesPage() {
                         { label: 'Step 3+', text: 'Auth endpoints', color: 'var(--amber)', bg: 'var(--amber-bg)' },
                         { label: '→', text: 'Bearer {{token}} injected', color: 'var(--text-tertiary)', bg: 'transparent' },
                     ].map(({ label, text, color, bg }, i) => (
-                        <span key={i} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 5, background: bg, color, fontWeight: bg !== 'transparent' ? 600 : 400 }}>
+                        <span key={i} style={{ fontSize: 'var(--fs-sm)', padding: '3px 8px', borderRadius: 5, background: bg, color, fontWeight: bg !== 'transparent' ? 600 : 400 }}>
                             {label} {text}
                         </span>
                     ))}

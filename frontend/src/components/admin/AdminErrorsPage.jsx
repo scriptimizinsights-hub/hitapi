@@ -76,7 +76,7 @@ export function AdminErrorsPage() {
                     ].map(({ label, value, color }) => (
                         <div key={label} style={{ padding: '10px 16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 9, minWidth: 120 }}>
                             <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{label}</div>
+                            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{label}</div>
                         </div>
                     ))}
                 </div>
@@ -85,13 +85,13 @@ export function AdminErrorsPage() {
             {/* Filters */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 <select value={scope} onChange={e => setScope(e.target.value)}
-                    style={{ padding: '6px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}>
+                    style={{ padding: '6px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }}>
                     <option value="">All scopes</option>
                     <option value="internal">Internal</option>
                     <option value="external">External</option>
                 </select>
                 <select value={severity} onChange={e => setSeverity(e.target.value)}
-                    style={{ padding: '6px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 12 }}>
+                    style={{ padding: '6px 10px', borderRadius: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-base)' }}>
                     <option value="">All severities</option>
                     <option value="critical">Critical</option>
                     <option value="error">Error</option>
@@ -130,25 +130,25 @@ export function AdminErrorsPage() {
                                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                                         onMouseLeave={e => e.currentTarget.style.background = ''}>
                                         <td>
-                                            <span style={{ fontSize: 11, fontWeight: 600, color: SEVERITY_COLOR[err.severity] || 'var(--text-tertiary)', padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.05)' }}>
+                                            <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: SEVERITY_COLOR[err.severity] || 'var(--text-tertiary)', padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,0.05)' }}>
                                                 {err.severity}
                                             </span>
                                         </td>
                                         <td>
-                                            <span style={{ fontSize: 11, color: err.scope === 'internal' ? 'var(--accent)' : 'var(--blue)' }}>
+                                            <span style={{ fontSize: 'var(--fs-sm)', color: err.scope === 'internal' ? 'var(--accent)' : 'var(--blue)' }}>
                                                 {err.scope}
                                             </span>
                                         </td>
-                                        <td style={{ fontSize: 12 }}>
+                                        <td style={{ fontSize: 'var(--fs-base)' }}>
                                             {SOURCE_ICON[err.source] || '•'} {err.source}
                                         </td>
-                                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <td style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {err.message}
                                         </td>
-                                        <td style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                                        <td style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                                             {err.project_name || '—'}
                                         </td>
-                                        <td style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                                        <td style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                                             {formatTime(err.created_at)}
                                         </td>
                                     </tr>
@@ -159,8 +159,8 @@ export function AdminErrorsPage() {
                                                     {/* HTTP details for external errors */}
                                                     {err.scope === 'external' && (
                                                         <div>
-                                                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Request</div>
-                                                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '8px 10px', fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>
+                                                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Request</div>
+                                                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '8px 10px', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)' }}>
                                                                 <div><span style={{ color: 'var(--amber)' }}>Method:</span> {err.request_method}</div>
                                                                 <div><span style={{ color: 'var(--amber)' }}>URL:</span> {err.request_url}</div>
                                                                 <div><span style={{ color: 'var(--amber)' }}>Expected:</span> <span style={{ color: 'var(--green)' }}>{err.expected_status}</span></div>
@@ -171,8 +171,8 @@ export function AdminErrorsPage() {
                                                     {/* Stack trace for internal errors */}
                                                     {err.stack && (
                                                         <div style={{ gridColumn: err.scope === 'external' ? '2' : '1/-1' }}>
-                                                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Stack trace</div>
-                                                            <pre style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '8px 10px', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--red)', margin: 0, maxHeight: 150, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Stack trace</div>
+                                                            <pre style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '8px 10px', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', color: 'var(--red)', margin: 0, maxHeight: 150, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
                                                                 {err.stack}
                                                             </pre>
                                                         </div>
@@ -180,8 +180,8 @@ export function AdminErrorsPage() {
                                                     {/* Context */}
                                                     {err.context && (
                                                         <div style={{ gridColumn: '1/-1' }}>
-                                                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Context</div>
-                                                            <pre style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '8px 10px', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--text-secondary)', margin: 0, maxHeight: 100, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                                                            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: 6 }}>Context</div>
+                                                            <pre style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: '8px 10px', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', color: 'var(--text-secondary)', margin: 0, maxHeight: 100, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
                                                                 {JSON.stringify(err.context, null, 2)}
                                                             </pre>
                                                         </div>

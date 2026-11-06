@@ -37,13 +37,13 @@ function JSONEditor({ label, hint, value, onChange, placeholder, rows = 5, refer
         <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 5 }}>
                 <div>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>{label}</span>
-                    {hint && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 6 }}>{hint}</span>}
+                    <span style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-secondary)' }}>{label}</span>
+                    {hint && <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 6 }}>{hint}</span>}
                 </div>
                 {reference && (
                     <button
                         onClick={() => onChange(prettyJSON(reference))}
-                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, cursor: 'pointer', background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.25)' }}>
+                        style={{ fontSize: 'var(--fs-xs)', padding: '2px 7px', borderRadius: 4, cursor: 'pointer', background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.25)' }}>
                         Use Swagger example
                     </button>
                 )}
@@ -55,11 +55,11 @@ function JSONEditor({ label, hint, value, onChange, placeholder, rows = 5, refer
                 placeholder={placeholder}
                 style={{
                     width: '100%', boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace',
-                    fontSize: 11, resize: 'vertical', background: 'var(--bg-input)', color: 'var(--text-primary)',
+                    fontSize: 'var(--fs-sm)', resize: 'vertical', background: 'var(--bg-input)', color: 'var(--text-primary)',
                     border: `1px solid ${error ? 'var(--red)' : 'var(--border)'}`, borderRadius: 7, padding: '8px 10px',
                     outline: 'none', lineHeight: 1.6
                 }} />
-            {error && <div style={{ fontSize: 10, color: 'var(--red)', marginTop: 3 }}>⚠ {error}</div>}
+            {error && <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--red)', marginTop: 3 }}>⚠ {error}</div>}
         </div>
     );
 }
@@ -70,17 +70,17 @@ function ContextBadge({ context }) {
     if (!vars.length) return null;
     return (
         <div style={{ padding: '8px 10px', background: 'var(--accent-dim)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>
+            <div style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>
                 Available context vars (from previous steps)
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {vars.map(([k, v]) => (
-                    <span key={k} title={String(v)} style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', padding: '2px 7px', borderRadius: 10, background: 'rgba(130,100,255,0.15)', color: 'var(--accent)' }}>
+                    <span key={k} title={String(v)} style={{ fontSize: 'var(--fs-xs)', fontFamily: 'JetBrains Mono, monospace', padding: '2px 7px', borderRadius: 10, background: 'rgba(130,100,255,0.15)', color: 'var(--accent)' }}>
                         {`{{${k}}}`}
                     </span>
                 ))}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 5 }}>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 5 }}>
                 Use these in your request body or path params
             </div>
         </div>
@@ -251,8 +251,8 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>Editing step</span>
-                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>
+                        <span style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--accent)' }}>Editing step</span>
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
                             {method} {url.replace(/^https?:\/\/[^/]+/, '')}
                         </span>
                     </div>
@@ -269,9 +269,9 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                     <div style={{ padding: '8px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 7, border: '1px solid rgba(255,255,255,0.06)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
                             <Info size={11} color="var(--text-tertiary)" />
-                            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Swagger example (reference)</span>
+                            <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Swagger example (reference)</span>
                         </div>
-                        <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'pre-wrap' }}>
+                        <pre style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'pre-wrap' }}>
                             {prettyJSON(swaggerExample)}
                         </pre>
                     </div>
@@ -309,18 +309,18 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                         {/* Expected status + Extract vars */}
                         <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10 }}>
                             <div>
-                                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>Expected status</div>
+                                <div style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>Expected status</div>
                                 <input value={expectedStatus} onChange={e => setExpectedStatus(e.target.value)}
-                                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 13, outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
+                                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 'var(--fs-md)', outline: 'none', fontFamily: 'JetBrains Mono, monospace' }} />
                             </div>
                             <div>
-                                <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>
+                                <div style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 5 }}>
                                     Extract from response
-                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 5 }}>varName=response.path</span>
+                                    <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 5 }}>varName=response.path</span>
                                 </div>
                                 <input value={extractVars} onChange={e => setExtractVars(e.target.value)}
                                     placeholder="token=data.token, userId=data.id"
-                                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 12, outline: 'none' }} />
+                                    style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 'var(--fs-base)', outline: 'none' }} />
                             </div>
                         </div>
                     </div>
@@ -328,7 +328,7 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                     {/* Right: run result */}
                     {runResult && (
                         <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: runResult.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+                            <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: runResult.status === 'passed' ? 'var(--green)' : 'var(--red)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
                                 Run result
                             </div>
                             <div style={{
@@ -337,18 +337,18 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                                 border: `1px solid ${runResult.status === 'passed' ? 'rgba(35,209,139,0.2)' : 'rgba(255,92,92,0.2)'}`,
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                             }}>
-                                <span style={{ fontSize: 12, color: runResult.status === 'passed' ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
+                                <span style={{ fontSize: 'var(--fs-base)', color: runResult.status === 'passed' ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
                                     {runResult.status === 'passed' ? '✓ Passed' : `✗ ${runResult.failure_reason || 'Failed'}`}
                                 </span>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: runResult.actual_status < 300 ? 'var(--green)' : 'var(--red)' }}>
+                                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-md)', fontWeight: 700, color: runResult.actual_status < 300 ? 'var(--green)' : 'var(--red)' }}>
                                         {runResult.actual_status}
                                     </span>
-                                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{runResult.response_time_ms}ms</span>
+                                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{runResult.response_time_ms}ms</span>
                                 </div>
                             </div>
                             <pre style={{
-                                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, lineHeight: 1.6,
+                                fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', lineHeight: 1.6,
                                 background: 'rgba(0,0,0,0.3)', borderRadius: 7, padding: '10px 12px',
                                 color: 'var(--text-secondary)', margin: 0, maxHeight: 240, overflow: 'auto',
                                 whiteSpace: 'pre-wrap', wordBreak: 'break-all',
@@ -362,7 +362,7 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
 
                 {/* Error */}
                 {error && (
-                    <div style={{ padding: '8px 12px', background: 'var(--red-bg)', borderRadius: 7, fontSize: 12, color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
+                    <div style={{ padding: '8px 12px', background: 'var(--red-bg)', borderRadius: 7, fontSize: 'var(--fs-base)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.25)' }}>
                         ✗ {error}
                     </div>
                 )}
@@ -371,8 +371,8 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                 <div style={{ display: 'flex', gap: 8, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                     <button onClick={handleRun} disabled={running} style={{
                         display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 7,
-                        cursor: running ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 500,
-                        background: 'var(--accent)', color: '#fff', border: 'none', opacity: running ? 0.7 : 1
+                        cursor: running ? 'not-allowed' : 'pointer', fontSize: 'var(--fs-base)', fontWeight: 500,
+                        background: 'var(--accent-solid)', color: '#fff', border: 'none', opacity: running ? 0.7 : 1
                     }}>
                         {running
                             ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Running…</>
@@ -381,7 +381,7 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
 
                     <button onClick={handleSave} disabled={saving || !step?.id} style={{
                         display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 7,
-                        cursor: saving ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 500,
+                        cursor: saving ? 'not-allowed' : 'pointer', fontSize: 'var(--fs-base)', fontWeight: 500,
                         background: saveSuccess ? 'var(--green-bg)' : 'var(--green-bg)',
                         color: saveSuccess ? 'var(--green)' : 'var(--green)',
                         border: `1px solid ${saveSuccess ? 'var(--green-border)' : 'rgba(35,209,139,0.3)'}`,
@@ -394,12 +394,12 @@ export function StepEditPanel({ step, result, context, projectId, suiteId, swagg
                                 : <><Save size={12} /> Save to suite</>}
                     </button>
 
-                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
                         <Info size={11} />
                         Run step uses token from last suite run · Save updates DB permanently
                     </div>
 
-                    <button onClick={onClose} style={{ marginLeft: 'auto', padding: '7px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 12, background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                    <button onClick={onClose} style={{ marginLeft: 'auto', padding: '7px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 'var(--fs-base)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                         Cancel
                     </button>
                 </div>

@@ -155,20 +155,20 @@ export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
             {/* Header */}
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Suite name</div>
+                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 6 }}>Suite name</div>
                 <Input value={suiteName} onChange={setSuiteName} placeholder="e.g. Admin API Flow" />
-                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Add steps in order. Values extracted from one step (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{'{{token}}'}</code>) are automatically injected into all following steps.
                 </div>
             </div>
 
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Suite name</div>
+                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 6 }}>Suite name</div>
                 <Input value={suiteName} onChange={setSuiteName} placeholder="e.g. Admin API Flow" />
 
                 {/* NEW — compact auth type selector */}
                 <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Authentication</div>
+                    <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, marginBottom: 6 }}>Authentication</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                         {[
                             { key: 'flow', label: '🔐 Login flow', hint: 'signup → login → extract token' },
@@ -183,7 +183,7 @@ export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                                     flex: 1, padding: '7px 10px', borderRadius: 7, cursor: 'pointer', textAlign: 'center',
                                     border: `1px solid ${authType === opt.key ? 'rgba(130,100,255,0.5)' : 'var(--border)'}`,
                                     background: authType === opt.key ? 'rgba(130,100,255,0.08)' : 'var(--bg-card)',
-                                    fontSize: 11, fontWeight: 600,
+                                    fontSize: 'var(--fs-sm)', fontWeight: 600,
                                     color: authType === opt.key ? 'var(--accent)' : 'var(--text-secondary)',
                                 }}
                             >
@@ -202,24 +202,24 @@ export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                                 style={{
                                     width: '100%', padding: '8px 10px', borderRadius: 6,
                                     background: 'var(--bg-card)', border: '1px solid var(--border)',
-                                    color: 'var(--text-primary)', fontSize: 12,
+                                    color: 'var(--text-primary)', fontSize: 'var(--fs-base)',
                                     fontFamily: 'JetBrains Mono, monospace',
                                 }}
                             />
-                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>
                                 Sent as <code>Authorization: Bearer &lt;token&gt;</code> on every step
                             </div>
                         </div>
                     )}
 
                     {authType === 'flow' && (
-                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                        <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>
                             Add a signup/login step below manually, and extract the token via "extract vars" on that step.
                         </div>
                     )}
                 </div>
 
-                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(130,100,255,0.06)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Add steps in order. Values extracted from one step (like <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{'{{token}}'}</code>) are automatically injected into all following steps.
                 </div>
             </div>
@@ -229,8 +229,8 @@ export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                 {steps.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-tertiary)' }}>
                         <PenLine size={28} style={{ marginBottom: 12, opacity: 0.4 }} />
-                        <div style={{ fontSize: 13, marginBottom: 8 }}>No steps yet</div>
-                        <div style={{ fontSize: 12 }}>Click "Add step" to start building your suite</div>
+                        <div style={{ fontSize: 'var(--fs-md)', marginBottom: 8 }}>No steps yet</div>
+                        <div style={{ fontSize: 'var(--fs-base)' }}>Click "Add step" to start building your suite</div>
                     </div>
                 ) : (
                     steps.map((s, i) => (
@@ -250,7 +250,7 @@ export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
                     background: steps.length >= 30 ? 'rgba(255,92,92,0.05)' : 'rgba(130,100,255,0.06)',
                     color: steps.length >= 30 ? 'var(--red)' : 'var(--accent)',
                     border: `1px dashed ${steps.length >= 30 ? 'rgba(255,92,92,0.3)' : 'rgba(130,100,255,0.3)'}`,
-                    fontSize: 13, fontWeight: 500,
+                    fontSize: 'var(--fs-md)', fontWeight: 500,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                 }}>
                     {steps.length >= 30
@@ -261,13 +261,13 @@ export function ManualBuilder({ projectId, endpoints, onCreated, onClose }) {
 
             {/* Footer — always visible */}
             <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg-card)' }}>
-                {error && <div style={{ marginBottom: 10, padding: '8px 12px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 12, color: 'var(--red)' }}>{error}</div>}
+                {error && <div style={{ marginBottom: 10, padding: '8px 12px', background: 'var(--red-bg)', borderRadius: 6, fontSize: 'var(--fs-base)', color: 'var(--red)' }}>{error}</div>}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <button onClick={onClose} style={{ padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 13 }}>
+                    <button onClick={onClose} style={{ padding: '7px 14px', borderRadius: 7, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontSize: 'var(--fs-md)' }}>
                         Cancel
                     </button>
                     <button onClick={handleCreate} disabled={creating}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: creating ? 'not-allowed' : 'pointer', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 500, opacity: creating ? 0.7 : 1 }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 16px', borderRadius: 7, cursor: creating ? 'not-allowed' : 'pointer', background: 'var(--accent-solid)', color: '#fff', border: 'none', fontSize: 'var(--fs-md)', fontWeight: 500, opacity: creating ? 0.7 : 1 }}>
                         {creating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Creating…</> : <><Check size={14} /> Create suite ({steps.length} steps)</>}
                     </button>
                 </div>

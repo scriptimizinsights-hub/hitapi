@@ -73,22 +73,22 @@ export function TermsGate({ children }) {
                                     <FileText size={19} color="var(--accent)" />
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 15, fontWeight: 700 }}>
+                                    <div style={{ fontSize: 'var(--fs-lg)', fontWeight: 700 }}>
                                         {isUpdate ? '📋 Terms Updated' : '📋 Terms & Conditions'}
                                     </div>
-                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
+                                    <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 1 }}>
                                         {isUpdate
                                             ? `Our terms have been updated (v${CURRENT_TERMS_VERSION}). Please review and accept to continue.`
                                             : 'Please read and accept before using HitAPI'}
                                     </div>
                                 </div>
-                                <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-tertiary)', background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: 5 }}>
+                                <span style={{ fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-tertiary)', background: 'rgba(255,255,255,0.04)', padding: '3px 8px', borderRadius: 5 }}>
                                     v{CURRENT_TERMS_VERSION}
                                 </span>
                             </div>
 
                             {/* Scrollable content */}
-                            <div onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.85 }}>
+                            <div onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.85 }}>
                                 {isUpdate && (
                                     <div style={{ padding: '10px 14px', background: 'rgba(255,181,71,0.07)', border: '1px solid rgba(255,181,71,0.2)', borderRadius: 7, marginBottom: 16, color: 'var(--amber)' }}>
                                         ⚠ Our Terms & Conditions have been updated since you last accepted. Review and accept the new version to continue.
@@ -125,7 +125,7 @@ export function TermsGate({ children }) {
                                 </div>
 
                                 {!scrolled && (
-                                    <div style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                                    <div style={{ textAlign: 'center', marginTop: 12, fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
                                         ↓ Scroll to read all terms before accepting
                                     </div>
                                 )}
@@ -133,7 +133,7 @@ export function TermsGate({ children }) {
 
                             {/* Footer */}
                             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.2)' }}>
-                                <div style={{ padding: '10px 12px', background: 'rgba(35,209,139,0.05)', border: '1px solid rgba(35,209,139,0.15)', borderRadius: 7, marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)' }}>
+                                <div style={{ padding: '10px 12px', background: 'rgba(35,209,139,0.05)', border: '1px solid rgba(35,209,139,0.15)', borderRadius: 7, marginBottom: 12, fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>
                                     <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
                                         <CheckCircle2 size={13} color="var(--green)" style={{ flexShrink: 0, marginTop: 1 }} />
                                         <span>
@@ -146,7 +146,7 @@ export function TermsGate({ children }) {
                                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: 14 }}>
                                     <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)}
                                         style={{ width: 16, height: 16, marginTop: 2, accentColor: 'var(--accent)', flexShrink: 0, cursor: 'pointer' }} />
-                                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                    <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                                         I have read and agree to the{' '}
                                         <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Terms & Conditions</a>
                                         {' '}and{' '}
@@ -156,19 +156,19 @@ export function TermsGate({ children }) {
                                 </label>
 
                                 {error && (
-                                    <div style={{ padding: '8px 12px', background: 'var(--red-bg)', border: '1px solid var(--red-border)', borderRadius: 6, fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>
+                                    <div style={{ padding: '8px 12px', background: 'var(--red-bg)', border: '1px solid var(--red-border)', borderRadius: 6, fontSize: 'var(--fs-base)', color: 'var(--red)', marginBottom: 12 }}>
                                         ✗ {error}
                                     </div>
                                 )}
 
                                 <div style={{ display: 'flex', gap: 10 }}>
                                     <button onClick={() => useStore.getState().logout()}
-                                        style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, cursor: 'pointer', background: 'transparent', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                                        style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 'var(--fs-md)', cursor: 'pointer', background: 'transparent', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                                         Sign Out
                                     </button>
                                     <button onClick={handleAccept} disabled={!checked || loading}
                                         style={{
-                                            flex: 2, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                                            flex: 2, padding: '10px', borderRadius: 8, fontSize: 'var(--fs-md)', fontWeight: 600,
                                             cursor: checked && !loading ? 'pointer' : 'not-allowed',
                                             background: checked ? 'var(--accent)' : 'rgba(130,100,255,0.2)',
                                             color: checked ? '#fff' : 'rgba(255,255,255,0.3)',
@@ -182,7 +182,7 @@ export function TermsGate({ children }) {
                                     </button>
                                 </div>
 
-                                <div style={{ textAlign: 'center', marginTop: 10, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                                <div style={{ textAlign: 'center', marginTop: 10, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                                     Acceptance recorded server-side with timestamp and IP · Scriptimiz Insight LLP, Mumbai, India
                                 </div>
                             </div>

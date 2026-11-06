@@ -12,10 +12,10 @@ const WEBSITE = 'hitapi.dev';
 function Section({ title, children }) {
     return (
         <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)', paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)', paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
                 {title}
             </h2>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.9 }}>
+            <div style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.9 }}>
                 {children}
             </div>
         </div>
@@ -44,7 +44,7 @@ export function TermsPage() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <LogoMark size={26} />
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>HitAPI</span>
+                    <span style={{ fontSize: 'var(--fs-md)', fontWeight: 600 }}>HitAPI</span>
                 </div>
                 <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <ArrowLeft size={13} /> Back
@@ -59,10 +59,10 @@ export function TermsPage() {
                         <FileText size={26} color="var(--accent)" />
                         <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em' }}>Terms &amp; Conditions</h1>
                     </div>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', marginBottom: 16 }}>
                         <strong style={{ color: 'var(--text-primary)' }}>{PRODUCT}</strong> by {COMPANY} &nbsp;·&nbsp; Last updated: {LAST_UPDATED}
                     </p>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                    <p style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                         Please read these Terms and Conditions ("Terms") carefully before using {PRODUCT} (the "Service"), operated by {COMPANY} ("we", "us", "our") at {WEBSITE}. By accessing or using the Service, creating an account, or clicking "I agree", you confirm that you have read, understood, and agree to be bound by these Terms. If you do not agree, do not use the Service.
                     </p>
                 </div>
@@ -190,11 +190,11 @@ export function TermsPage() {
 
                 {/* Contact */}
                 <div className="card" style={{ padding: '24px 28px', borderColor: 'rgba(130,100,255,0.25)', background: 'rgba(130,100,255,0.04)', marginBottom: 32 }}>
-                    <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>14. Contact Us</h2>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.7 }}>
+                    <h2 style={{ fontSize: 'var(--fs-lg)', fontWeight: 600, marginBottom: 12 }}>14. Contact Us</h2>
+                    <p style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.7 }}>
                         Questions about these Terms? Contact us:
                     </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 'var(--fs-md)' }}>
                         <div><a href={`mailto:${EMAIL}`} style={{ color: 'var(--accent)' }}>{EMAIL}</a></div>
                         <div style={{ color: 'var(--text-secondary)' }}>{COMPANY}<br />{ADDRESS}</div>
                     </div>

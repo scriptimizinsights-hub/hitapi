@@ -56,7 +56,7 @@ export function DemoVideo({ maxWidth = 1000 }) {
                     <span style={{
                         display: 'flex', alignItems: 'center', gap: 12,
                         padding: '14px 26px 14px 18px', borderRadius: 999,
-                        background: 'var(--accent)', color: '#fff', fontSize: 16, fontWeight: 600,
+                        background: 'var(--accent-solid)', color: '#fff', fontSize: 'var(--fs-xl)', fontWeight: 600,
                         boxShadow: '0 10px 40px rgba(130,100,255,0.55)',
                     }}>
                         <span style={{

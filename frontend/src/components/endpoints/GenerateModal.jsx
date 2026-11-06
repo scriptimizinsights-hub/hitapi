@@ -47,7 +47,7 @@ export function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
 
     const modeBtn = (m, label) => (
         <button onClick={() => setMode(m)} style={{
-            flex: 1, padding: '8px 0', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+            flex: 1, padding: '8px 0', borderRadius: 6, fontSize: 'var(--fs-base)', cursor: 'pointer',
             background: mode === m ? 'var(--accent-dim)' : 'var(--bg-input)',
             color: mode === m ? 'var(--accent)' : 'var(--text-secondary)',
             border: mode === m ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)',
@@ -64,7 +64,7 @@ export function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
 
                 {/* Mode selector */}
                 <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Generate for</div>
+                    <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', marginBottom: 8 }}>Generate for</div>
                     <div style={{ display: 'flex', gap: 6 }}>
                         {modeBtn('selected', `Selected (${selectedIds.length})`)}
                         {modeBtn('method', 'By method')}
@@ -75,14 +75,14 @@ export function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
 
                 {/* Mode-specific options */}
                 {mode === 'selected' && selectedIds.length === 0 && (
-                    <div style={{ padding: '10px 12px', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', borderRadius: 6, fontSize: 12, color: 'var(--amber)', marginBottom: 14 }}>
+                    <div style={{ padding: '10px 12px', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', borderRadius: 6, fontSize: 'var(--fs-base)', color: 'var(--amber)', marginBottom: 14 }}>
                         ⚠ No endpoints selected. Check boxes in the table first, or choose a different mode.
                     </div>
                 )}
 
                 {mode === 'method' && (
                     <div style={{ marginBottom: 14 }}>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>HTTP Method</label>
+                        <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>HTTP Method</label>
                         <select className="input" value={method} onChange={e => setMethod(e.target.value)}>
                             {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
                                 <option key={m} value={m}>{m} ({endpoints.filter(e => e.method === m).length} endpoints)</option>
@@ -93,7 +93,7 @@ export function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
 
                 {mode === 'tag' && (
                     <div style={{ marginBottom: 14 }}>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Tag / Group</label>
+                        <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Tag / Group</label>
                         <select className="input" value={tag} onChange={e => setTag(e.target.value)}>
                             <option value="">Select a tag…</option>
                             {allTags.map(t => (
@@ -105,14 +105,14 @@ export function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
 
                 {/* Limit */}
                 <div style={{ marginBottom: 20 }}>
-                    <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                    <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
                         Max endpoints to process at once
                         <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, marginLeft: 6 }}>(AI has per-request limits)</span>
                     </label>
                     <div style={{ display: 'flex', gap: 6 }}>
                         {[3, 5, 10, 20].map(n => (
                             <button key={n} onClick={() => setLimit(n)} style={{
-                                flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                                flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 'var(--fs-base)', cursor: 'pointer',
                                 background: limit === n ? 'var(--accent-dim)' : 'var(--bg-input)',
                                 color: limit === n ? 'var(--accent)' : 'var(--text-secondary)',
                                 border: limit === n ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)',
@@ -122,7 +122,7 @@ export function GenerateModal({ projectId, endpoints, onClose, onGenerate }) {
                 </div>
 
                 {/* Preview */}
-                <div style={{ padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 8, marginBottom: 20, fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div style={{ padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 8, marginBottom: 20, fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>
                     Will generate tests for <strong style={{ color: 'var(--text-primary)' }}>{Math.min(preview, limit)} endpoint{Math.min(preview, limit) !== 1 ? 's' : ''}</strong>
                     {preview > limit && <span style={{ color: 'var(--amber)' }}> ({preview - limit} will be skipped due to limit)</span>}
                 </div>

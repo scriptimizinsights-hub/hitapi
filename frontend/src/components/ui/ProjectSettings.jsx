@@ -144,25 +144,25 @@ export function ProjectSettings() {
 
             {/* ── General ── */}
             <div className="card" style={{ padding: '20px 22px', marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Globe size={14} color="var(--accent)" /> General
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Project name *</label>
+                        <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Project name *</label>
                         <input className="input" value={form.name} onChange={e => setField('name', e.target.value)} />
                     </div>
                     <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Base URL *</label>
+                        <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Base URL *</label>
                         <input className="input" placeholder="https://api.example.com" value={form.base_url} onChange={e => setField('base_url', e.target.value)} />
                     </div>
                     <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Swagger URL</label>
+                        <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Swagger URL</label>
                         <input className="input" placeholder="https://api.example.com/swagger.json" value={form.swagger_url} onChange={e => setField('swagger_url', e.target.value)} />
                     </div>
                     <div className="grid-2">
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Environment</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Environment</label>
                             <select className="input" value={form.environment} onChange={e => setField('environment', e.target.value)}>
                                 <option value="development">Development</option>
                                 <option value="staging">Staging</option>
@@ -171,7 +171,7 @@ export function ProjectSettings() {
                             </select>
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Description</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Description</label>
                             <input className="input" value={form.description} onChange={e => setField('description', e.target.value)} />
                         </div>
                     </div>
@@ -180,7 +180,7 @@ export function ProjectSettings() {
 
             {/* ── Authentication ── */}
             <div className="card" style={{ padding: '20px 22px', marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Lock size={14} color="var(--accent)" /> Authentication
                 </div>
 
@@ -203,8 +203,8 @@ export function ProjectSettings() {
                                 {form.auth_type === value && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                             </div>
                             <div>
-                                <div style={{ fontSize: 13, fontWeight: 500, color: form.auth_type === value ? 'var(--accent)' : 'var(--text-primary)' }}>{label}</div>
-                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{desc}</div>
+                                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, color: form.auth_type === value ? 'var(--accent)' : 'var(--text-primary)' }}>{label}</div>
+                                <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>{desc}</div>
                             </div>
                         </label>
                     ))}
@@ -213,7 +213,7 @@ export function ProjectSettings() {
                 {/* Auth config fields */}
                 {form.auth_type === 'bearer' && (
                     <div>
-                        <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Bearer token</label>
+                        <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Bearer token</label>
                         <input className="input" type="password" placeholder="eyJhbGciOiJIUzI1NiIs…"
                             value={authConfig?.token || ''} onChange={e => setAC('token', e.target.value)} />
                     </div>
@@ -222,11 +222,11 @@ export function ProjectSettings() {
                 {form.auth_type === 'basic' && (
                     <div className="grid-2">
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Username</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Username</label>
                             <input className="input" value={authConfig?.username || ''} onChange={e => setAC('username', e.target.value)} />
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Password</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Password</label>
                             <input className="input" type="password" value={authConfig?.password || ''} onChange={e => setAC('password', e.target.value)} />
                         </div>
                     </div>
@@ -235,11 +235,11 @@ export function ProjectSettings() {
                 {form.auth_type === 'apikey' && (
                     <div className="grid-2">
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Header name</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Header name</label>
                             <input className="input" placeholder="X-API-Key" value={authConfig?.header || ''} onChange={e => setAC('header', e.target.value)} />
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>API key</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>API key</label>
                             <input className="input" type="password" value={authConfig?.key || ''} onChange={e => setAC('key', e.target.value)} />
                         </div>
                     </div>
@@ -247,20 +247,20 @@ export function ProjectSettings() {
 
                 {form.auth_type === 'login_flow' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div style={{ padding: '10px 14px', background: 'rgba(130,100,255,0.06)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        <div style={{ padding: '10px 14px', background: 'rgba(130,100,255,0.06)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 8, fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                             🔐 HitAPI will POST to your login URL before running tests, extract the token from the response, and inject it as <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>Authorization: Bearer &lt;token&gt;</code> into every test request automatically.
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login URL *</label>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login URL *</label>
                             <input className="input" placeholder="https://api.example.com/auth/login"
                                 value={authConfig?.login_url || ''} onChange={e => setAC('login_url', e.target.value)} />
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
                                 Login body (JSON) *
                                 <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>credentials to POST</span>
                             </label>
-                            <textarea className="input" style={{ height: 72, resize: 'none', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
+                            <textarea className="input" style={{ height: 72, resize: 'none', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)' }}
                                 placeholder={'{"email": "test@example.com", "password": "secret"}'}
                                 value={
                                     typeof authConfig?.login_body === 'object'
@@ -274,7 +274,7 @@ export function ProjectSettings() {
                             />
                         </div>
                         <div>
-                            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
+                            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
                                 Token path *
                                 <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>dot-path into the response JSON</span>
                             </label>
@@ -283,7 +283,7 @@ export function ProjectSettings() {
                             <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                 {['token', 'access_token', 'data.token', 'data.access_token'].map(p => (
                                     <button key={p} onClick={() => setAC('token_path', p)} style={{
-                                        fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                                        fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                                         fontFamily: 'JetBrains Mono, monospace',
                                         background: authConfig?.token_path === p ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
                                         color: authConfig?.token_path === p ? 'var(--accent)' : 'var(--text-tertiary)',
@@ -299,7 +299,7 @@ export function ProjectSettings() {
                                 onClick={handleTestLogin}
                                 disabled={testingLogin || !authConfig?.login_url}
                                 className="btn btn-ghost"
-                                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--fs-base)' }}
                             >
                                 {testingLogin
                                     ? <><div className="spinner" style={{ width: 12, height: 12 }} /> Testing login…</>
@@ -307,7 +307,7 @@ export function ProjectSettings() {
                             </button>
                             {loginTestResult && (
                                 <div style={{
-                                    marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
+                                    marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 'var(--fs-base)',
                                     display: 'flex', alignItems: 'flex-start', gap: 8,
                                     background: loginTestResult.success ? 'var(--green-bg)' : 'var(--red-bg)',
                                     border: `1px solid ${loginTestResult.success ? 'var(--green-border)' : 'var(--red-border)'}`,

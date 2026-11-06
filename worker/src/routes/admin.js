@@ -178,44 +178,53 @@ export async function adminListProjects(request, env, { user }) {
 // A timeline built from data the app already stores. Imports and test
 // generation create many rows at once, so those are grouped per project per
 // minute ("imported 24 endpoints").
+//
+// Each activity type is a separate query whose results are merged here.
+// (One big UNION ALL of all types fails on Cloudflare D1 with
+// "too many terms in compound SELECT".)
 
 export const ACTIVITY_TYPES = [
     'signup', 'login', 'terms', 'project_created', 'endpoints_imported',
     'tests_generated', 'test_run', 'flow_created', 'flow_run', 'bug_found',
 ];
 
-function activitySources(withLogin) {
-    const s = [
-        `SELECT u.created_at AS ts, 'signup' AS type, u.id AS user_id, NULL AS project_id,
-            NULL AS label, NULL AS status, NULL AS total, NULL AS passed, NULL AS failed
-       FROM hitapi_users u`,
-        // terms acceptances, skipping the one recorded at sign-up
-        `SELECT t.accepted_at, 'terms', t.user_id, NULL, t.terms_version, NULL, NULL, NULL, NULL
-       FROM terms_acceptances t JOIN hitapi_users u ON u.id = t.user_id
-      WHERE t.accepted_at - u.created_at > 60`,
-        `SELECT p.created_at, 'project_created', p.user_id, p.id, p.name, NULL, NULL, NULL, NULL
-       FROM projects p`,
-        `SELECT MIN(e.created_at), 'endpoints_imported', p.user_id, e.project_id, NULL, NULL, COUNT(*), NULL, NULL
-       FROM endpoints e JOIN projects p ON p.id = e.project_id
-      GROUP BY e.project_id, e.created_at / 60`,
-        `SELECT MIN(tc.created_at), 'tests_generated', p.user_id, ts.project_id, NULL, NULL, COUNT(*), NULL, NULL
-       FROM test_cases tc JOIN test_suites ts ON ts.id = tc.suite_id JOIN projects p ON p.id = ts.project_id
-      GROUP BY ts.project_id, tc.created_at / 60`,
-        `SELECT COALESCE(x.started_at, x.created_at), 'test_run', p.user_id, x.project_id, x.triggered, x.status, x.total, x.passed, x.failed
-       FROM executions x JOIN projects p ON p.id = x.project_id`,
-        `SELECT f.created_at, 'flow_created', p.user_id, f.project_id, f.name, NULL, NULL, NULL, NULL
-       FROM flow_suites f JOIN projects p ON p.id = f.project_id`,
-        `SELECT r.started_at, 'flow_run', p.user_id, r.project_id, f.name, r.status, r.total_steps, r.passed, r.failed
-       FROM flow_runs r JOIN flow_suites f ON f.id = r.suite_id JOIN projects p ON p.id = r.project_id`,
-        `SELECT b.created_at, 'bug_found', p.user_id, b.project_id, b.title, b.severity, NULL, NULL, NULL
-       FROM bugs b JOIN projects p ON p.id = b.project_id`,
-    ];
-    if (withLogin) {
-        s.splice(1, 0, `SELECT u.last_login_at, 'login', u.id, NULL, NULL, NULL, NULL, NULL, NULL
-       FROM hitapi_users u WHERE u.last_login_at IS NOT NULL`);
-    }
-    return s.join('\n UNION ALL \n');
-}
+// Every query returns: ts, type, user_id, project_id, label, status, total, passed, failed
+const ACTIVITY_SOURCES = {
+    signup: `SELECT u.created_at AS ts, 'signup' AS type, u.id AS user_id, NULL AS project_id,
+                    NULL AS label, NULL AS status, NULL AS total, NULL AS passed, NULL AS failed
+               FROM hitapi_users u`,
+    login: `SELECT u.last_login_at AS ts, 'login' AS type, u.id AS user_id, NULL AS project_id,
+                   NULL AS label, NULL AS status, NULL AS total, NULL AS passed, NULL AS failed
+              FROM hitapi_users u WHERE u.last_login_at IS NOT NULL`,
+    // terms acceptances, skipping the one recorded at sign-up
+    terms: `SELECT t.accepted_at AS ts, 'terms' AS type, t.user_id AS user_id, NULL AS project_id,
+                   t.terms_version AS label, NULL AS status, NULL AS total, NULL AS passed, NULL AS failed
+              FROM terms_acceptances t JOIN hitapi_users u ON u.id = t.user_id
+             WHERE t.accepted_at - u.created_at > 60`,
+    project_created: `SELECT p.created_at AS ts, 'project_created' AS type, p.user_id AS user_id, p.id AS project_id,
+                             p.name AS label, NULL AS status, NULL AS total, NULL AS passed, NULL AS failed
+                        FROM projects p`,
+    endpoints_imported: `SELECT MIN(e.created_at) AS ts, 'endpoints_imported' AS type, p.user_id AS user_id, e.project_id AS project_id,
+                                NULL AS label, NULL AS status, COUNT(*) AS total, NULL AS passed, NULL AS failed
+                           FROM endpoints e JOIN projects p ON p.id = e.project_id
+                          GROUP BY e.project_id, e.created_at / 60`,
+    tests_generated: `SELECT MIN(tc.created_at) AS ts, 'tests_generated' AS type, p.user_id AS user_id, ts.project_id AS project_id,
+                             NULL AS label, NULL AS status, COUNT(*) AS total, NULL AS passed, NULL AS failed
+                        FROM test_cases tc JOIN test_suites ts ON ts.id = tc.suite_id JOIN projects p ON p.id = ts.project_id
+                       GROUP BY ts.project_id, tc.created_at / 60`,
+    test_run: `SELECT COALESCE(x.started_at, x.created_at) AS ts, 'test_run' AS type, p.user_id AS user_id, x.project_id AS project_id,
+                      x.triggered AS label, x.status AS status, x.total AS total, x.passed AS passed, x.failed AS failed
+                 FROM executions x JOIN projects p ON p.id = x.project_id`,
+    flow_created: `SELECT f.created_at AS ts, 'flow_created' AS type, p.user_id AS user_id, f.project_id AS project_id,
+                          f.name AS label, NULL AS status, NULL AS total, NULL AS passed, NULL AS failed
+                     FROM flow_suites f JOIN projects p ON p.id = f.project_id`,
+    flow_run: `SELECT r.started_at AS ts, 'flow_run' AS type, p.user_id AS user_id, r.project_id AS project_id,
+                      f.name AS label, r.status AS status, r.total_steps AS total, r.passed AS passed, r.failed AS failed
+                 FROM flow_runs r JOIN flow_suites f ON f.id = r.suite_id JOIN projects p ON p.id = r.project_id`,
+    bug_found: `SELECT b.created_at AS ts, 'bug_found' AS type, p.user_id AS user_id, b.project_id AS project_id,
+                       b.title AS label, b.severity AS status, NULL AS total, NULL AS passed, NULL AS failed
+                  FROM bugs b JOIN projects p ON p.id = b.project_id`,
+};
 
 export async function adminActivity(request, env, { user }) {
     const { db, denied } = await guard(env, user);
@@ -230,24 +239,30 @@ export async function adminActivity(request, env, { user }) {
     const where = ['a.ts IS NOT NULL'];
     const args = [];
     if (userId) { where.push('a.user_id = ?'); args.push(userId); }
-    if (type && ACTIVITY_TYPES.includes(type)) { where.push('a.type = ?'); args.push(type); }
     if (Number.isFinite(before)) { where.push('a.ts < ?'); args.push(before); }
 
-    const sql = (withLogin) => `
-    SELECT a.*, u.name AS user_name, u.email AS user_email, pr.name AS project_name
-      FROM (${activitySources(withLogin)}) a
-      LEFT JOIN hitapi_users u ON u.id = a.user_id
-      LEFT JOIN projects pr ON pr.id = a.project_id
-     WHERE ${where.join(' AND ')}
-     ORDER BY a.ts DESC
-     LIMIT ${limit + 1}`;
+    const types = type && ACTIVITY_TYPES.includes(type) ? [type] : ACTIVITY_TYPES;
 
-    let rows;
-    try {
-        rows = await db.all(sql(true), args);
-    } catch {
-        rows = await db.all(sql(false), args); // migration 0013 (last_login_at) not applied yet
-    }
+    // Newest `limit + 1` rows of each type, then the newest overall.
+    const perType = await Promise.all(types.map(async (t) => {
+        const sql = `
+            SELECT a.*, u.name AS user_name, u.email AS user_email, pr.name AS project_name
+              FROM (${ACTIVITY_SOURCES[t]}) a
+              LEFT JOIN hitapi_users u ON u.id = a.user_id
+              LEFT JOIN projects pr ON pr.id = a.project_id
+             WHERE ${where.join(' AND ')}
+             ORDER BY a.ts DESC
+             LIMIT ${limit + 1}`;
+        try {
+            return await db.all(sql, args);
+        } catch (e) {
+            // e.g. migration 0013 (last_login_at) not applied yet: skip that type, keep the rest
+            console.warn(`[Admin] activity "${t}" skipped:`, e.message);
+            return [];
+        }
+    }));
+
+    let rows = perType.flat().sort((a, b) => (b.ts || 0) - (a.ts || 0));
     const has_more = rows.length > limit;
     if (has_more) rows = rows.slice(0, limit);
 

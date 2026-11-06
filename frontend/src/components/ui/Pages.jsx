@@ -49,7 +49,7 @@ export function BugsPage() {
           { key: 'test', label: 'Test Cases', count: testBugCount, color: 'var(--blue)' },
         ].map(({ key, label, count, color }) => (
           <button key={key} onClick={() => setSourceFilter(key)} style={{
-            padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+            padding: '5px 12px', borderRadius: 6, fontSize: 'var(--fs-sm)', cursor: 'pointer',
             background: sourceFilter === key ? 'rgba(130,100,255,0.1)' : 'var(--bg-card)',
             color: sourceFilter === key ? (color || 'var(--accent)') : 'var(--text-secondary)',
             border: `1px solid ${sourceFilter === key ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`,
@@ -57,7 +57,7 @@ export function BugsPage() {
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {label}
-            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)' }}>{count}</span>
+            <span style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)' }}>{count}</span>
           </button>
         ))}
       </div>
@@ -70,7 +70,7 @@ export function BugsPage() {
           const active = severityFilter === s;
           return (
             <button key={s} onClick={() => setSeverityFilter(s)} style={{
-              padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 6, fontSize: 'var(--fs-sm)', cursor: 'pointer',
               background: active ? meta.bg : 'var(--bg-card)',
               color: active ? meta.color : 'var(--text-secondary)',
               border: active ? `1px solid ${meta.border}` : '1px solid var(--border)',
@@ -78,7 +78,7 @@ export function BugsPage() {
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
               {s === 'all' ? 'All severities' : meta.label}
-              <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', color: active ? meta.color : 'var(--text-tertiary)' }}>{count}</span>
+              <span style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', color: active ? meta.color : 'var(--text-tertiary)' }}>{count}</span>
             </button>
           );
         })}
@@ -113,11 +113,11 @@ export function BugsPage() {
 
                     {/* Top row — severity + source + endpoint */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: meta.bg, color: meta.color, letterSpacing: '.04em' }}>
+                      <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: meta.bg, color: meta.color, letterSpacing: '.04em' }}>
                         {meta.label.toUpperCase()}
                       </span>
                       <span style={{
-                        fontSize: 10, padding: '2px 7px', borderRadius: 4, fontWeight: 600,
+                        fontSize: 'var(--fs-xs)', padding: '2px 7px', borderRadius: 4, fontWeight: 600,
                         background: isFlow ? 'rgba(130,100,255,0.1)' : 'rgba(59,130,246,0.1)',
                         color: isFlow ? 'var(--accent)' : 'var(--blue)',
                         border: `1px solid ${isFlow ? 'rgba(130,100,255,0.2)' : 'rgba(59,130,246,0.2)'}`,
@@ -125,33 +125,33 @@ export function BugsPage() {
                         {isFlow ? '⟳ Flow Suite' : '▶ Test Case'}
                       </span>
                       {(bug.method || bug.path) && (
-                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)', padding: '1px 6px', background: 'rgba(255,255,255,0.04)', borderRadius: 4 }}>
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', padding: '1px 6px', background: 'rgba(255,255,255,0.04)', borderRadius: 4 }}>
                           {bug.method} {bug.path}
                         </span>
                       )}
                       {isFlow && bug.flow_step_id && (
-                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                        <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                           step {bug.step_order || ''}
                         </span>
                       )}
                     </div>
 
                     {/* Title */}
-                    <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, lineHeight: 1.4 }}>{bug.title}</h3>
+                    <h3 style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 6, lineHeight: 1.4 }}>{bug.title}</h3>
 
                     {/* Description */}
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>{bug.description}</p>
+                    <p style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>{bug.description}</p>
 
                     {/* Root cause */}
                     {bug.root_cause && (
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '7px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, marginBottom: 8, lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', padding: '7px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6, marginBottom: 8, lineHeight: 1.5 }}>
                         <span style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Root cause: </span>{bug.root_cause}
                       </div>
                     )}
 
                     {/* Suggested fix */}
                     {bug.suggested_fix && (
-                      <div style={{ fontSize: 12, color: 'var(--green)', padding: '7px 10px', background: 'var(--green-bg)', borderRadius: 6, border: '1px solid var(--green-border)', lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 'var(--fs-base)', color: 'var(--green)', padding: '7px 10px', background: 'var(--green-bg)', borderRadius: 6, border: '1px solid var(--green-border)', lineHeight: 1.5 }}>
                         💡 <strong>Fix:</strong> {bug.suggested_fix}
                       </div>
                     )}
@@ -159,7 +159,7 @@ export function BugsPage() {
                     {/* Flow run link */}
                     {isFlow && bug.flow_run_id && (
                       <div style={{ marginTop: 8 }}>
-                        <a href={`/projects/${projectId}/flows`} style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <a href={`/projects/${projectId}/flows`} style={{ fontSize: 'var(--fs-sm)', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <ExternalLink size={11} /> View flow run
                         </a>
                       </div>
@@ -169,7 +169,7 @@ export function BugsPage() {
                   {/* Dismiss button */}
                   <div style={{ padding: '14px 12px', borderLeft: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start' }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => dismissBug(projectId, bug.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--fs-sm)' }}>
                       <X size={11} /> Dismiss
                     </button>
                   </div>
@@ -265,17 +265,17 @@ export function ReportsPage() {
                           strokeWidth="4" strokeDasharray={`${(rate || 0) * 1.005} 100.5`}
                           strokeLinecap="round" transform="rotate(-90 20 20)" />
                       </svg>
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: rate === 100 ? 'var(--green)' : 'var(--text-secondary)' }}>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-2xs)', fontWeight: 700, color: rate === 100 ? 'var(--green)' : 'var(--text-secondary)' }}>
                         {rate != null ? `${rate}%` : '—'}
                       </div>
                     </div>
 
                     {/* Suite name + date */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--fs-md)', marginBottom: 2 }}>
                         {r.suite_name || 'Flow Suite Run'}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+                      <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)' }}>
                         {new Date(r.created_at * 1000).toLocaleString()}
                         {dur && <span style={{ marginLeft: 8 }}>⏱ {dur}</span>}
                       </div>
@@ -285,29 +285,29 @@ export function ReportsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                       {r.run_total && (
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{r.run_total}</div>
-                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Steps</div>
+                          <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>{r.run_total}</div>
+                          <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Steps</div>
                         </div>
                       )}
                       {r.run_passed != null && (
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--green)' }}>{r.run_passed}</div>
-                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Passed</div>
+                          <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--green)' }}>{r.run_passed}</div>
+                          <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Passed</div>
                         </div>
                       )}
                       {r.run_failed != null && r.run_failed > 0 && (
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--red)' }}>{r.run_failed}</div>
-                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Failed</div>
+                          <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--red)' }}>{r.run_failed}</div>
+                          <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Failed</div>
                         </div>
                       )}
                       {r.run_bugs > 0 && (
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--amber)' }}>{r.run_bugs}</div>
-                          <div style={{ fontSize: 9, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Bugs</div>
+                          <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 700, color: 'var(--amber)' }}>{r.run_bugs}</div>
+                          <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Bugs</div>
                         </div>
                       )}
-                      <div style={{ padding: '3px 10px', borderRadius: 5, fontSize: 11, fontWeight: 600, background: r.run_status === 'done' ? 'var(--green-bg)' : r.run_status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)', color: statusColor, border: `1px solid ${statusColor}33` }}>
+                      <div style={{ padding: '3px 10px', borderRadius: 5, fontSize: 'var(--fs-sm)', fontWeight: 600, background: r.run_status === 'done' ? 'var(--green-bg)' : r.run_status === 'failed' ? 'var(--red-bg)' : 'var(--amber-bg)', color: statusColor, border: `1px solid ${statusColor}33` }}>
                         {r.run_status || 'unknown'}
                       </div>
                     </div>
@@ -328,9 +328,9 @@ export function ReportsPage() {
           {selected && (
             <div style={{ width: 320, flexShrink: 0 }}>
               <div className="card" style={{ padding: '16px', position: 'sticky', top: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 'var(--fs-base)', fontWeight: 700, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Run Details</span>
-                  <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 16, padding: 0 }}>×</button>
+                  <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 'var(--fs-xl)', padding: 0 }}>×</button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -346,13 +346,13 @@ export function ReportsPage() {
                 </div>
 
                 {/* Data retention warning */}
-                <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,181,71,0.07)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 6, fontSize: 11, color: 'var(--amber)', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 12, padding: '8px 10px', background: 'rgba(255,181,71,0.07)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 6, fontSize: 'var(--fs-sm)', color: 'var(--amber)', lineHeight: 1.5 }}>
                   ⚠ API response bodies from this run are stored. Delete this run if it contains sensitive data.
                 </div>
 
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <a href={`/projects/${projectId}/flows`}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(130,100,255,0.08)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(130,100,255,0.08)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)', fontSize: 'var(--fs-base)', fontWeight: 500, textDecoration: 'none' }}>
                     <ExternalLink size={12} /> View flow suite
                   </a>
                   <button
@@ -364,7 +364,7 @@ export function ReportsPage() {
                         setSelected(null);
                       } catch (e) { alert('Delete failed: ' + e.message); }
                     }}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(255,92,92,0.08)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.2)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 7, background: 'rgba(255,92,92,0.08)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.2)', fontSize: 'var(--fs-base)', fontWeight: 500, cursor: 'pointer' }}>
                     🗑 Delete this run
                   </button>
                 </div>
@@ -379,7 +379,7 @@ export function ReportsPage() {
 
 function Detail({ label, value, valueColor }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, fontSize: 'var(--fs-base)' }}>
       <span style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>{label}</span>
       <span style={{ color: valueColor || 'var(--text-secondary)', fontWeight: 500, textAlign: 'right' }}>{value}</span>
     </div>
@@ -421,20 +421,20 @@ export function NewProjectModal({ onClose, onCreated }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Project name *</label>
+            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Project name *</label>
             <input className="input" placeholder="Payment Service" value={form.name} onChange={e => set('name', e.target.value)} autoFocus />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Base URL *</label>
+            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Base URL *</label>
             <input className="input" placeholder="https://api.company.com" value={form.base_url} onChange={e => set('base_url', e.target.value)} />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Swagger URL</label>
+            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Swagger URL</label>
             <input className="input" placeholder="https://api.company.com/swagger.json" value={form.swagger_url} onChange={e => set('swagger_url', e.target.value)} />
           </div>
           <div className="grid-2">
             <div>
-              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Environment</label>
+              <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Environment</label>
               <select className="input" value={form.environment} onChange={e => set('environment', e.target.value)}>
                 <option value="development">Development</option>
                 <option value="staging">Staging</option>
@@ -443,7 +443,7 @@ export function NewProjectModal({ onClose, onCreated }) {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Authentication</label>
+              <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Authentication</label>
               <select className="input" value={form.auth_type} onChange={e => set('auth_type', e.target.value)}>
                 <option value="none">None</option>
                 <option value="bearer">Bearer token (static)</option>
@@ -457,19 +457,19 @@ export function NewProjectModal({ onClose, onCreated }) {
           {/* Login flow config */}
           {form.auth_type === 'login_flow' && (
             <div style={{ background: 'rgba(130,100,255,0.06)', border: '1px solid rgba(130,100,255,0.2)', borderRadius: 8, padding: '14px 16px' }}>
-              <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500, marginBottom: 12 }}>
+              <div style={{ fontSize: 'var(--fs-base)', color: 'var(--accent)', fontWeight: 500, marginBottom: 12 }}>
                 🔐 Login flow — HitAPI will POST to your login endpoint first, extract the token, then inject it as Bearer into all test requests.
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login URL</label>
+                  <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login URL</label>
                   <input className="input" placeholder="https://api.example.com/auth/login"
                     value={form.auth_config?.login_url || ''}
                     onChange={e => set('auth_config', { ...form.auth_config, login_url: e.target.value })} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login body (JSON)</label>
-                  <textarea className="input" style={{ height: 64, resize: 'none', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}
+                  <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Login body (JSON)</label>
+                  <textarea className="input" style={{ height: 64, resize: 'none', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)' }}
                     placeholder={'{"email":"test@example.com","password":"secret"}'}
                     value={typeof form.auth_config?.login_body === 'string' ? form.auth_config.login_body : JSON.stringify(form.auth_config?.login_body || {})}
                     onChange={e => {
@@ -478,7 +478,7 @@ export function NewProjectModal({ onClose, onCreated }) {
                     }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
+                  <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>
                     Token path in response
                     <span style={{ color: 'var(--text-tertiary)', marginLeft: 6 }}>e.g. "token" or "data.access_token"</span>
                   </label>
@@ -490,7 +490,7 @@ export function NewProjectModal({ onClose, onCreated }) {
             </div>
           )}
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Description</label>
+            <label style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 }}>Description</label>
             <textarea
               className="input"
               style={{ height: 70, resize: 'none' }}

@@ -67,7 +67,7 @@ export function EndpointRow({
                 <span
                     style={{
                         fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: 12
+                        fontSize: 'var(--fs-base)'
                     }}
                 >
                     {endpoint.path}
@@ -78,7 +78,7 @@ export function EndpointRow({
             <td
                 style={{
                     color: 'var(--text-secondary)',
-                    fontSize: 12
+                    fontSize: 'var(--fs-base)'
                 }}
             >
                 {endpoint.summary || '—'}
@@ -92,7 +92,7 @@ export function EndpointRow({
                         className="badge badge-gray"
                         style={{
                             marginRight: 4,
-                            fontSize: 10
+                            fontSize: 'var(--fs-xs)'
                         }}
                     >
                         {tag}
@@ -104,7 +104,7 @@ export function EndpointRow({
             <td
                 style={{
                     color: 'var(--text-tertiary)',
-                    fontSize: 12
+                    fontSize: 'var(--fs-base)'
                 }}
             >
                 {paramCount} params

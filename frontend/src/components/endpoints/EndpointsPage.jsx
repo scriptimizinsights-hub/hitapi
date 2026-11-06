@@ -100,7 +100,7 @@ export function EndpointsPage() {
                 { label: 'PUT', val: endpointStats.put_count, color: 'var(--amber)' },
                 { label: 'DELETE', val: endpointStats.delete_count, color: 'var(--red)' },
               ].filter(x => x.val > 0).map(x => (
-                <span key={x.label} style={{ fontSize: 12, color: x.color }}>
+                <span key={x.label} style={{ fontSize: 'var(--fs-base)', color: x.color }}>
                   <span style={{ fontWeight: 600 }}>{x.val}</span> {x.label}
                 </span>
               ))}
@@ -126,7 +126,7 @@ export function EndpointsPage() {
               <span style={{
                 position: 'absolute', top: -6, right: -6, width: 18, height: 18,
                 borderRadius: '50%', background: 'var(--amber)', color: '#000',
-                fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                fontSize: 'var(--fs-xs)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>{checkedIds.size}</span>
             )}
           </button>
@@ -142,7 +142,7 @@ export function EndpointsPage() {
         </div>
         {['ALL', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => (
           <button key={m} onClick={() => setMethodFilter(m)} style={{
-            padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+            padding: '6px 12px', borderRadius: 6, fontSize: 'var(--fs-sm)', fontWeight: 600,
             fontFamily: m === 'ALL' ? 'inherit' : 'JetBrains Mono, monospace',
             cursor: 'pointer', transition: 'all 0.12s',
             background: methodFilter === m ? 'var(--accent-dim)' : 'var(--bg-card)',
@@ -151,7 +151,7 @@ export function EndpointsPage() {
           }}>{m}</button>
         ))}
         {checkedIds.size > 0 && (
-          <span style={{ fontSize: 12, color: 'var(--accent)', alignSelf: 'center', marginLeft: 4 }}>
+          <span style={{ fontSize: 'var(--fs-base)', color: 'var(--accent)', alignSelf: 'center', marginLeft: 4 }}>
             {checkedIds.size} selected
           </span>
         )}
@@ -241,7 +241,7 @@ export function EndpointsPage() {
                   <div>
                     <div
                       style={{
-                        fontSize: 16,
+                        fontSize: 'var(--fs-xl)',
                         fontWeight: 600,
                         color: 'var(--text-primary)'
                       }}
@@ -252,7 +252,7 @@ export function EndpointsPage() {
                     <div
                       style={{
                         marginTop: 5,
-                        fontSize: 11,
+                        fontSize: 'var(--fs-sm)',
                         color: 'var(--text-tertiary)'
                       }}
                     >
@@ -301,7 +301,7 @@ export function EndpointsPage() {
                     <div>
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: 600,
                           letterSpacing: '0.06em',
                           color: 'var(--text-tertiary)',
@@ -319,7 +319,7 @@ export function EndpointsPage() {
                     <div style={{ flex: 1 }}>
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: 600,
                           letterSpacing: '0.06em',
                           color: 'var(--text-tertiary)',
@@ -338,7 +338,7 @@ export function EndpointsPage() {
                           background: 'var(--bg-input)',
                           border: '1px solid var(--border)',
                           fontFamily: 'JetBrains Mono, monospace',
-                          fontSize: 12,
+                          fontSize: 'var(--fs-base)',
                           color: 'var(--text-primary)',
                           wordBreak: 'break-all'
                         }}
@@ -352,7 +352,7 @@ export function EndpointsPage() {
                   <div style={{ marginBottom: 22 }}>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 600,
                         letterSpacing: '0.06em',
                         color: 'var(--text-tertiary)',
@@ -368,7 +368,7 @@ export function EndpointsPage() {
                         borderRadius: 7,
                         background: 'var(--bg-input)',
                         border: '1px solid var(--border)',
-                        fontSize: 13,
+                        fontSize: 'var(--fs-md)',
                         lineHeight: 1.6,
                         color: 'var(--text-primary)'
                       }}
@@ -381,7 +381,7 @@ export function EndpointsPage() {
                   <div style={{ marginBottom: 22 }}>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 600,
                         letterSpacing: '0.06em',
                         color: 'var(--text-tertiary)',
@@ -393,7 +393,7 @@ export function EndpointsPage() {
 
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: 'var(--fs-md)',
                         lineHeight: 1.6,
                         color: selected.description
                           ? 'var(--text-secondary)'
@@ -416,7 +416,7 @@ export function EndpointsPage() {
                     >
                       <div
                         style={{
-                          fontSize: 10,
+                          fontSize: 'var(--fs-xs)',
                           fontWeight: 600,
                           letterSpacing: '0.06em',
                           color: 'var(--text-tertiary)'
@@ -427,7 +427,7 @@ export function EndpointsPage() {
 
                       <span
                         style={{
-                          fontSize: 10,
+                          fontSize: 'var(--fs-xs)',
                           color: 'var(--text-tertiary)'
                         }}
                       >
@@ -446,7 +446,7 @@ export function EndpointsPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 7,
                         fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: 11,
+                        fontSize: 'var(--fs-sm)',
                         lineHeight: 1.6,
                         color: 'var(--text-secondary)',
                         whiteSpace: 'pre-wrap',
@@ -463,7 +463,7 @@ export function EndpointsPage() {
                   <div style={{ marginBottom: 22 }}>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 600,
                         letterSpacing: '0.06em',
                         color: 'var(--text-tertiary)',
@@ -484,7 +484,7 @@ export function EndpointsPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 7,
                         fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: 11,
+                        fontSize: 'var(--fs-sm)',
                         lineHeight: 1.6,
                         color: 'var(--text-secondary)',
                         whiteSpace: 'pre-wrap',
@@ -501,7 +501,7 @@ export function EndpointsPage() {
                   <div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: 'var(--fs-xs)',
                         fontWeight: 600,
                         letterSpacing: '0.06em',
                         color: 'var(--text-tertiary)',
@@ -521,7 +521,7 @@ export function EndpointsPage() {
                         border: '1px solid var(--border)',
                         borderRadius: 7,
                         fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: 11,
+                        fontSize: 'var(--fs-sm)',
                         lineHeight: 1.6,
                         color: 'var(--text-secondary)',
                         whiteSpace: 'pre-wrap',

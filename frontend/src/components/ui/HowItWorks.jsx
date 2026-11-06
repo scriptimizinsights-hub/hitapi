@@ -95,8 +95,8 @@ export function HowItWorks() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <LogoMark size={28} />
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>HitAPI</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>· How it works</span>
+                    <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>HitAPI</span>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 4 }}>· How it works</span>
                 </div>
                 <button onClick={() => navigate('/')} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     Open app <ArrowRight size={13} />
@@ -115,7 +115,7 @@ export function HowItWorks() {
                 <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     background: 'rgba(130,100,255,0.1)', border: '1px solid rgba(130,100,255,0.25)',
-                    borderRadius: 20, padding: '5px 14px', fontSize: 12, color: '#8264ff',
+                    borderRadius: 20, padding: '5px 14px', fontSize: 'var(--fs-base)', color: '#8264ff',
                     fontWeight: 600, marginBottom: 24, letterSpacing: '0.04em'
                 }}>
                     <Zap size={11} /> POWERED BY CLOUDFLARE WORKERS AI
@@ -135,7 +135,7 @@ export function HowItWorks() {
                 </p>
 
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                    <button onClick={() => navigate('/')} className="btn btn-primary" style={{ fontSize: 15, padding: '11px 26px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => navigate('/')} className="btn btn-primary" style={{ fontSize: 'var(--fs-lg)', padding: '11px 26px', display: 'flex', alignItems: 'center', gap: 8 }}>
                         Start testing <ArrowRight size={16} />
                     </button>
 
@@ -144,7 +144,7 @@ export function HowItWorks() {
 
             {/* Product demo video */}
             <div style={{ padding: '0 40px 80px' }}>
-                <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 18 }}>Watch the 1-minute demo</div>
+                <div style={{ textAlign: 'center', fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 18 }}>Watch the 1-minute demo</div>
                 <DemoVideo maxWidth={960} />
             </div>
 
@@ -166,7 +166,7 @@ export function HowItWorks() {
                             <div style={{ fontSize: 34, fontWeight: 700, color: s.color, letterSpacing: '-0.02em', marginBottom: 6 }}>
                                 <Counter to={s.val} suffix={s.suffix} />
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.label}</div>
+                            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>{s.label}</div>
                         </div>
                     ))}
                 </div>
@@ -177,7 +177,7 @@ export function HowItWorks() {
                 <div style={{ maxWidth: 860, margin: '0 auto' }}>
                     <div style={{ textAlign: 'center', marginBottom: 36 }}>
                         <h2 style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 8 }}>4 categories of AI-generated tests</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Every endpoint gets a full matrix — not just happy paths.</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-md)' }}>Every endpoint gets a full matrix — not just happy paths.</p>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                         {TEST_TYPES.map(({ type, color, bg, example, icon: Icon }) => (
@@ -185,8 +185,8 @@ export function HowItWorks() {
                                 <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                                     <Icon size={16} color={color} />
                                 </div>
-                                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 5, color }}>{type}</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{example}</div>
+                                <div style={{ fontSize: 'var(--fs-md)', fontWeight: 600, marginBottom: 5, color }}>{type}</div>
+                                <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{example}</div>
                             </div>
                         ))}
                     </div>
@@ -198,7 +198,7 @@ export function HowItWorks() {
                 <div style={{ maxWidth: 700, margin: '0 auto' }}>
                     <div style={{ textAlign: 'center', marginBottom: 48 }}>
                         <h2 style={{ fontSize: 30, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 8 }}>How it works — step by step</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Six stages, fully automated on Cloudflare's edge.</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-md)' }}>Six stages, fully automated on Cloudflare's edge.</p>
                     </div>
 
                     <div style={{ position: 'relative' }}>
@@ -226,14 +226,14 @@ export function HowItWorks() {
                                         {/* Content */}
                                         <div style={{ flex: 1, paddingTop: 4 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                                <span style={{ fontSize: 10, fontWeight: 700, color: s.color, letterSpacing: '.08em' }}>STEP {s.step}</span>
+                                                <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 700, color: s.color, letterSpacing: '.08em' }}>STEP {s.step}</span>
                                             </div>
-                                            <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>{s.title}</h3>
-                                            <p style={{ fontSize: 12, color: s.color, fontWeight: 500, marginBottom: 8 }}>{s.subtitle}</p>
-                                            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>{s.description}</p>
+                                            <h3 style={{ fontSize: 'var(--fs-xl)', fontWeight: 600, marginBottom: 4 }}>{s.title}</h3>
+                                            <p style={{ fontSize: 'var(--fs-base)', color: s.color, fontWeight: 500, marginBottom: 8 }}>{s.subtitle}</p>
+                                            <p style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>{s.description}</p>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                                                 {s.details.map(d => (
-                                                    <span key={d} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+                                                    <span key={d} style={{ fontSize: 'var(--fs-sm)', padding: '2px 8px', borderRadius: 5, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                                                         {d}
                                                     </span>
                                                 ))}
@@ -252,10 +252,10 @@ export function HowItWorks() {
                 <div style={{ display: 'inline-block', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: '48px 56px', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: -60, left: '50%', transform: 'translateX(-50%)', width: 300, height: 200, background: 'radial-gradient(ellipse, rgba(130,100,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
                     <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 10 }}>Ready to test your API?</div>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: 15, marginBottom: 28, maxWidth: 380 }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-lg)', marginBottom: 28, maxWidth: 380 }}>
                         Import a Swagger URL and get your first AI-generated test suite in under 60 seconds.
                     </p>
-                    <button onClick={() => navigate('/')} className="btn btn-primary" style={{ fontSize: 15, padding: '12px 32px', display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 10 }}>
+                    <button onClick={() => navigate('/')} className="btn btn-primary" style={{ fontSize: 'var(--fs-lg)', padding: '12px 32px', display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 10 }}>
                         <Zap size={16} /> Get started free
                     </button>
                 </div>

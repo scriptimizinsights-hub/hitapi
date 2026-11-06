@@ -12,8 +12,8 @@ export function safeJSON(str) {
 export function Label({ children, hint }) {
     return (
         <div style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>{children}</span>
-            {hint && <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 6 }}>{hint}</span>}
+            <span style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text-secondary)' }}>{children}</span>
+            {hint && <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 6 }}>{hint}</span>}
         </div>
     );
 }
@@ -29,7 +29,7 @@ export function Textarea({ value, onChange, placeholder, rows = 4 }) {
     return (
         <textarea className="input" value={value} onChange={e => onChange(e.target.value)}
             placeholder={placeholder} rows={rows}
-            style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, resize: 'vertical' }} />
+            style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', resize: 'vertical' }} />
     );
 }
 
@@ -58,11 +58,11 @@ export function EndpointPicker({ endpoints, value, onChange, placeholder = 'Sele
                 width: '100%', padding: '8px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
                 background: 'var(--bg-input)', border: '1px solid var(--border)',
                 color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--fs-md)'
             }}>
                 <span>
                     {selected
-                        ? <><span className={`method-badge method-${selected.method}`} style={{ fontSize: 9, marginRight: 6 }}>{selected.method}</span>{selected.path}</>
+                        ? <><span className={`method-badge method-${selected.method}`} style={{ fontSize: 'var(--fs-2xs)', marginRight: 6 }}>{selected.method}</span>{selected.path}</>
                         : placeholder}
                 </span>
                 <ChevronDown size={14} color="var(--text-tertiary)" />
@@ -87,7 +87,7 @@ export function EndpointPicker({ endpoints, value, onChange, placeholder = 'Sele
                                 placeholder="Search by method, path or name…"
                                 onMouseDown={e => e.stopPropagation()}
                                 onClick={e => e.stopPropagation()}
-                                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', flex: 1 }}
+                                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 'var(--fs-base)', color: 'var(--text-primary)', flex: 1 }}
                             />
                             {search && (
                                 <button onClick={e => { e.stopPropagation(); setSearch(''); }}
@@ -100,32 +100,32 @@ export function EndpointPicker({ endpoints, value, onChange, placeholder = 'Sele
 
                     <div style={{ overflow: 'auto', flex: 1 }}>
                         <div onClick={() => { onChange(null); setOpen(false); setSearch(''); }}
-                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-tertiary)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             — None / Skip this step
                         </div>
                         {endpoints.length === 0 ? (
-                            <div style={{ padding: '20px 12px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
+                            <div style={{ padding: '20px 12px', fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
                                 No endpoints imported yet.<br />
                                 <span style={{ color: 'var(--accent)' }}>Import a Swagger spec first</span>
                             </div>
                         ) : filtered.length === 0 ? (
-                            <div style={{ padding: '16px 12px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
+                            <div style={{ padding: '16px 12px', fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
                                 No results for "<strong>{search}</strong>"<br />
-                                <span style={{ fontSize: 11 }}>Try searching by method (GET, POST) or path keyword</span>
+                                <span style={{ fontSize: 'var(--fs-sm)' }}>Try searching by method (GET, POST) or path keyword</span>
                             </div>
                         ) : filtered.map(ep => (
                             <div key={ep.id} onClick={() => { onChange(ep.id); setOpen(false); setSearch(''); }}
                                 style={{
-                                    padding: '8px 12px', cursor: 'pointer', fontSize: 12,
+                                    padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--fs-base)',
                                     display: 'flex', alignItems: 'center', gap: 8,
                                     background: value === ep.id ? 'var(--accent-dim)' : 'transparent',
                                     borderBottom: '1px solid rgba(255,255,255,0.03)'
                                 }}
                                 onMouseEnter={e => { if (value !== ep.id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
                                 onMouseLeave={e => { if (value !== ep.id) e.currentTarget.style.background = ''; }}>
-                                <span className={`method-badge method-${ep.method}`} style={{ fontSize: 9, flexShrink: 0 }}>{ep.method}</span>
+                                <span className={`method-badge method-${ep.method}`} style={{ fontSize: 'var(--fs-2xs)', flexShrink: 0 }}>{ep.method}</span>
                                 <span style={{ color: value === ep.id ? 'var(--accent)' : 'var(--text-secondary)', flex: 1 }}>{ep.path}</span>
-                                {ep.summary && <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ep.summary}</span>}
+                                {ep.summary && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', flexShrink: 0, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ep.summary}</span>}
                             </div>
                         ))}
                     </div>

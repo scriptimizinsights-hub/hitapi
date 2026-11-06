@@ -11,7 +11,7 @@ function MetricCard({ label, value, sub, color, icon: Icon }) {
   return (
     <div className="card" style={{ padding: '20px 22px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {label}
         </span>
         <div style={{
@@ -25,7 +25,7 @@ function MetricCard({ label, value, sub, color, icon: Icon }) {
       <div style={{ fontSize: 28, fontWeight: 600, color: color || 'var(--text-primary)', letterSpacing: '-0.02em' }}>
         {value ?? '—'}
       </div>
-      {sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -37,30 +37,30 @@ function BugRow({ bug, onDismiss }) {
     <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <span style={{
-          fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+          fontSize: 'var(--fs-xs)', fontWeight: 700, padding: '2px 7px', borderRadius: 4,
           background: sevBg[bug.severity] || 'var(--blue-bg)',
           color: sevColor[bug.severity] || 'var(--blue)', flexShrink: 0, marginTop: 1
         }}>
           {bug.severity?.toUpperCase()}
         </span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3 }}>{bug.title}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{bug.description}</div>
+          <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, marginBottom: 3 }}>{bug.title}</div>
+          <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{bug.description}</div>
           {bug.suggested_fix && (
-            <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 4 }}>
+            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--green)', marginTop: 4 }}>
               💡 {bug.suggested_fix}
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <span style={{
-              fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '1px 6px',
+              fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', padding: '1px 6px',
               background: 'rgba(255,255,255,0.05)', borderRadius: 4, color: 'var(--text-secondary)'
             }}>
               {bug.method} {bug.path}
             </span>
             <button
               onClick={() => onDismiss(bug.id)}
-              style={{ fontSize: 11, color: 'var(--text-tertiary)', background: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', background: 'none', cursor: 'pointer', padding: 0 }}
             >
               Dismiss
             </button>
@@ -120,12 +120,12 @@ export function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <h1 className="page-title" style={{ margin: 0 }}>{currentProject?.name || 'Dashboard'}</h1>
             {currentProject?.environment && (
-              <span className="badge badge-accent" style={{ fontSize: 10 }}>{currentProject.environment}</span>
+              <span className="badge badge-accent" style={{ fontSize: 'var(--fs-xs)' }}>{currentProject.environment}</span>
             )}
           </div>
           <p className="page-subtitle">
             {currentProject?.base_url
-              ? <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{currentProject.base_url}</span>
+              ? <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)' }}>{currentProject.base_url}</span>
               : 'Select a project to get started'}
           </p>
         </div>
@@ -168,9 +168,9 @@ export function Dashboard() {
                   <stop offset="95%" stopColor="#ff5c5c" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#5a5478' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 13, fill: '#8f89ad' }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: '#16161f', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: '#16161f', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, fontSize: 'var(--fs-base)' }}
                 labelStyle={{ color: '#f0eeff' }}
               />
               <Area type="monotone" dataKey="passed" stroke="#23d18b" fill="url(#gPass)" strokeWidth={2} dot={false} />
@@ -194,7 +194,7 @@ export function Dashboard() {
                 { label: 'PATCH',  count: endpointStats.patch_count,  color: 'var(--pink)' },
               ].map(({ label, count, color }) => count > 0 && (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 600, color, minWidth: 44 }}>{label}</span>
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', fontWeight: 600, color, minWidth: 44 }}>{label}</span>
                   <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{
                       width: `${Math.round((count / endpointStats.total) * 100)}%`,
@@ -202,7 +202,7 @@ export function Dashboard() {
                       transition: 'width 0.5s ease'
                     }} />
                   </div>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 24, textAlign: 'right' }}>{count}</span>
+                  <span style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', minWidth: 24, textAlign: 'right' }}>{count}</span>
                 </div>
               ))}
             </div>
@@ -220,7 +220,7 @@ export function Dashboard() {
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Bug size={15} color="var(--red)" />
-              <span style={{ fontSize: 14, fontWeight: 500 }}>AI-detected bugs</span>
+              <span style={{ fontSize: 'var(--fs-md)', fontWeight: 500 }}>AI-detected bugs</span>
               {bugs.length > 0 && (
                 <span className="badge badge-red">{bugs.length}</span>
               )}
@@ -251,7 +251,7 @@ export function Dashboard() {
           <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Clock size={15} color="var(--accent)" />
-              <span style={{ fontSize: 14, fontWeight: 500 }}>Recent runs</span>
+              <span style={{ fontSize: 'var(--fs-md)', fontWeight: 500 }}>Recent runs</span>
             </div>
             <button
               className="btn btn-ghost btn-sm"
@@ -282,8 +282,8 @@ export function Dashboard() {
                     </td>
                     <td style={{ color: 'var(--green)' }}>{ex.passed}</td>
                     <td style={{ color: ex.failed > 0 ? 'var(--red)' : 'var(--text-tertiary)' }}>{ex.failed}</td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{ex.triggered}</td>
-                    <td style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-base)' }}>{ex.triggered}</td>
+                    <td style={{ color: 'var(--text-tertiary)', fontSize: 'var(--fs-base)' }}>
                       {ex.started_at ? new Date(ex.started_at * 1000).toLocaleTimeString() : '—'}
                     </td>
                   </tr>

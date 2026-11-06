@@ -72,7 +72,7 @@ function Tabs({ tabs, active, onChange }) {
                     key={t.id}
                     onClick={() => onChange(t.id)}
                     style={{
-                        padding: '8px 12px', background: 'transparent', fontSize: 12, fontWeight: 500,
+                        padding: '8px 12px', background: 'transparent', fontSize: 'var(--fs-base)', fontWeight: 500,
                         color: active === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
                         borderBottom: active === t.id ? '2px solid var(--accent)' : '2px solid transparent',
                         marginBottom: -1, borderRadius: 0
@@ -108,7 +108,7 @@ function KeyValueEditor({ rows, onChange, keyPlaceholder = 'Key', valuePlacehold
     );
 }
 
-const label = { fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 5 };
+const label = { fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 };
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -313,7 +313,7 @@ export function PlaygroundPage() {
         ? (response.json !== null && response.json !== undefined ? JSON.stringify(response.json, null, 2) : response.body)
         : '';
 
-    const navBtn = { background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', padding: '6px 12px', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6 };
+    const navBtn = { background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6 };
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
@@ -327,8 +327,8 @@ export function PlaygroundPage() {
                 <button onClick={() => navigate('/')} aria-label="HitAPI home"
                     style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', flex: 1, textAlign: 'left' }}>
                     <LogoMark size={28} />
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>HitAPI</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 2 }}>· API Playground</span>
+                    <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>HitAPI</span>
+                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 2 }}>· API Playground</span>
                 </button>
 
                 <button onClick={() => navigate('/')} style={navBtn}><Home size={13} /> Home</button>
@@ -341,11 +341,11 @@ export function PlaygroundPage() {
                 ) : (
                     <>
                         <button onClick={() => navigate('/login')}
-                            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>
+                            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>
                             Sign in
                         </button>
                         <button onClick={() => navigate('/login?mode=signup')}
-                            style={{ background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: '7px 16px', borderRadius: 7 }}>
+                            style={{ background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-md)', fontWeight: 600, cursor: 'pointer', padding: '7px 16px', borderRadius: 7 }}>
                             Sign up free
                         </button>
                     </>
@@ -356,7 +356,7 @@ export function PlaygroundPage() {
                 <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
                     <div>
                         <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            API Playground <span className="badge badge-green" style={{ fontSize: 10 }}>Public · No login</span>
+                            API Playground <span className="badge badge-green" style={{ fontSize: 'var(--fs-xs)' }}>Public · No login</span>
                         </h1>
                         <p className="page-subtitle">Send a request to any public API and inspect the response. No account or project needed.</p>
                     </div>
@@ -382,7 +382,7 @@ export function PlaygroundPage() {
                 {showCurl && (
                     <div className="card" style={{ padding: 14, marginBottom: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>Import from cURL</div>
+                            <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, flex: 1 }}>Import from cURL</div>
                             <button className="btn btn-ghost btn-icon" onClick={() => { setShowCurl(false); setCurlError(null); }} aria-label="Close"><X size={14} /></button>
                         </div>
                         <textarea
@@ -397,7 +397,7 @@ export function PlaygroundPage() {
                             }}
                         />
                         {curlError && (
-                            <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 12 }}>
+                            <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 'var(--fs-base)' }}>
                                 {curlError}
                             </div>
                         )}
@@ -413,7 +413,7 @@ export function PlaygroundPage() {
                 )}
 
                 {curlNotes.length > 0 && (
-                    <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', color: 'var(--amber)', fontSize: 12, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', color: 'var(--amber)', fontSize: 'var(--fs-base)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                         <div style={{ flex: 1 }}>{curlNotes.map((n, i) => <div key={i}>{n}</div>)}</div>
                         <button className="btn btn-ghost btn-icon" onClick={() => setCurlNotes([])} aria-label="Dismiss"><X size={12} /></button>
                     </div>
@@ -539,7 +539,7 @@ export function PlaygroundPage() {
                     {/* ── Response ── */}
                     <div className="card" style={{ padding: 16, minHeight: 300 }}>
                         {errorMsg && (
-                            <div style={{ padding: 12, borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 13, marginBottom: 12 }}>
+                            <div style={{ padding: 12, borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 'var(--fs-md)', marginBottom: 12 }}>
                                 {errorMsg}
                             </div>
                         )}
@@ -559,7 +559,7 @@ export function PlaygroundPage() {
                         {response && (
                             <>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                                    <span className={`badge ${statusBadge(response.status)}`} style={{ fontSize: 12 }}>
+                                    <span className={`badge ${statusBadge(response.status)}`} style={{ fontSize: 'var(--fs-base)' }}>
                                         {response.status} {response.status_text}
                                     </span>
                                     <span className="text-sm text-secondary" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -631,7 +631,7 @@ export function PlaygroundPage() {
                                     style={{ width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <span className={`method-badge method-${h.method}`}>{h.method}</span>
                                     <span className="font-mono text-sm truncate" style={{ flex: 1, color: 'var(--text-secondary)' }}>{h.url}</span>
-                                    <span className={`badge ${statusBadge(h.status)}`} style={{ fontSize: 10 }}>{h.status}</span>
+                                    <span className={`badge ${statusBadge(h.status)}`} style={{ fontSize: 'var(--fs-xs)' }}>{h.status}</span>
                                 </button>
                             ))}
                         </div>

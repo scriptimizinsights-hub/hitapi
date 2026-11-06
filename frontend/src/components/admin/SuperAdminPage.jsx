@@ -57,7 +57,7 @@ function describe(a) {
         }
         case 'flow_created': return <>created flow <b>"{a.label}"</b> in {project}</>;
         case 'flow_run': return <>ran flow <b>"{a.label}"</b> on {project} — {a.status === 'running' ? 'running' : <><span className="text-green">{a.passed} passed</span>{a.failed ? <>, <span className="text-red">{a.failed} failed</span></> : null} of {plural(a.total, 'step')}</>}</>;
-        case 'bug_found': return <>bug found in {project}: <b>"{a.label}"</b> {a.status ? <span className={`badge ${a.status === 'critical' || a.status === 'high' ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: 9, marginLeft: 4 }}>{a.status}</span> : null}</>;
+        case 'bug_found': return <>bug found in {project}: <b>"{a.label}"</b> {a.status ? <span className={`badge ${a.status === 'critical' || a.status === 'high' ? 'badge-red' : 'badge-amber'}`} style={{ fontSize: 'var(--fs-2xs)', marginLeft: 4 }}>{a.status}</span> : null}</>;
         default: return a.type;
     }
 }
@@ -85,8 +85,8 @@ function StatCard({ label, value, sub, color = 'var(--text-primary)' }) {
     return (
         <div style={{ padding: '14px 18px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10 }}>
             <div style={{ fontSize: 24, fontWeight: 700, color }}>{value ?? '—'}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</div>
-            {sub && <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>}
+            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-secondary)' }}>{label}</div>
+            {sub && <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 2 }}>{sub}</div>}
         </div>
     );
 }
@@ -198,7 +198,7 @@ export function SuperAdminPage() {
             </div>
 
             {error && (
-                <div style={{ padding: 12, marginBottom: 16, borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 13 }}>
+                <div style={{ padding: 12, marginBottom: 16, borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 'var(--fs-md)' }}>
                     {error}
                 </div>
             )}
@@ -260,7 +260,7 @@ export function SuperAdminPage() {
                                 <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                     <Icon size={14} color={meta.color} />
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.5 }}>
+                                <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--fs-md)', lineHeight: 1.5 }}>
                                     <b>{a.user_name || a.user_email || 'Unknown user'}</b>{' '}{describe(a)}
                                     {a.user_email && a.user_name && <div className="text-xs text-tertiary">{a.user_email}</div>}
                                 </div>
@@ -304,7 +304,7 @@ export function SuperAdminPage() {
                                 <tr key={u.id}>
                                     <td>
                                         <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            {u.name || '—'} {u.is_admin ? <span className="badge badge-accent" style={{ fontSize: 9 }}>Admin</span> : null}
+                                            {u.name || '—'} {u.is_admin ? <span className="badge badge-accent" style={{ fontSize: 'var(--fs-2xs)' }}>Admin</span> : null}
                                         </div>
                                         <div className="text-xs text-tertiary">{u.email}</div>
                                     </td>

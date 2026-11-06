@@ -26,8 +26,8 @@ function EndpointRow({ ep, isCreator, needsId, contextVar, idPath, groups, curre
 
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <span className={`method-badge method-${ep.method}`} style={{ fontSize: 9, flexShrink: 0 }}>{ep.method}</span>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)', flex: 1 }}>{ep.path}</span>
+            <span className={`method-badge method-${ep.method}`} style={{ fontSize: 'var(--fs-2xs)', flexShrink: 0 }}>{ep.method}</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)', flex: 1 }}>{ep.path}</span>
 
             {ep.requiresAuth
                 ? <Lock size={10} color="var(--red)" style={{ flexShrink: 0 }} />
@@ -36,39 +36,39 @@ function EndpointRow({ ep, isCreator, needsId, contextVar, idPath, groups, curre
             {/* What this step does — show param wiring */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap', maxWidth: 220 }}>
                 {isCreator && (
-                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(130,100,255,0.12)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)' }}>
+                    <span style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px', borderRadius: 10, background: 'rgba(130,100,255,0.12)', color: 'var(--accent)', border: '1px solid rgba(130,100,255,0.2)' }}>
                         extracts {contextVar}
                     </span>
                 )}
                 {needsId && !isCreator && resolvedParams && Object.entries(resolvedParams).map(([param, varRef]) => (
-                    <span key={param} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <span key={param} style={{ fontSize: 'var(--fs-xs)', padding: '1px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', fontFamily: 'JetBrains Mono, monospace' }}>
                         {param}={varRef}
                     </span>
                 ))}
-                {!isCreator && !needsId && <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>list</span>}
-                {isOverridden && <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'var(--amber-bg)', color: 'var(--amber)' }}>moved</span>}
+                {!isCreator && !needsId && <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>list</span>}
+                {isOverridden && <span style={{ fontSize: 'var(--fs-2xs)', padding: '1px 5px', borderRadius: 3, background: 'var(--amber-bg)', color: 'var(--amber)' }}>moved</span>}
             </div>
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 4, flexShrink: 0, position: 'relative' }}>
                 {isOverridden && (
                     <button onClick={onReset} title="Reset to original group"
-                        style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
+                        style={{ fontSize: 'var(--fs-xs)', padding: '2px 6px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-tertiary)', border: '1px solid var(--border)' }}>
                         ↩ Reset
                     </button>
                 )}
                 {/* Move dropdown */}
                 <div style={{ position: 'relative' }}>
                     <button onClick={() => setShowMove(s => !s)}
-                        style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,181,71,0.08)', color: 'var(--amber)', border: '1px solid rgba(255,181,71,0.2)' }}>
+                        style={{ fontSize: 'var(--fs-xs)', padding: '2px 6px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,181,71,0.08)', color: 'var(--amber)', border: '1px solid rgba(255,181,71,0.2)' }}>
                         → Move
                     </button>
                     {showMove && (
                         <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 100, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 7, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', minWidth: 200, marginTop: 3 }}>
-                            <div style={{ padding: '6px 10px', fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)' }}>Move to group</div>
+                            <div style={{ padding: '6px 10px', fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)' }}>Move to group</div>
                             {groups.filter(g => g.basePath !== currentBasePath).map(g => (
                                 <div key={g.basePath} onClick={() => { onMove(ep.id, g.basePath); setShowMove(false); }}
-                                    style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                                    style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 'var(--fs-sm)', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}
                                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
                                     onMouseLeave={e => e.currentTarget.style.background = ''}>
                                     {g.basePath}
@@ -79,7 +79,7 @@ function EndpointRow({ ep, isCreator, needsId, contextVar, idPath, groups, curre
                 </div>
                 {/* Exclude */}
                 <button onClick={() => onExclude(ep.id)} title="Remove from all groups"
-                    style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,92,92,0.08)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.2)' }}>
+                    style={{ fontSize: 'var(--fs-xs)', padding: '2px 6px', borderRadius: 4, cursor: 'pointer', background: 'rgba(255,92,92,0.08)', color: 'var(--red)', border: '1px solid rgba(255,92,92,0.2)' }}>
                     ✕
                 </button>
             </div>
@@ -112,17 +112,17 @@ function CrudGroupCard({ group, config, allGroups, onToggle, onSetIdPath, onExcl
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: included ? 'rgba(130,100,255,0.06)' : 'rgba(255,255,255,0.02)', cursor: 'pointer', borderRadius: expanded ? '10px 10px 0 0' : 10 }}
                 onClick={() => setExpanded(e => !e)}>
                 <GitBranch size={14} color={included ? 'var(--accent)' : 'var(--text-tertiary)'} />
-                <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: included ? 'var(--accent)' : 'var(--text-secondary)', flex: 1 }}>
+                <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)', color: included ? 'var(--accent)' : 'var(--text-secondary)', flex: 1 }}>
                     {group.basePath}
                 </code>
-                <span style={{ fontSize: 10, color: authCount > 0 ? 'var(--red)' : 'var(--green)', flexShrink: 0 }}>
+                <span style={{ fontSize: 'var(--fs-xs)', color: authCount > 0 ? 'var(--red)' : 'var(--green)', flexShrink: 0 }}>
                     {authCount > 0 ? `🔐 ${authCount} auth` : '🌐 public'}
                 </span>
-                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', flexShrink: 0 }}>
+                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', flexShrink: 0 }}>
                     {group.endpoints.length} endpoints
                 </span>
                 <button onClick={e => { e.stopPropagation(); onToggle(group.basePath); }} style={{
-                    fontSize: 10, padding: '3px 8px', borderRadius: 5, cursor: 'pointer', fontWeight: 600, flexShrink: 0,
+                    fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 5, cursor: 'pointer', fontWeight: 600, flexShrink: 0,
                     background: included ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
                     color: included ? 'var(--accent)' : 'var(--text-tertiary)',
                     border: `1px solid ${included ? 'rgba(130,100,255,0.3)' : 'var(--border)'}`,
@@ -137,27 +137,27 @@ function CrudGroupCard({ group, config, allGroups, onToggle, onSetIdPath, onExcl
                     {/* Context var chain */}
                     {group.isCrud && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, padding: '8px 10px', background: 'var(--accent-dim)', borderRadius: 7, border: '1px solid rgba(130,100,255,0.15)', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)' }}>Flow:</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>POST creates →</span>
-                            <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--accent)', background: 'rgba(130,100,255,0.15)', padding: '1px 6px', borderRadius: 4 }}>
+                            <span style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--accent)' }}>Flow:</span>
+                            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>POST creates →</span>
+                            <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--accent)', background: 'rgba(130,100,255,0.15)', padding: '1px 6px', borderRadius: 4 }}>
                                 {contextVar}
                             </code>
                             <ArrowRight size={11} color="var(--text-tertiary)" />
-                            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>PUT/DELETE use it</span>
+                            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>PUT/DELETE use it</span>
                         </div>
                     )}
 
                     {/* Id path picker */}
                     {group.isCrud && (
                         <div style={{ marginBottom: 12 }}>
-                            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                                Where is the <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--accent)' }}>id</code> in POST response?
-                                <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 6 }}>saved as {contextVar}</span>
+                            <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                                Where is the <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-xs)', color: 'var(--accent)' }}>id</code> in POST response?
+                                <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', marginLeft: 6 }}>saved as {contextVar}</span>
                             </div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                                 {COMMON_ID_PATHS.map(p => (
                                     <button key={p} onClick={() => handleIdPathChange(p)} style={{
-                                        fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                                        fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                                         fontFamily: 'JetBrains Mono, monospace',
                                         background: idPath === p && !useCustom ? 'var(--accent-dim)' : 'rgba(255,255,255,0.04)',
                                         color: idPath === p && !useCustom ? 'var(--accent)' : 'var(--text-tertiary)',
@@ -165,7 +165,7 @@ function CrudGroupCard({ group, config, allGroups, onToggle, onSetIdPath, onExcl
                                     }}>{p}</button>
                                 ))}
                                 <button onClick={() => handleIdPathChange('custom')} style={{
-                                    fontSize: 10, padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
+                                    fontSize: 'var(--fs-xs)', padding: '3px 8px', borderRadius: 4, cursor: 'pointer',
                                     background: useCustom ? 'var(--amber-bg)' : 'rgba(255,255,255,0.04)',
                                     color: useCustom ? 'var(--amber)' : 'var(--text-tertiary)',
                                     border: `1px solid ${useCustom ? 'rgba(255,181,71,0.3)' : 'var(--border)'}`,
@@ -175,9 +175,9 @@ function CrudGroupCard({ group, config, allGroups, onToggle, onSetIdPath, onExcl
                                 <input autoFocus value={customIdPath}
                                     onChange={e => { setCustomIdPath(e.target.value); onSetIdPath(group.basePath, e.target.value); }}
                                     placeholder="e.g. result.data.templateId"
-                                    style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, padding: '6px 10px', borderRadius: 6, outline: 'none', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+                                    style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', padding: '6px 10px', borderRadius: 6, outline: 'none', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
                             )}
-                            <div style={{ marginTop: 5, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                            <div style={{ marginTop: 5, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                                 After POST: <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>response.{idPath}</code> → <code style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--accent)' }}>{contextVar}</code>
                             </div>
                         </div>
@@ -234,7 +234,7 @@ export function StepCrudGroups({ groups, getGroupConfig, toggleGroup, setIdPath,
 
     if (!groups.length) {
         return (
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: 24 }}>
+            <div style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)', textAlign: 'center', padding: 24 }}>
                 No endpoint groups detected. Make sure you've imported a Swagger spec.
             </div>
         );
@@ -243,13 +243,13 @@ export function StepCrudGroups({ groups, getGroupConfig, toggleGroup, setIdPath,
     return (
         <div>
             {/* Summary */}
-            <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, marginBottom: 12, display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+            <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, marginBottom: 12, display: 'flex', gap: 16, alignItems: 'center', fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
                 <span>🔍 <strong style={{ color: 'var(--accent)' }}>{crudCount}</strong> CRUD groups detected</span>
                 <span>✓ <strong style={{ color: 'var(--green)' }}>{includedCount}</strong> included</span>
                 {excludedEndpoints?.length > 0 && (
                     <span style={{ color: 'var(--amber)' }}>⊘ {excludedEndpoints.length} excluded</span>
                 )}
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
                     → Move · ✕ Exclude endpoint from group
                 </span>
             </div>
@@ -275,16 +275,16 @@ export function StepCrudGroups({ groups, getGroupConfig, toggleGroup, setIdPath,
             {/* Excluded endpoints */}
             {excludedEndpoints?.length > 0 && (
                 <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,181,71,0.05)', border: '1px solid rgba(255,181,71,0.15)', borderRadius: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--amber)', marginBottom: 8 }}>
+                    <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 600, color: 'var(--amber)', marginBottom: 8 }}>
                         ⊘ Excluded endpoints (won't be added to any group)
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {excludedEndpoints.map(ep => (
                             <div key={ep.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.02)' }}>
-                                <span className={`method-badge method-${ep.method}`} style={{ fontSize: 9 }}>{ep.method}</span>
-                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-tertiary)', flex: 1 }}>{ep.path}</span>
+                                <span className={`method-badge method-${ep.method}`} style={{ fontSize: 'var(--fs-2xs)' }}>{ep.method}</span>
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', flex: 1 }}>{ep.path}</span>
                                 <button onClick={() => resetEndpoint(ep.id)} style={{
-                                    fontSize: 10, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
+                                    fontSize: 'var(--fs-xs)', padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
                                     background: 'var(--amber-bg)', color: 'var(--amber)', border: '1px solid rgba(255,181,71,0.3)'
                                 }}>↩ Restore</button>
                             </div>

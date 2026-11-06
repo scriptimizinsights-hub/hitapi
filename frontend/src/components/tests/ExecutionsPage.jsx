@@ -66,7 +66,7 @@ export function ExecutionsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, alignItems: 'start' }}>
                 {/* Run history */}
                 <div className="card" style={{ overflow: 'hidden' }}>
-                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 500 }}>
+                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 'var(--fs-md)', fontWeight: 500 }}>
                         Run history
                     </div>
                     {executions.length === 0 ? (
@@ -83,11 +83,11 @@ export function ExecutionsPage() {
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                                     <span className={`badge ${ex.failed > 0 ? 'badge-red' : 'badge-green'}`}>{ex.status}</span>
-                                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>
+                                    <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>
                                         {ex.started_at ? new Date(ex.started_at * 1000).toLocaleTimeString() : 'Pending'}
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
+                                <div style={{ display: 'flex', gap: 10, fontSize: 'var(--fs-base)' }}>
                                     <span style={{ color: 'var(--green)' }}>✓ {ex.passed}</span>
                                     <span style={{ color: 'var(--red)' }}>✗ {ex.failed}</span>
                                     <span style={{ color: 'var(--text-tertiary)' }}>{ex.total} total</span>
@@ -131,7 +131,7 @@ export function ExecutionsPage() {
                                 ].map(s => (
                                     <div key={s.label} className="card" style={{ padding: '14px 16px', textAlign: 'center' }}>
                                         <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.val}</div>
-                                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 3 }}>{s.label}</div>
+                                        <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginTop: 3 }}>{s.label}</div>
                                     </div>
                                 ))}
                             </div>
@@ -142,7 +142,7 @@ export function ExecutionsPage() {
                                     marginBottom: 12, padding: '10px 14px', borderRadius: 8,
                                     background: loginResult.success ? 'var(--green-bg)' : 'var(--red-bg)',
                                     border: `1px solid ${loginResult.success ? 'var(--green-border)' : 'var(--red-border)'}`,
-                                    display: 'flex', alignItems: 'center', gap: 8, fontSize: 13
+                                    display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-md)'
                                 }}>
                                     <span>{loginResult.success ? '🔐' : '⚠'}</span>
                                     <span style={{ color: loginResult.success ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
@@ -161,12 +161,12 @@ export function ExecutionsPage() {
                                     { key: 'error', label: 'Error', count: enriched.filter(r => r.status === 'error').length, color: 'var(--amber)' },
                                 ].map(({ key, label, count, color }) => (
                                     <button key={key} onClick={() => setStatusFilter(key)} style={{
-                                        padding: '5px 12px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                                        padding: '5px 12px', borderRadius: 6, fontSize: 'var(--fs-base)', cursor: 'pointer',
                                         background: statusFilter === key ? 'var(--accent-dim)' : 'var(--bg-card)',
                                         color: statusFilter === key ? 'var(--accent)' : 'var(--text-secondary)',
                                         border: statusFilter === key ? '1px solid rgba(130,100,255,0.3)' : '1px solid var(--border)',
                                     }}>
-                                        {label} <span style={{ fontSize: 11, color: color || 'var(--text-tertiary)' }}>{count}</span>
+                                        {label} <span style={{ fontSize: 'var(--fs-sm)', color: color || 'var(--text-tertiary)' }}>{count}</span>
                                     </button>
                                 ))}
                             </div>
@@ -196,16 +196,16 @@ export function ExecutionsPage() {
                                                     }} />
                                                 </td>
                                                 <td>{r.endpoint && <span className={`method-badge method-${r.endpoint.method}`}>{r.endpoint.method}</span>}</td>
-                                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--text-secondary)' }}>{r.endpoint?.path || '—'}</td>
-                                                <td style={{ fontSize: 12 }}>{r.testCase?.name || '—'}</td>
+                                                <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-sm)', color: 'var(--text-secondary)' }}>{r.endpoint?.path || '—'}</td>
+                                                <td style={{ fontSize: 'var(--fs-base)' }}>{r.testCase?.name || '—'}</td>
                                                 <td style={{
-                                                    fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600,
+                                                    fontFamily: 'JetBrains Mono, monospace', fontSize: 'var(--fs-base)', fontWeight: 600,
                                                     color: !r.actual_status ? 'var(--text-tertiary)' : r.actual_status < 300 ? 'var(--green)' : r.actual_status < 400 ? 'var(--blue)' : 'var(--red)'
                                                 }}>
                                                     {r.actual_status || '—'}
                                                 </td>
-                                                <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{r.response_time_ms ? `${r.response_time_ms}ms` : '—'}</td>
-                                                <td style={{ fontSize: 11, color: 'var(--red)' }}>{r.failure_reason || ''}</td>
+                                                <td style={{ fontSize: 'var(--fs-base)', color: 'var(--text-tertiary)' }}>{r.response_time_ms ? `${r.response_time_ms}ms` : '—'}</td>
+                                                <td style={{ fontSize: 'var(--fs-sm)', color: 'var(--red)' }}>{r.failure_reason || ''}</td>
                                             </tr>
                                         ))}
                                     </tbody>
