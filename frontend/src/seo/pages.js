@@ -27,6 +27,12 @@ export const PAGES = {
         priority: '0.9',
         changefreq: 'weekly',
     },
+    '/demo': {
+        title: 'HitAPI Product Demo Video: AI API Testing in 71 Seconds | HitAPI',
+        description: 'Watch HitAPI import a Swagger/OpenAPI spec, write API tests with AI, run them against a live API and explain each bug with a root cause and fix. 1:11 video.',
+        priority: '0.8',
+        changefreq: 'monthly',
+    },
     '/how-it-works': {
         title: 'How HitAPI Works: AI-Generated API Tests from Swagger | HitAPI',
         description: 'See how HitAPI turns a Swagger/OpenAPI spec into AI-generated test cases, runs them against your live API, and reports bugs with the root cause and a suggested fix.',
@@ -81,12 +87,12 @@ export function metaFor(pathname) {
 // Product demo video (public/media) — lets Google show it in video results
 const DEMO_VIDEO = {
   '@type': 'VideoObject',
-  '@id': `${SITE.url}/#demo-video`,
+  '@id': `${SITE.url}/demo#video`,
   name: 'HitAPI product demo: AI API testing in about a minute',
   description: 'See HitAPI import a Swagger/OpenAPI spec, write API tests with AI, run them against a live API, explain bugs with a root cause and fix, run multi-step flows, and test any API for free in the API Playground.',
   thumbnailUrl: `${SITE.url}/media/hitapi-demo-poster.jpg`,
   contentUrl: `${SITE.url}/media/hitapi-demo.mp4`,
-  uploadDate: '2026-11-05',
+  uploadDate: '2026-11-05T00:00:00+05:30', // ISO 8601 with timezone (Google requires it)
   duration: 'PT1M11S',
 };
 
@@ -122,12 +128,19 @@ export function jsonLdFor(path) {
                     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
                     publisher: { '@id': `${SITE.url}/#organization` },
                 },
-                { ...DEMO_VIDEO, publisher: { '@id': `${SITE.url}/#organization` } },
             ],
         };
     }
-    if (path === '/how-it-works') {
-        return { '@context': 'https://schema.org', ...DEMO_VIDEO, publisher: org };
+    // The video's structured data lives only on its watch page: Google indexes a
+    // video only where it is the page's main content ("Video isn't on a watch page").
+    if (path === '/demo') {
+        return {
+            '@context': 'https://schema.org',
+            ...DEMO_VIDEO,
+            url: `${SITE.url}/demo`,
+            mainEntityOfPage: `${SITE.url}/demo`,
+            publisher: org,
+        };
     }
     if (path === '/playground') {
         return {

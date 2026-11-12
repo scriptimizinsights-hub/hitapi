@@ -201,6 +201,7 @@ export function LandingPage({ onGetStarted }) {
                     <h2 style={{ fontSize: 'clamp(26px,3.5vw,38px)', fontWeight: 700, letterSpacing: '-0.03em', margin: 0 }}>From Swagger spec to bug report in about a minute</h2>
                 </div>
                 <DemoVideo />
+                <a href="/demo" style={{ display: 'block', textAlign: 'center', marginTop: 16, fontSize: 'var(--fs-base)', color: 'var(--accent)' }}>Open the demo page →</a>
             </section>
 
             {/* ── Stats ── */}

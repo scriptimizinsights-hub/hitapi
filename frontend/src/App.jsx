@@ -6,6 +6,7 @@ import { EndpointsPage } from './components/endpoints/EndpointsPage.jsx';
 import { TestsPage, ExecutionsPage } from './components/tests/TestsPage.jsx';
 import { BugsPage, ReportsPage, NewProjectModal, ToastContainer } from './components/ui/Pages.jsx';
 import { HowItWorks } from './components/ui/HowItWorks.jsx';
+import { DemoPage } from './components/ui/DemoPage.jsx';
 import { FlowDiagram } from './components/ui/FlowDiagram.jsx';
 import { LoginFlowDiagram } from './components/ui/LoginFlowDiagram.jsx';
 import { ProjectSettings } from './components/ui/ProjectSettings.jsx';
@@ -160,6 +161,7 @@ export default function App() {
         <Routes>
           {/* Always public */}
           <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/demo" element={<DemoPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
@@ -193,6 +195,7 @@ export default function App() {
         <Routes>
           {/* Public pages — no sidebar */}
           <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/demo" element={<DemoPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />

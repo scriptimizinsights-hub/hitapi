@@ -33,6 +33,7 @@ export function PublicFooter() {
                         <div style={{ fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Product</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <FooterLink onClick={() => navigate('/how-it-works')}>How it works</FooterLink>
+                            <a href="/demo" style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>Product demo</a>
                             <FooterLink onClick={() => window.open('https://chromewebstore.google.com/search/HitAPI', '_blank')}>
                                 Chrome Extension <ExternalLink size={10} style={{ marginLeft: 3, verticalAlign: 'middle' }} />
                             </FooterLink>

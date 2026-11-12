@@ -146,6 +146,7 @@ export function HowItWorks() {
             <div style={{ padding: '0 40px 80px' }}>
                 <div style={{ textAlign: 'center', fontSize: 'var(--fs-sm)', fontWeight: 700, color: 'var(--accent)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 18 }}>Watch the 1-minute demo</div>
                 <DemoVideo maxWidth={960} />
+                <a href="/demo" style={{ display: 'block', textAlign: 'center', marginTop: 16, fontSize: 'var(--fs-base)', color: 'var(--accent)' }}>Open the demo page →</a>
             </div>
 
             {/* Stats */}
