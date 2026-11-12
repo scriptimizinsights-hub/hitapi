@@ -7,15 +7,23 @@ export function PublicFooter() {
     const navigate = useNavigate();
 
     return (
-        <footer style={{
+        <footer className="pub-footer" style={{
             borderTop: '1px solid var(--border)',
             background: 'rgba(255,255,255,0.01)',
-            padding: '40px 40px 28px',
         }}>
+            <style>{`
+                .pub-footer { padding: 40px 40px 28px; }
+                .pub-footer-grid { display: grid; grid-template-columns: 200px repeat(3, minmax(0, 1fr)); gap: 40px; margin-bottom: 36px; }
+                @media (max-width: 760px) {
+                    .pub-footer { padding: 32px 16px 24px; }
+                    .pub-footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 20px; }
+                    .pub-footer-grid > :first-child { grid-column: 1 / -1; }
+                }
+            `}</style>
             <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
                 {/* Top row — brand + columns */}
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 1fr 1fr', gap: 40, marginBottom: 36 }}>
+                <div className="pub-footer-grid">
 
                     {/* Brand */}
                     <div>
@@ -34,6 +42,7 @@ export function PublicFooter() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             <FooterLink onClick={() => navigate('/how-it-works')}>How it works</FooterLink>
                             <a href="/demo" style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>Product demo</a>
+                            <a href="/mock-api-server" style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>Mock API server</a>
                             <FooterLink onClick={() => window.open('https://chromewebstore.google.com/search/HitAPI', '_blank')}>
                                 Chrome Extension <ExternalLink size={10} style={{ marginLeft: 3, verticalAlign: 'middle' }} />
                             </FooterLink>

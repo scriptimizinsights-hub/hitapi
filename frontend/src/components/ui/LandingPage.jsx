@@ -103,7 +103,8 @@ function TypingDemo() {
                 </div>
             ))}
 
-            <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+            <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+                @media (max-width: 760px) { .lp-nav-link { display: none; } }`}</style>
         </div>
     );
 }
@@ -140,13 +141,16 @@ export function LandingPage({ onGetStarted }) {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button onClick={() => navigate('/playground')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                    <button className="lp-nav-link" onClick={() => navigate('/playground')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         API Playground
                     </button>
-                    <button onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                    <a href="/mock-api-server" className="lp-nav-link" style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', padding: '6px 12px', borderRadius: 7 }}>
+                        Mock API
+                    </a>
+                    <button className="lp-nav-link" onClick={() => navigate('/how-it-works')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         How it works
                     </button>
-                    <button onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
+                    <button className="lp-nav-link" onClick={() => navigate('/privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7 }}>
                         Privacy
                     </button>
                     <button onClick={go} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>

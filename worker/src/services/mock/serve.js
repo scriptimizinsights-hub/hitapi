@@ -11,6 +11,7 @@
  */
 
 import { DatabaseAdapter } from '../../db/adapter.js';
+import { DEMO_SLUG, demoRoutes, demoIndex } from './demo.js';
 
 const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -97,15 +98,22 @@ export async function handleMockRequest(request, env) {
     const method = request.method === 'HEAD' ? 'GET' : request.method.toUpperCase();
 
     if (!slug) return reply(404, { error: 'Mock server not found' });
-    const db = new DatabaseAdapter(env.DB);
-    const mock = await db.first('SELECT id, enabled FROM mock_servers WHERE slug = ?', [slug]);
-    if (!mock) return reply(404, { error: 'Mock server not found. Check the mock URL in HitAPI.' });
-    if (!mock.enabled) return reply(503, { error: 'This mock server is turned off. Turn it on in HitAPI → Mock Server.' });
 
-    const routes = await db.all(
-        'SELECT id, method, path, status, body, headers, delay_ms, source FROM mock_responses WHERE mock_id = ?',
-        [mock.id]
-    );
+    let routes;
+    if (slug === DEMO_SLUG) {
+        // Public demo for hitapi.dev/mock-api-server: built from a bundled spec, no database
+        if (path === '/' && method === 'GET') return reply(200, demoIndex(`${url.origin}/mock/${DEMO_SLUG}`));
+        routes = demoRoutes();
+    } else {
+        const db = new DatabaseAdapter(env.DB);
+        const mock = await db.first('SELECT id, enabled FROM mock_servers WHERE slug = ?', [slug]);
+        if (!mock) return reply(404, { error: 'Mock server not found. Check the mock URL in HitAPI.' });
+        if (!mock.enabled) return reply(503, { error: 'This mock server is turned off. Turn it on in HitAPI → Mock Server.' });
+        routes = await db.all(
+            'SELECT id, method, path, status, body, headers, delay_ms, source FROM mock_responses WHERE mock_id = ?',
+            [mock.id]
+        );
+    }
 
     // The spec's server URL may carry a base path (e.g. /v1); also try without leading segments.
     let match = null;

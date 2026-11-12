@@ -8,6 +8,7 @@ import { LandingPage } from './components/ui/LandingPage.jsx';
 import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 import { HowItWorks } from './components/ui/HowItWorks.jsx';
 import { DemoPage } from './components/ui/DemoPage.jsx';
+import { MockApiServerPage } from './components/ui/MockApiServerPage.jsx';
 import { SupportPage } from './components/ui/SupportPage.jsx';
 import { PrivacyPage } from './components/ui/PrivacyPage.jsx';
 import { TermsPage } from './components/ui/TermsPage.jsx';
@@ -19,6 +20,7 @@ const COMPONENTS = {
     '/playground': () => <PlaygroundPage />,
     '/how-it-works': () => <HowItWorks />,
     '/demo': () => <DemoPage />,
+    '/mock-api-server': () => <MockApiServerPage />,
     '/support': () => <SupportPage />,
     '/privacy': () => <PrivacyPage />,
     '/terms': () => <TermsPage />,

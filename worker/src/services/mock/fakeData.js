@@ -15,6 +15,8 @@ const COUNTRIES = ['IN', 'DE', 'US', 'CA', 'PT', 'SG', 'KE', 'AU'];
 const STREETS = ['MG Road', 'Hauptstrasse 12', '221 Baker Street', 'King St W 80', 'Rua Augusta 45'];
 const COMPANIES = ['Acme Corp', 'Globex', 'Initech', 'Umbrella Labs', 'Stark Industries', 'Wayne Tech'];
 const PRODUCTS = ['Wireless Keyboard', 'USB-C Hub', 'Laptop Stand', 'Noise-Cancelling Headphones', '4K Monitor', 'Ergonomic Mouse'];
+const PET_NAMES = ['Biscuit', 'Luna', 'Milo', 'Coco', 'Pepper', 'Simba', 'Nala', 'Rocky'];
+const CATEGORIES = ['electronics', 'books', 'home & kitchen', 'fitness', 'fashion', 'toys'];
 const WORDS = ['alpha', 'bravo', 'delta', 'nova', 'orbit', 'pixel', 'quartz', 'summit', 'vertex', 'zephyr'];
 const STATUSES = ['active', 'pending', 'completed'];
 
@@ -42,8 +44,9 @@ function isoDate(r, daysBack = 120) {
 }
 
 /** A value for a string field, from its format, enum, pattern hints and name. */
-function stringFor(name, schema, r) {
+function stringFor(name, schema, r, ctx = '') {
     const n = name.toLowerCase();
+    const where = ctx.toLowerCase(); // seed path, e.g. "GET /products/{id}.name": tells a product's name from a person's
     const f = (schema.format || '').toLowerCase();
     if (Array.isArray(schema.enum) && schema.enum.length) return pick(r, schema.enum);
     if (f === 'email' || n.includes('email')) return `${pick(r, FIRST).toLowerCase()}.${pick(r, LAST).toLowerCase()}@example.com`;
@@ -67,6 +70,13 @@ function stringFor(name, schema, r) {
     if (/(^|_)name$|full_?name|display_?name/.test(n)) {
         if (/product|item/.test(n)) return pick(r, PRODUCTS);
         if (/company|org/.test(n)) return pick(r, COMPANIES);
+        if (n === 'name') {
+            // A bare "name" belongs to whatever the response is about
+            if (/categor|genre|tag/.test(where)) return pick(r, CATEGORIES);
+            if (/(^|\/)pets?\b|animal|dog|cat\b/.test(where)) return pick(r, PET_NAMES);
+            if (/product|item|catalog|inventory|sku/.test(where)) return pick(r, PRODUCTS);
+            if (/compan|organi[sz]ation|org|vendor|supplier|merchant|brand/.test(where)) return pick(r, COMPANIES);
+        }
         return `${pick(r, FIRST)} ${pick(r, LAST)}`;
     }
     if (/title|product/.test(n)) return pick(r, PRODUCTS);
@@ -78,7 +88,8 @@ function stringFor(name, schema, r) {
     if (/zip|postal/.test(n)) return String(int(r, 10000, 99999));
     if (/currency/.test(n)) return pick(r, ['USD', 'EUR', 'INR', 'GBP']);
     if (/status|state/.test(n)) return pick(r, STATUSES);
-    if (/(^|_)type$|kind|category/.test(n)) return pick(r, ['standard', 'premium', 'basic']);
+    if (/categor/.test(n)) return pick(r, CATEGORIES);
+    if (/(^|_)type$|kind/.test(n)) return pick(r, ['standard', 'premium', 'basic']);
     if (/color|colour/.test(n)) return pick(r, ['#8264ff', '#23d18b', '#ff5c5c']);
     if (/description|summary|bio|comment|message|note|text|content/.test(n)) {
         return `Sample ${n.replace(/_/g, ' ')} for ${pick(r, PRODUCTS).toLowerCase()}.`;
@@ -104,7 +115,8 @@ function numberFor(name, schema, r, integer) {
         else if (/percent|ratio/.test(n)) { min = 0; max = 100; }
         else if (/lat/.test(n)) { min = -60; max = 60; }
         else if (/lon|lng/.test(n)) { min = -150; max = 150; }
-        else if (/count|quantity|qty|total|size|limit|page/.test(n)) { min = 1; max = 50; }
+        else if (/quantity|qty/.test(n)) { min = 1; max = 5; }
+        else if (/count|total|size|limit|page/.test(n)) { min = 1; max = 50; }
         else if (/(^|_)id$/.test(n)) { min = 1; max = 9999; }
         else { min = 1; max = 1000; }
     }
@@ -169,7 +181,7 @@ export function sampleFromSchema(schema, name = '', path = 'root', depth = 0) {
         case 'number': return numberFor(name, schema, r, false);
         case 'boolean': return /^(is_?)?(active|enabled|verified|available|in_?stock|visible)/i.test(name) ? true : r() > 0.5;
         case 'null': return null;
-        default: return stringFor(name, schema, r);
+        default: return stringFor(name, schema, r, path);
     }
 }
 
@@ -184,7 +196,7 @@ function singular(name) {
 export function fallbackBody(method, path) {
     const resource = (path.split('/').filter(s => s && !s.startsWith('{')).pop() || 'item').replace(/[^a-z0-9_]/gi, '');
     const one = singular(resource) || 'item';
-    const item = sampleFromSchema({
+    const shape = {
         type: 'object',
         properties: {
             id: { type: 'integer' },
@@ -192,9 +204,12 @@ export function fallbackBody(method, path) {
             status: { type: 'string' },
             created_at: { type: 'string', format: 'date-time' },
         },
-    }, one, `fallback:${path}`);
+    };
+    const item = sampleFromSchema(shape, one, `fallback:${path}`);
     const m = method.toUpperCase();
     if (m === 'DELETE') return null;
-    if (m === 'GET' && !/\{[^}]+\}$/.test(path)) return [item, { ...item, id: item.id + 1 }];
+    if (m === 'GET' && !/\{[^}]+\}$/.test(path)) {
+        return [item, { ...sampleFromSchema(shape, one, `fallback:${path}#2`), id: item.id + 1 }];
+    }
     return item;
 }

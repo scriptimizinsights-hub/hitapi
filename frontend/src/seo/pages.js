@@ -6,6 +6,9 @@
  * To add a public page: add it here, then add its component in entry-server.jsx.
  */
 
+// FAQ text for /mock-api-server is shared with the page itself
+import { MOCK_FAQS } from './mockApiContent.js';
+
 export const SITE = {
     url: 'https://hitapi.dev',
     name: 'HitAPI',
@@ -31,6 +34,12 @@ export const PAGES = {
         title: 'HitAPI Product Demo Video: AI API Testing in 71 Seconds | HitAPI',
         description: 'Watch HitAPI import a Swagger/OpenAPI spec, write API tests with AI, run them against a live API and explain each bug with a root cause and fix. 1:11 video.',
         priority: '0.8',
+        changefreq: 'monthly',
+    },
+    '/mock-api-server': {
+        title: 'Free Mock API Server: Generate Mock APIs from OpenAPI with AI | HitAPI',
+        description: 'Turn a Swagger/OpenAPI spec into a live mock REST API in one click. Realistic JSON from your schema, optional AI data, public URL, no login for callers. Try the live demo.',
+        priority: '0.9',
         changefreq: 'monthly',
     },
     '/how-it-works': {
@@ -140,6 +149,52 @@ export function jsonLdFor(path) {
             url: `${SITE.url}/demo`,
             mainEntityOfPage: `${SITE.url}/demo`,
             publisher: org,
+        };
+    }
+    if (path === '/mock-api-server') {
+        const url = `${SITE.url}/mock-api-server`;
+        return {
+            '@context': 'https://schema.org',
+            '@graph': [
+                {
+                    '@type': 'WebPage',
+                    '@id': `${url}#webpage`,
+                    url,
+                    name: PAGES[path].title,
+                    description: PAGES[path].description,
+                    primaryImageOfPage: `${SITE.url}/media/mock-server-routes.webp`,
+                    breadcrumb: { '@id': `${url}#breadcrumb` },
+                    publisher: org,
+                },
+                {
+                    '@type': 'BreadcrumbList',
+                    '@id': `${url}#breadcrumb`,
+                    itemListElement: [
+                        { '@type': 'ListItem', position: 1, name: 'HitAPI', item: `${SITE.url}/` },
+                        { '@type': 'ListItem', position: 2, name: 'Mock API server', item: url },
+                    ],
+                },
+                {
+                    '@type': 'SoftwareApplication',
+                    name: 'HitAPI Mock Server',
+                    url,
+                    applicationCategory: 'DeveloperApplication',
+                    operatingSystem: 'Web',
+                    description: PAGES[path].description,
+                    screenshot: [`${SITE.url}/media/mock-server-routes.webp`, `${SITE.url}/media/mock-server-try.webp`],
+                    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                    publisher: org,
+                },
+                {
+                    '@type': 'FAQPage',
+                    '@id': `${url}#faq`,
+                    mainEntity: MOCK_FAQS.map(f => ({
+                        '@type': 'Question',
+                        name: f.q,
+                        acceptedAnswer: { '@type': 'Answer', text: f.a },
+                    })),
+                },
+            ],
         };
     }
     if (path === '/playground') {
