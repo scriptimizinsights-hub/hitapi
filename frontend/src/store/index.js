@@ -139,6 +139,7 @@ export const api = {
     users: () => request('/admin/users'),
     projects: (userId) => request(`/admin/projects${userId ? `?user_id=${encodeURIComponent(userId)}` : ''}`),
     activity: (params = {}) => request(`/admin/activity?${new URLSearchParams(params)}`),
+    traffic: (params = {}) => request(`/admin/traffic?${new URLSearchParams(params)}`),
   },
 
 };

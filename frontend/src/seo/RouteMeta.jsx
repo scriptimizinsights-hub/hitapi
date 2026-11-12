@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { metaFor } from './pages.js';
+import { trackPageView } from '../utils/track.js';
 
 function setTag(selector, create, attr, value) {
     let el = document.head.querySelector(selector);
@@ -13,9 +14,13 @@ const meta = (key, isProperty) => () => {
     return el;
 };
 
-/** Keeps title, description, canonical, robots and social tags in sync with the current route. */
+/**
+ * Keeps title, description, canonical, robots and social tags in sync with the
+ * current route, and records each page view (Super Admin → Traffic).
+ */
 export function RouteMeta() {
-    const { pathname } = useLocation();
+    const { pathname, search } = useLocation();
+    useEffect(() => { trackPageView(pathname + search); }, [pathname, search]);
     useEffect(() => {
         const m = metaFor(pathname);
         document.title = m.title;

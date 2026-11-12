@@ -39,6 +39,8 @@ import {
   aiImproveMockBatch, updateMockRoute, aiMockRoute,
 } from './routes/mock.js';
 import { handleMockRequest } from './services/mock/serve.js';
+import { withRequestLog, trackPageView } from './services/requestLog.js';
+import { adminTraffic } from './routes/traffic.js';
 import { adminStats, adminListUsers, adminListProjects, adminActivity, isSuperAdmin, getProjectOwnerId, redactResponse } from './routes/admin.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -139,6 +141,9 @@ const ROUTES = [
   router('GET', '/api/admin/users', adminListUsers),
   router('GET', '/api/admin/projects', adminListProjects),
   router('GET', '/api/admin/activity', adminActivity),
+  router('GET', '/api/admin/traffic', adminTraffic),
+  // Website page views (public; logged-in visitors send their token)
+  router('POST', '/api/public/track', trackPageView),
 
   router('GET', '/api/projects/:id/ai-logs', listAiLogs),
   router('GET', '/api/agent/jobs', pollAgentJobs),
@@ -169,9 +174,7 @@ function matchRoute(pattern, urlPath) {
 /**
  * Main fetch handler
  */
-export default {
-
-  async fetch(request, env, ctx) {
+async function handleFetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
       // Public mock servers: no login, open CORS, any method
@@ -247,6 +250,13 @@ export default {
         error: 'Internal server error',
       }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
+}
+
+export default {
+
+  // Every request is recorded in request_logs (Super Admin → Traffic)
+  async fetch(request, env, ctx) {
+    return withRequestLog(request, env, ctx, handleFetch);
   },
 
   async queue(batch, env) {

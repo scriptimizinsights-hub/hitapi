@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Users, FolderKanban, RefreshCw, Search, ArrowRight, AlertTriangle, X, Activity, UserPlus, LogIn, FileCheck, FolderPlus, Download, Sparkles, Play, GitBranch, Bug } from 'lucide-react';
+import { Shield, Users, FolderKanban, RefreshCw, Search, ArrowRight, AlertTriangle, X, Activity, UserPlus, LogIn, FileCheck, FolderPlus, Download, Sparkles, Play, GitBranch, Bug, Globe2 } from 'lucide-react';
 import { api, useStore } from '../../store/index.js';
+import { TrafficTab } from './TrafficTab.jsx';
 
 /**
  * Super Admin — every user and every project on the platform.
@@ -216,7 +217,7 @@ export function SuperAdminPage() {
 
             {/* Tabs + search */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                {[['users', Users, `Users (${users.length})`], ['projects', FolderKanban, `Projects (${projects.length})`], ['activity', Activity, 'Activity']].map(([id, Icon, label]) => (
+                {[['users', Users, `Users (${users.length})`], ['projects', FolderKanban, `Projects (${projects.length})`], ['activity', Activity, 'Activity'], ['traffic', Globe2, 'Traffic']].map(([id, Icon, label]) => (
                     <button key={id} className={`btn btn-sm ${tab === id ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab(id)}>
                         <Icon size={13} /> {label}
                     </button>
@@ -227,7 +228,7 @@ export function SuperAdminPage() {
                         <button onClick={() => setOwnerFilter(null)} aria-label="Clear owner filter" style={{ background: 'none', color: 'inherit', padding: 0, display: 'flex' }}><X size={11} /></button>
                     </span>
                 )}
-                {tab === 'activity' ? (
+                {tab === 'traffic' ? null : tab === 'activity' ? (
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <select className="input" style={{ width: 220 }} value={actUser} onChange={e => setActUser(e.target.value)} aria-label="Filter by user">
                             <option value="">All users</option>
@@ -249,7 +250,9 @@ export function SuperAdminPage() {
                 )}
             </div>
 
-            {tab === 'activity' ? (
+            {tab === 'traffic' ? (
+                <TrafficTab users={users} />
+            ) : tab === 'activity' ? (
                 <div className="card" style={{ padding: 0 }}>
                     {activity.map((a, i) => {
                         const meta = ACTIVITY[a.type] || { icon: Activity, color: 'var(--text-tertiary)' };

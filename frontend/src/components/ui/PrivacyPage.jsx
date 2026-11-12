@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PublicFooter } from './PublicFooter.jsx';
 import { ArrowLeft, Shield, Mail, MapPin } from 'lucide-react';
 import { Logo, LogoMark } from './Logo.jsx';
-const LAST_UPDATED = 'June 30, 2026';
+const LAST_UPDATED = 'November 13, 2026';
 const COMPANY = 'Scriptimiz Insight LLP';
 const EMAIL = 'support@hitapi.dev';
 const ADDRESS = 'Gokul Nagar, Akurli Road, Kandivali East, Mumbai – 400101, Maharashtra, India';
@@ -93,8 +93,9 @@ export function PrivacyPage() {
                     <Li>Flow suite step configurations including endpoint paths, HTTP methods, expected status codes, and variable extraction rules.</Li>
                     <Li>Authentication configuration for test execution (see Section 2 for how credentials are stored).</Li>
 
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '14px 0 6px' }}>Server and Access Logs</p>
-                    <Li>IP addresses, browser user-agent strings, HTTP methods, response codes, and timestamps are recorded in standard server access logs for security monitoring. These are retained for up to 30 days.</Li>
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '14px 0 6px' }}>Server, Access and Page-View Logs</p>
+                    <Li>Every request to our website and API is logged, whether or not you are signed in: the time, the page or API path visited (secret-looking URL values such as tokens are masked), the HTTP method, response code and response time, your IP address, the approximate location derived from it (country and city), your browser user-agent string, the referring page, and your account ID if you are signed in.</Li>
+                    <Li>We use these logs for security monitoring, preventing abuse, troubleshooting errors and understanding how the service is used. They are visible only to HitAPI administrators, are not sold or shared for advertising, and are retained for up to 30 days.</Li>
                 </Section>
 
                 <Section title="2. Information Collected During API Testing">
@@ -150,7 +151,7 @@ export function PrivacyPage() {
                     <Li><strong>Account data</strong> — Retained for the lifetime of your account. Upon account deletion request, your personal data will be removed within 30 days, subject to legal retention obligations.</Li>
                     <Li><strong>Terms acceptance audit records</strong> — Retained for the lifetime of your account and for up to 7 years after account deletion, as required for legal compliance.</Li>
                     <Li><strong>Test results and execution history</strong> — Retained indefinitely while your account is active. You can delete individual flow runs at any time from the Reports page. Deleting a run permanently removes all associated step results, bug reports, and report records.</Li>
-                    <Li><strong>Server access logs</strong> — Retained for up to 30 days, then deleted.</Li>
+                    <Li><strong>Server, access and page-view logs</strong> — Retained for up to 30 days, then deleted automatically.</Li>
                     <Li><strong>Infrastructure backups</strong> — Our infrastructure provider (Cloudflare) may retain database backups for disaster recovery for a period of up to 30 days. Data deleted from your account may persist in backups for this period before being permanently removed from all systems.</Li>
                 </Section>
 
