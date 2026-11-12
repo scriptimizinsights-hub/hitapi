@@ -3,7 +3,7 @@ import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
   HelpCircle, LogOut, User, Lock, GitBranch,
-  Send, Shield
+  Send, Shield, Server
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ const NAV = [
   { to: 'bugs', icon: Bug, label: 'Bugs' },
   { to: 'reports', icon: BarChart3, label: 'Reports' },
   { to: 'monitors', icon: Bell, label: 'Monitors' },
+  { to: 'mock', icon: Server, label: 'Mock Server' },
   { to: 'flows', icon: GitBranch, label: 'Flow Suites', dividerBefore: true },
   { to: 'settings', icon: Settings, label: 'Settings' },
 

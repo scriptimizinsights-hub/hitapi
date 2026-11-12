@@ -34,6 +34,11 @@ import {
   from './routes/index.js';
 
 import { listEndpoints, getEndpointStats, deleteEndpoint, createEndpoint } from './repository/repository.js';
+import {
+  getMockServer, generateMockServer, updateMockServer, deleteMockServer,
+  aiImproveMockBatch, updateMockRoute, aiMockRoute,
+} from './routes/mock.js';
+import { handleMockRequest } from './services/mock/serve.js';
 import { adminStats, adminListUsers, adminListProjects, adminActivity, isSuperAdmin, getProjectOwnerId, redactResponse } from './routes/admin.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -95,6 +100,14 @@ const ROUTES = [
   // AI Test Generation
   router('POST', '/api/projects/:id/generate', generateTests),
   router('GET', '/api/projects/:id/tests', listTestCases),
+  // Mock server (management; the public mock itself is served from /mock/<slug>/...)
+  router('GET', '/api/projects/:id/mock', getMockServer),
+  router('POST', '/api/projects/:id/mock', generateMockServer),
+  router('PUT', '/api/projects/:id/mock', updateMockServer),
+  router('DELETE', '/api/projects/:id/mock', deleteMockServer),
+  router('POST', '/api/projects/:id/mock/ai', aiImproveMockBatch),
+  router('PUT', '/api/projects/:id/mock/responses/:rid', updateMockRoute),
+  router('POST', '/api/projects/:id/mock/responses/:rid/ai', aiMockRoute),
   router('POST', '/api/projects/:id/endpoints/:endpointId/generate-step', generateFlowStep),
   // Executions
   router('POST', '/api/projects/:id/run', runExecution),
@@ -161,6 +174,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      // Public mock servers: no login, open CORS, any method
+      if (url.pathname.startsWith('/mock/')) return await handleMockRequest(request, env);
       if (url.pathname === '/api/public' || url.pathname.startsWith('/api/public/')) {
         env = { ...env, CORS_ORIGIN: '*' };
       }

@@ -16,6 +16,7 @@ import { api, useStore } from '../../store/index.js';
 import { PublicFooter } from '../ui/PublicFooter.jsx';
 import { parseCurl, looksLikeCurl } from '../../utils/parseCurl.js';
 import { LogoMark } from '../ui/Logo.jsx';
+import { CodeSnippet } from '../ui/CodeSnippet.jsx';
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 const HISTORY_KEY = 'apiforge.playground.history';
@@ -60,7 +61,6 @@ function statusBadge(status) {
     return 'badge-red';
 }
 
-function shellQuote(s) { return `'${String(s).replace(/'/g, `'\\''`)}'`; }
 
 // ─── Small building blocks ───────────────────────────────────────────────────
 
@@ -163,13 +163,6 @@ export function PlaygroundPage() {
         }
         return { method, url: finalUrl, headers: h, body: sendBody };
     }, [method, url, params, headers, body, bodyType, auth, canHaveBody]);
-
-    const curl = useMemo(() => {
-        const parts = [`curl -X ${built.method} ${shellQuote(built.url)}`];
-        for (const [k, v] of Object.entries(built.headers)) parts.push(`  -H ${shellQuote(`${k}: ${v}`)}`);
-        if (built.body) parts.push(`  --data ${shellQuote(built.body)}`);
-        return parts.join(' \\\n');
-    }, [built]);
 
     async function send() {
         setErrorMsg(null);
@@ -460,7 +453,7 @@ export function PlaygroundPage() {
                                 { id: 'headers', label: 'Headers', count: Object.keys(rowsToObject(headers)).length },
                                 { id: 'body', label: 'Body' },
                                 { id: 'auth', label: 'Auth' },
-                                { id: 'curl', label: 'cURL' }
+                                { id: 'code', label: 'Code' }
                             ]}
                         />
 
@@ -526,14 +519,7 @@ export function PlaygroundPage() {
                             </div>
                         )}
 
-                        {reqTab === 'curl' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                <div className="code-block" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{curl}</div>
-                                <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => copy(curl, 'cURL command')}>
-                                    <Copy size={12} /> Copy cURL
-                                </button>
-                            </div>
-                        )}
+                        {reqTab === 'code' && <CodeSnippet request={built} />}
                     </div>
 
                     {/* ── Response ── */}

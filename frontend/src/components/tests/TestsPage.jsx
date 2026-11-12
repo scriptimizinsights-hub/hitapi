@@ -5,8 +5,9 @@ import {
   ChevronDown, ChevronRight, Play, RefreshCw,
   CheckCircle2, XCircle, AlertTriangle, Clock,
   Send, ArrowRight, Code, Copy, Check, Terminal,
-  Cpu, Eye, EyeOff
+  Cpu, Eye, EyeOff, Download
 } from 'lucide-react';
+import { ExportTestsModal } from './ExportTestsModal.jsx';
 
 const TYPE_META = {
   positive: { label: 'Positive', color: 'var(--green)', bg: 'var(--green-bg)' },
@@ -458,6 +459,7 @@ export function TestsPage() {
 
   const endpointMap = Object.fromEntries(endpoints.map(e => [e.id, e]));
   const filtered = typeFilter === 'all' ? testCases : testCases.filter(tc => tc.type === typeFilter);
+  const [showExport, setShowExport] = useState(false);
   const counts = testCases.reduce((acc, tc) => { acc[tc.type] = (acc[tc.type] || 0) + 1; return acc; }, {});
 
   const authConfig = currentProject?.auth_config
@@ -561,6 +563,15 @@ export function TestsPage() {
 
   return (
     <div className="page">
+      {showExport && currentProject && (
+        <ExportTestsModal
+          project={currentProject}
+          testCases={testCases}
+          filteredCases={filtered}
+          filterLabel={TYPE_META[typeFilter]?.label || 'Filtered'}
+          onClose={() => setShowExport(false)}
+        />
+      )}
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1 className="page-title">Test Cases</h1>
@@ -575,6 +586,10 @@ export function TestsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" onClick={() => setShowExport(true)} disabled={!testCases.length || !currentProject}
+            title="Export as Playwright, Pytest, Jest or k6" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Download size={13} /> Export
+          </button>
           <button className="btn btn-ghost" onClick={handleGenerate} disabled={generating}
             style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {generating ? <><div className="spinner" style={{ width: 13, height: 13 }} /> Generating…</> : <><RefreshCw size={13} /> Regenerate</>}

@@ -117,6 +117,16 @@ export const api = {
     deleteRun: (id, runId) => request(`/projects/${id}/runs/${runId}`, { method: 'DELETE' }),
     deleteAll: (id, flowId) => request(`/projects/${id}/flows/${flowId}/runs`, { method: 'DELETE' }),
   },
+  // Mock server (public URL: <api origin>/mock/<slug>/...)
+  mock: {
+    get: (id) => request(`/projects/${id}/mock`),
+    generate: (id, body = {}) => request(`/projects/${id}/mock`, { method: 'POST', body: JSON.stringify(body) }),
+    setEnabled: (id, enabled) => request(`/projects/${id}/mock`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
+    remove: (id) => request(`/projects/${id}/mock`, { method: 'DELETE' }),
+    aiBatch: (id, limit = 3) => request(`/projects/${id}/mock/ai`, { method: 'POST', body: JSON.stringify({ limit }) }),
+    updateRoute: (id, rid, body) => request(`/projects/${id}/mock/responses/${rid}`, { method: 'PUT', body: JSON.stringify(body) }),
+    aiRoute: (id, rid) => request(`/projects/${id}/mock/responses/${rid}/ai`, { method: 'POST', body: '{}' }),
+  },
   public: {
     info: () => request('/public'),
     request: (body) => request('/public/request', { method: 'POST', body: JSON.stringify(body) })

@@ -22,6 +22,7 @@ import './styles/global.css';
 import { AdminErrorsPage } from './components/admin/AdminErrorsPage.jsx';
 import { api } from './store/index.js';
 import { LiveFetchPage } from './components/live-fetch/LiveFetchPage.jsx';
+import { MockServerPage } from './components/mock/MockServerPage.jsx';
 import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 import { LogoMark } from './components/ui/Logo.jsx';
 import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
@@ -304,6 +305,7 @@ function ProjectRoutes() {
       <Route path="bugs" element={<BugsPage />} />
       <Route path="reports" element={<ReportsPage />} />
       <Route path="monitors" element={<MonitorsPage />} />
+      <Route path="mock" element={<MockServerPage />} />
       <Route path="flow" element={<FlowDiagram />} />
       <Route path="login-flow" element={<LoginFlowDiagram />} />
       <Route path="settings" element={<ProjectSettings />} />
