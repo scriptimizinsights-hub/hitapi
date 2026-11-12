@@ -7,7 +7,7 @@
  */
 
 // FAQ text for /mock-api-server is shared with the page itself
-import { MOCK_FAQS } from './mockApiContent.js';
+import { MOCK_FAQS, PLAYGROUND_FAQS } from './mockApiContent.js';
 
 export const SITE = {
     url: 'https://hitapi.dev',
@@ -39,6 +39,12 @@ export const PAGES = {
     '/mock-api-server': {
         title: 'Free Mock API Server: Generate Mock APIs from OpenAPI with AI | HitAPI',
         description: 'Turn a Swagger/OpenAPI spec into a live mock REST API in one click. Realistic JSON from your schema, optional AI data, public URL, no login for callers. Try the live demo.',
+        priority: '0.9',
+        changefreq: 'monthly',
+    },
+    '/mock-playground': {
+        title: 'Mock API Playground: Create a Free Mock REST API Online | HitAPI',
+        description: 'Create a mock REST API online in seconds, free and without login. Set routes, status codes, headers, delays and JSON, generate data from a schema, import OpenAPI, and get a public URL.',
         priority: '0.9',
         changefreq: 'monthly',
     },
@@ -189,6 +195,43 @@ export function jsonLdFor(path) {
                     '@type': 'FAQPage',
                     '@id': `${url}#faq`,
                     mainEntity: MOCK_FAQS.map(f => ({
+                        '@type': 'Question',
+                        name: f.q,
+                        acceptedAnswer: { '@type': 'Answer', text: f.a },
+                    })),
+                },
+            ],
+        };
+    }
+    if (path === '/mock-playground') {
+        const url = `${SITE.url}/mock-playground`;
+        return {
+            '@context': 'https://schema.org',
+            '@graph': [
+                {
+                    '@type': 'WebApplication',
+                    '@id': `${url}#app`,
+                    name: 'HitAPI Mock API Playground',
+                    url,
+                    applicationCategory: 'DeveloperApplication',
+                    operatingSystem: 'Web',
+                    browserRequirements: 'Requires JavaScript',
+                    isAccessibleForFree: true,
+                    description: PAGES[path].description,
+                    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                    publisher: org,
+                },
+                {
+                    '@type': 'BreadcrumbList',
+                    itemListElement: [
+                        { '@type': 'ListItem', position: 1, name: 'HitAPI', item: `${SITE.url}/` },
+                        { '@type': 'ListItem', position: 2, name: 'Mock API server', item: `${SITE.url}/mock-api-server` },
+                        { '@type': 'ListItem', position: 3, name: 'Mock API Playground', item: url },
+                    ],
+                },
+                {
+                    '@type': 'FAQPage',
+                    mainEntity: PLAYGROUND_FAQS.map(f => ({
                         '@type': 'Question',
                         name: f.q,
                         acceptedAnswer: { '@type': 'Answer', text: f.a },

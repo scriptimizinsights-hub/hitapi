@@ -43,6 +43,7 @@ export function PublicFooter() {
                             <FooterLink onClick={() => navigate('/how-it-works')}>How it works</FooterLink>
                             <a href="/demo" style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>Product demo</a>
                             <a href="/mock-api-server" style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>Mock API server</a>
+                            <a href="/mock-playground" style={{ fontSize: 'var(--fs-md)', color: 'var(--text-secondary)' }}>Mock API Playground</a>
                             <FooterLink onClick={() => window.open('https://chromewebstore.google.com/search/HitAPI', '_blank')}>
                                 Chrome Extension <ExternalLink size={10} style={{ marginLeft: 3, verticalAlign: 'middle' }} />
                             </FooterLink>

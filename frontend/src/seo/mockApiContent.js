@@ -33,3 +33,26 @@ export const MOCK_FAQS = [
         a: 'Yes. Capture your API calls with the HitAPI Chrome extension or add endpoints by hand; HitAPI builds a mock for each one and fills in generic data that you can improve with AI or edit.',
     },
 ];
+
+export const PLAYGROUND_FAQS = [
+    {
+        q: 'Do I need an account to create a mock API?',
+        a: 'No. Build your routes, press Save and you get a public mock URL straight away. Sign up only if you want mocks that never expire, generated from a project spec.',
+    },
+    {
+        q: 'How long does a playground mock last?',
+        a: 'Seven days after your last save. Every save resets the 7 days and keeps the same URL. You can edit it from the browser you made it in.',
+    },
+    {
+        q: 'Can I call the mock from my own app or from cURL?',
+        a: 'Yes. The URL works from anywhere: your frontend, a mobile app, Postman, cURL or a CI job. CORS is open and no token is needed.',
+    },
+    {
+        q: 'What can I customize?',
+        a: 'Up to 25 routes, each with its own method, path (with {params}), status code, response headers, delay of up to 10 seconds and body. Bodies can use {{params.id}} and {{query.page}} to echo the request.',
+    },
+    {
+        q: 'What is not allowed in the playground?',
+        a: 'HTML responses, redirects, cookies and CORS or security headers, so mocks cannot be used for phishing. Responses can be JSON, plain text, XML or CSV.',
+    },
+];

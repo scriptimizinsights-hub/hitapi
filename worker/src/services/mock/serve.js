@@ -12,6 +12,7 @@
 
 import { DatabaseAdapter } from '../../db/adapter.js';
 import { DEMO_SLUG, demoRoutes, demoIndex } from './demo.js';
+import { TEMP_PREFIX, loadTempRoutes, fillTemplates, SAFETY_HEADERS } from './tempMock.js';
 
 const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -94,13 +95,23 @@ export async function handleMockRequest(request, env) {
 
     const url = new URL(request.url);
     const [, , slug, ...rest] = url.pathname.split('/'); // '', 'mock', slug, ...
-    const path = '/' + rest.join('/');
+    let path = '/' + rest.join('/');
     const method = request.method === 'HEAD' ? 'GET' : request.method.toUpperCase();
 
     if (!slug) return reply(404, { error: 'Mock server not found' });
 
     let routes;
-    if (slug === DEMO_SLUG) {
+    let playground = false;
+    if (slug === TEMP_PREFIX) {
+        // Made on hitapi.dev/mock-playground: /mock/t/<id>/<path>
+        const [id, ...restPath] = rest;
+        path = '/' + restPath.join('/');
+        routes = await loadTempRoutes(env, id);
+        if (!routes) {
+            return reply(404, { error: 'This playground mock does not exist or has expired (they last 7 days after the last save). Make a new one at https://hitapi.dev/mock-playground' }, SAFETY_HEADERS);
+        }
+        playground = true;
+    } else if (slug === DEMO_SLUG) {
         // Public demo for hitapi.dev/mock-api-server: built from a bundled spec, no database
         if (path === '/' && method === 'GET') return reply(200, demoIndex(`${url.origin}/mock/${DEMO_SLUG}`));
         routes = demoRoutes();
@@ -145,13 +156,44 @@ export async function handleMockRequest(request, env) {
     let storedHeaders = {};
     try { storedHeaders = route.headers ? JSON.parse(route.headers) : {}; } catch { /* ignore */ }
 
+    if (playground) Object.assign(extra, SAFETY_HEADERS);
     if (forced >= 400 && forced <= 599) {
         return reply(forced, { error: STATUS_TEXT[forced] || 'Error', status: forced, mock: true }, extra);
     }
+    if (playground) return playgroundReply(request, route, storedHeaders, params, url.searchParams, extra);
     if (request.method === 'HEAD') return reply(route.status, null, { ...storedHeaders, ...extra });
 
     let body = null;
     try { body = route.body === null || route.body === undefined || route.body === '' ? null : JSON.parse(route.body); } catch { body = route.body; }
     body = applyParams(body, params, url.searchParams);
     return reply(route.status, body, { ...storedHeaders, ...extra });
+}
+
+/**
+ * A playground route's response: the visitor's body as written (text), with
+ * {{params.x}} / {{query.x}} filled in and, for JSON, path values put into
+ * matching fields. Safety headers always win over the visitor's own headers.
+ */
+function playgroundReply(request, route, storedHeaders, params, query, extra) {
+    // Expose every header, so the playground can show the visitor's own headers
+    const headers = { ...CORS, 'Access-Control-Expose-Headers': '*', 'Cache-Control': 'no-store', 'X-Powered-By': 'HitAPI Mock' };
+    const ctKey = Object.keys(storedHeaders).find(h => h.toLowerCase() === 'content-type');
+    const contentType = ctKey ? storedHeaders[ctKey] : 'application/json; charset=utf-8';
+    Object.assign(headers, storedHeaders, { 'Content-Type': contentType }, extra);
+    if (ctKey && ctKey !== 'Content-Type') delete headers[ctKey];
+
+    const status = route.status;
+    const raw = route.body ?? '';
+    if (request.method === 'HEAD' || status === 204 || status === 205 || raw === '') {
+        if (raw === '' || status === 204 || status === 205) delete headers['Content-Type'];
+        return new Response(null, { status, headers });
+    }
+    let text = raw;
+    if (/json/i.test(contentType)) {
+        try { text = JSON.stringify(applyParams(JSON.parse(raw), params, query), null, 2); }
+        catch { text = fillTemplates(raw, params, query); } // not valid JSON: send it as written
+    } else {
+        text = fillTemplates(raw, params, query);
+    }
+    return new Response(text, { status, headers });
 }

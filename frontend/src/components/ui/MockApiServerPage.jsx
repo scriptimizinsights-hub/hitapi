@@ -200,7 +200,7 @@ export function MockApiServerPage() {
                     </p>
                     <div className="mp-cta">
                         <a href="/login" className="btn btn-primary mp-btn-lg">Create your mock server <ArrowRight size={15} /></a>
-                        <a href="#live-demo" className="btn btn-ghost mp-btn-lg">Try the live demo</a>
+                        <a href="/mock-playground" className="btn btn-ghost mp-btn-lg">Build a mock now, no login</a>
                     </div>
                 </header>
 
@@ -221,6 +221,10 @@ export function MockApiServerPage() {
                         your terminal or your own app. No sign-up needed.
                     </p>
                     <p className="mp-base">Base URL: <code>{DEMO}</code></p>
+                    <p className="mp-muted">
+                        Want your own routes, status codes, headers and bodies? Build them in the{' '}
+                        <a href="/mock-playground">Mock API Playground</a> and get a public URL in seconds, no account needed.
+                    </p>
                     <div className="mp-demo-grid">
                         <div className="mp-card">
                             <table className="mp-routes">

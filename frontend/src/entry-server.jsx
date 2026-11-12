@@ -9,6 +9,7 @@ import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 import { HowItWorks } from './components/ui/HowItWorks.jsx';
 import { DemoPage } from './components/ui/DemoPage.jsx';
 import { MockApiServerPage } from './components/ui/MockApiServerPage.jsx';
+import { MockPlaygroundPage } from './components/mock/MockPlaygroundPage.jsx';
 import { SupportPage } from './components/ui/SupportPage.jsx';
 import { PrivacyPage } from './components/ui/PrivacyPage.jsx';
 import { TermsPage } from './components/ui/TermsPage.jsx';
@@ -21,6 +22,7 @@ const COMPONENTS = {
     '/how-it-works': () => <HowItWorks />,
     '/demo': () => <DemoPage />,
     '/mock-api-server': () => <MockApiServerPage />,
+    '/mock-playground': () => <MockPlaygroundPage />,
     '/support': () => <SupportPage />,
     '/privacy': () => <PrivacyPage />,
     '/terms': () => <TermsPage />,

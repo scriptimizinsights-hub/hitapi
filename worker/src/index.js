@@ -41,6 +41,7 @@ import {
 import { handleMockRequest } from './services/mock/serve.js';
 import { withRequestLog, trackPageView } from './services/requestLog.js';
 import { adminTraffic } from './routes/traffic.js';
+import { createPlaygroundMock, updatePlaygroundMock, generateMockData, importSpecRoutes } from './routes/mockPlayground.js';
 import { adminStats, adminListUsers, adminListProjects, adminActivity, isSuperAdmin, getProjectOwnerId, redactResponse } from './routes/admin.js';
 
 // ─── Simple path router (no dependencies) ────────────────────────────────────
@@ -144,6 +145,11 @@ const ROUTES = [
   router('GET', '/api/admin/traffic', adminTraffic),
   // Website page views (public; logged-in visitors send their token)
   router('POST', '/api/public/track', trackPageView),
+  // Mock Playground (hitapi.dev/mock-playground): temporary mocks without an account
+  router('POST', '/api/public/mocks', createPlaygroundMock),
+  router('PUT', '/api/public/mocks/:id', updatePlaygroundMock),
+  router('POST', '/api/public/mock-tools/generate', generateMockData),
+  router('POST', '/api/public/mock-tools/import', importSpecRoutes),
 
   router('GET', '/api/projects/:id/ai-logs', listAiLogs),
   router('GET', '/api/agent/jobs', pollAgentJobs),
