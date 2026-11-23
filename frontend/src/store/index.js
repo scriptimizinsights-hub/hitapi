@@ -3,6 +3,7 @@
  */
 
 const BASE = import.meta.env.VITE_API_URL ?? 'https://services.hitapi.dev/api';
+export const API_BASE = BASE;
 
 export function getToken() { return localStorage.getItem('hitapi_token'); }
 export function setToken(t) { t ? localStorage.setItem('hitapi_token', t) : localStorage.removeItem('hitapi_token'); }

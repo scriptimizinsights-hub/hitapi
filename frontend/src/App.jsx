@@ -30,6 +30,7 @@ import { LogoMark } from './components/ui/Logo.jsx';
 import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
 import { RouteMeta } from './seo/RouteMeta.jsx';
 import { ApiKeysPage } from './components/account/ApiKeysPage.jsx';
+import { Workbench } from './components/workbench/Workbench.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -212,6 +213,18 @@ export default function App() {
           <Route path="/" element={
             <AppLayout onNewProject={handleNewProject}>
               <Landing onNewProject={handleNewProject} />
+            </AppLayout>
+          } />
+
+          <Route path="/workbench" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <div className="page" style={{ maxWidth: 1600 }}>
+                <div className="page-header">
+                  <h1 className="page-title">API Workbench</h1>
+                  <p className="page-subtitle">Send any HTTP request and inspect the response. The same Workbench as the HitAPI extension.</p>
+                </div>
+                <Workbench variant="app" />
+              </div>
             </AppLayout>
           } />
 

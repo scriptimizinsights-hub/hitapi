@@ -13,7 +13,7 @@ import { logInternalError } from '../services/errorLogger.js';
 import { runAI, extractText, parseJSON, runAILogged } from '../services/ai.js';
 import { groupEndpointsByResource, getResourceBase, buildGroupSteps } from '../utils/groupEndpointsByResource.js';
 import { NormalizeError } from '../utils/normalizeAIResponse.js';
-import { executePublicRequest, checkRateLimit, PublicRequestError, PUBLIC_LIMITS } from '../services/proxy.js';
+import { executePublicRequest, checkRateLimit, PublicRequestError, PUBLIC_LIMITS, setDevAllowHosts } from '../services/proxy.js';
 import { buildFlowStepPrompt } from '../utils/promptBuilder.js';
 import { isSuperAdminDb } from './admin.js';
 
@@ -1884,9 +1884,14 @@ export async function autoGenerateFlowSuite(request, env, { params }) {
 // ─── Public API Runner (no login / no project required) ────────────────────
 
 export async function publicRequest(request, env) {
-  const limit = await checkRateLimit(request, env.CACHE);
+  // Signed-in callers (login token or API key) get a higher limit, counted per user
+  let userId = null;
+  if (request.headers.get('Authorization') || request.headers.get('X-API-Key')) {
+    try { userId = (await (await import('../services/auth.js')).requireAuth(request, env))?.sub || null; } catch { userId = null; }
+  }
+  const limit = await checkRateLimit(request, env.CACHE, userId);
   if (!limit.allowed) {
-    return error(`Rate limit exceeded — max ${PUBLIC_LIMITS.RATE_LIMIT_PER_MINUTE} requests per minute`, 429, env);
+    return error(`Rate limit exceeded — max ${limit.limit} requests per minute${userId ? '' : '. Sign in for a higher limit'}`, 429, env);
   }
 
   let body;
@@ -1896,6 +1901,7 @@ export async function publicRequest(request, env) {
     return error('Request body must be valid JSON', 400, env);
   }
 
+  setDevAllowHosts(env.DEV_PROXY_ALLOW_HOSTS);
   try {
     const result = await executePublicRequest(body);
     return json(success(result, { rate_limit_remaining: limit.remaining }), 200, env);
@@ -1914,7 +1920,10 @@ export async function publicInfo(request, env) {
       max_request_body_bytes: PUBLIC_LIMITS.MAX_REQUEST_BODY_BYTES,
       max_response_body_bytes: PUBLIC_LIMITS.MAX_RESPONSE_BODY_BYTES,
       requests_per_minute: PUBLIC_LIMITS.RATE_LIMIT_PER_MINUTE,
-      methods: PUBLIC_LIMITS.ALLOWED_METHODS
+      requests_per_minute_signed_in: PUBLIC_LIMITS.USER_RATE_LIMIT_PER_MINUTE,
+      max_redirects: PUBLIC_LIMITS.MAX_REDIRECTS,
+      methods: PUBLIC_LIMITS.ALLOWED_METHODS,
+      custom_methods: true
     }
   }), 200, env);
 }

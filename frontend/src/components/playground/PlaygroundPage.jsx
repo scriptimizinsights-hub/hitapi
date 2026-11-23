@@ -1,631 +1,133 @@
 /**
- * API Playground — public, no login and no project required.
- * Anyone can compose an HTTP request, send it, and inspect the response.
+ * /playground — HitAPI's free online API tester (public, no login).
  *
- * Two send modes:
- *   - "server"  (default) → request runs from the HitAPI Worker via
- *                            POST /api/public/request (no CORS problems)
- *   - "browser"            → request runs straight from the user's browser
- *                            (useful for localhost / intranet APIs; target must allow CORS)
+ * The tool is the HitAPI Web Workbench (components/workbench, web roadmap W1).
+ * Below it: what it does, how to use it, the three ways to send, and an FAQ —
+ * prerendered at build time for search engines (scripts/prerender.mjs).
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import { Send, Plus, Trash2, Copy, Clock, History, Globe2, Monitor, X, Terminal, Zap, ArrowRight, Home } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { api, useStore } from '../../store/index.js';
+import { useNavigate, Link } from 'react-router-dom';
+import { Home, ArrowRight, Globe2, Monitor, Puzzle, Check } from 'lucide-react';
+import { useStore } from '../../store/index.js';
 import { PublicFooter } from '../ui/PublicFooter.jsx';
-import { parseCurl, looksLikeCurl } from '../../utils/parseCurl.js';
 import { LogoMark } from '../ui/Logo.jsx';
-import { CodeSnippet } from '../ui/CodeSnippet.jsx';
+import { Workbench } from '../workbench/Workbench.jsx';
+import { STORE_URL } from '../workbench/bridge.js';
+import { API_TESTER_FAQS, API_TESTER_FEATURES } from '../../seo/apiTesterContent.js';
 
-const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-const HISTORY_KEY = 'apiforge.playground.history';
-const MAX_HISTORY = 25;
-
-const SAMPLES = [
-    { label: 'List posts', method: 'GET', url: 'https://jsonplaceholder.typicode.com/posts?_limit=5' },
-    {
-        label: 'Create post', method: 'POST', url: 'https://jsonplaceholder.typicode.com/posts',
-        body: JSON.stringify({ title: 'Hello', body: 'From HitAPI', userId: 1 }, null, 2)
-    },
-    { label: 'Echo headers', method: 'GET', url: 'https://httpbin.org/headers' },
+const STEPS = [
+  ['Enter the URL', 'Pick the method and type the API URL, or paste a cURL command and the whole request fills in.'],
+  ['Add what the API needs', 'Query params, headers, a JSON / form / file / GraphQL body and auth (Bearer, Basic, API key, OAuth 2.0).'],
+  ['Choose where to send from', 'HitAPI cloud for public APIs, this browser or the HitAPI extension for localhost.'],
+  ['Send and read the response', 'Status, time and size, JSON you can search and fold, headers, cookies and timing. Copy it as code when it works.'],
 ];
 
-const emptyRow = () => ({ key: '', value: '', enabled: true });
-
-function rowsToObject(rows) {
-    const out = {};
-    for (const r of rows) if (r.enabled && r.key.trim()) out[r.key.trim()] = r.value;
-    return out;
-}
-
-function loadHistory() {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
-}
-function saveHistory(items) {
-    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, MAX_HISTORY))); } catch { /* storage unavailable */ }
-}
-
-function formatBytes(n) {
-    if (n == null) return '—';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    return `${(n / 1024 / 1024).toFixed(2)} MB`;
-}
-
-function statusBadge(status) {
-    if (!status) return 'badge-gray';
-    if (status < 300) return 'badge-green';
-    if (status < 400) return 'badge-blue';
-    if (status < 500) return 'badge-amber';
-    return 'badge-red';
-}
-
-
-// ─── Small building blocks ───────────────────────────────────────────────────
-
-function Tabs({ tabs, active, onChange }) {
-    return (
-        <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
-            {tabs.map(t => (
-                <button
-                    key={t.id}
-                    onClick={() => onChange(t.id)}
-                    style={{
-                        padding: '8px 12px', background: 'transparent', fontSize: 'var(--fs-base)', fontWeight: 500,
-                        color: active === t.id ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                        borderBottom: active === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-                        marginBottom: -1, borderRadius: 0
-                    }}
-                >
-                    {t.label}{t.count ? <span className="text-accent" style={{ marginLeft: 5 }}>{t.count}</span> : null}
-                </button>
-            ))}
-        </div>
-    );
-}
-
-function KeyValueEditor({ rows, onChange, keyPlaceholder = 'Key', valuePlaceholder = 'Value' }) {
-    const update = (i, patch) => onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-    const remove = (i) => onChange(rows.length === 1 ? [emptyRow()] : rows.filter((_, idx) => idx !== i));
-
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {rows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <input type="checkbox" checked={r.enabled} onChange={e => update(i, { enabled: e.target.checked })} aria-label="Enabled" />
-                    <input className="input font-mono" style={{ flex: 1 }} placeholder={keyPlaceholder}
-                        value={r.key} onChange={e => update(i, { key: e.target.value })} />
-                    <input className="input font-mono" style={{ flex: 2 }} placeholder={valuePlaceholder}
-                        value={r.value} onChange={e => update(i, { value: e.target.value })} />
-                    <button className="btn btn-ghost btn-icon" onClick={() => remove(i)} aria-label="Remove row"><Trash2 size={13} /></button>
-                </div>
-            ))}
-            <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => onChange([...rows, emptyRow()])}>
-                <Plus size={12} /> Add
-            </button>
-        </div>
-    );
-}
-
-const label = { fontSize: 'var(--fs-base)', color: 'var(--text-secondary)', display: 'block', marginBottom: 5 };
-
-// ─── Page ────────────────────────────────────────────────────────────────────
+const MODES = [
+  [Globe2, 'HitAPI cloud', 'Public APIs, with no CORS errors. Runs on HitAPI\'s servers.', 'Public URLs only · 15 s · 2 MB'],
+  [Monitor, 'This browser', 'APIs on localhost or your network that allow CORS.', 'Browsers hide some headers and cookies'],
+  [Puzzle, 'HitAPI extension', 'Anything: localhost, no CORS limits, Cookie and Origin headers.', 'Needs the free Chrome extension'],
+];
 
 export function PlaygroundPage() {
-    const { addToast, user } = useStore();
-    const navigate = useNavigate();
+  const { user } = useStore();
+  const navigate = useNavigate();
+  const navBtn = { background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6 };
 
-    const [method, setMethod] = useState('GET');
-    const [url, setUrl] = useState(SAMPLES[0].url);
-    const [params, setParams] = useState([emptyRow()]);
-    const [headers, setHeaders] = useState([emptyRow()]);
-    const [bodyType, setBodyType] = useState('json'); // json | text | none
-    const [body, setBody] = useState('');
-    const [auth, setAuth] = useState({ type: 'none', token: '', username: '', password: '', header: 'X-API-Key', key: '', in: 'header' });
-    const [mode, setMode] = useState('server');
-    const [reqTab, setReqTab] = useState('params');
-    const [resTab, setResTab] = useState('body');
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        .pg-nav { padding: 12px 32px; }
+        .pg-wrap { width: 100%; max-width: 1440px; margin: 0 auto; padding: 22px 32px 0; }
+        .pg-h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.15; }
+        .pg-lead { color: var(--text-secondary); font-size: var(--fs-md); margin: 8px 0 16px; max-width: 860px; line-height: 1.5; }
+        .pg-sec { max-width: 1100px; margin: 0 auto; padding: 44px 32px 0; width: 100%; }
+        .pg-sec h2 { font-size: 22px; margin: 0 0 14px; letter-spacing: -0.01em; }
+        .pg-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .pg-grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+        .pg-card { border: 1px solid var(--border); background: var(--bg-card); border-radius: 12px; padding: 16px; }
+        .pg-card h3 { font-size: var(--fs-lg); margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+        .pg-card p { margin: 0; color: var(--text-secondary); font-size: var(--fs-sm); line-height: 1.5; }
+        .pg-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+        .pg-faq details { border-bottom: 1px solid var(--border); padding: 12px 0; }
+        .pg-faq summary { cursor: pointer; font-weight: 600; font-size: var(--fs-md); }
+        .pg-faq p { color: var(--text-secondary); margin: 8px 0 0; line-height: 1.55; font-size: var(--fs-base); }
+        .pg-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+        @media (max-width: 900px) { .pg-grid3, .pg-grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 600px) { .pg-nav { padding: 10px 14px; } .pg-wrap, .pg-sec { padding-left: 14px; padding-right: 14px; } .pg-h1 { font-size: 24px; } .pg-grid3, .pg-grid4 { grid-template-columns: 1fr; } }
+      `}</style>
 
-    const [loading, setLoading] = useState(false);
-    const [response, setResponse] = useState(null);
-    const [errorMsg, setErrorMsg] = useState(null);
-    const [history, setHistory] = useState(loadHistory);
-    const [showHistory, setShowHistory] = useState(false);
+      <nav className="pg-nav" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={() => navigate('/')} aria-label="HitAPI home" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', flex: 1, textAlign: 'left' }}>
+          <LogoMark size={28} />
+          <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>HitAPI</span>
+          <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 2 }}>· Online API Tester</span>
+        </button>
+        <button onClick={() => navigate('/')} style={navBtn}><Home size={13} /> Home</button>
+        <button onClick={() => navigate('/how-it-works')} style={navBtn}>How it works</button>
+        {user ? (
+          <button onClick={() => navigate('/workbench')} className="btn btn-primary btn-sm" style={{ marginLeft: 4 }}>Open in the app <ArrowRight size={13} /></button>
+        ) : (
+          <>
+            <button onClick={() => navigate('/login')} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>Sign in</button>
+            <button onClick={() => navigate('/login?mode=signup')} style={{ background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-md)', fontWeight: 600, cursor: 'pointer', padding: '7px 16px', borderRadius: 7 }}>Sign up free</button>
+          </>
+        )}
+      </nav>
 
-    // Paste-cURL import
-    const [showCurl, setShowCurl] = useState(false);
-    const [curlText, setCurlText] = useState('');
-    const [curlError, setCurlError] = useState(null);
-    const [curlNotes, setCurlNotes] = useState([]);
-
-    const canHaveBody = !['GET', 'HEAD'].includes(method);
-    const setA = (k, v) => setAuth(a => ({ ...a, [k]: v }));
-
-    // Build the final request (shared by server mode, browser mode and cURL export)
-    const built = useMemo(() => {
-        const h = rowsToObject(headers);
-        let finalUrl = url.trim();
-        try {
-            const u = new URL(finalUrl);
-            for (const [k, v] of Object.entries(rowsToObject(params))) u.searchParams.set(k, v);
-            if (auth.type === 'apikey' && auth.in === 'query' && auth.key) u.searchParams.set(auth.header || 'api_key', auth.key);
-            finalUrl = u.toString();
-        } catch { /* invalid URL — validated on send */ }
-
-        if (auth.type === 'bearer' && auth.token) h['Authorization'] = `Bearer ${auth.token}`;
-        if (auth.type === 'basic') h['Authorization'] = `Basic ${btoa(`${auth.username}:${auth.password}`)}`;
-        if (auth.type === 'apikey' && auth.in === 'header' && auth.key) h[auth.header || 'X-API-Key'] = auth.key;
-
-        const sendBody = canHaveBody && bodyType !== 'none' && body.trim() ? body : undefined;
-        if (sendBody && !Object.keys(h).some(k => k.toLowerCase() === 'content-type')) {
-            h['Content-Type'] = bodyType === 'json' ? 'application/json' : 'text/plain';
-        }
-        return { method, url: finalUrl, headers: h, body: sendBody };
-    }, [method, url, params, headers, body, bodyType, auth, canHaveBody]);
-
-    async function send() {
-        setErrorMsg(null);
-        try { new URL(url.trim()); } catch {
-            setErrorMsg('Enter a full URL including http:// or https://');
-            return;
-        }
-        if (bodyType === 'json' && built.body) {
-            try { JSON.parse(built.body); } catch {
-                setErrorMsg('Body is not valid JSON — fix it or switch the body type to Text');
-                return;
-            }
-        }
-
-        setLoading(true);
-        setResponse(null);
-        try {
-            const result = mode === 'server' ? await sendViaServer() : await sendViaBrowser();
-            setResponse(result);
-            setResTab('body');
-            const entry = { id: Date.now(), method, url: url.trim(), params, headers, bodyType, body, auth, status: result.status, time_ms: result.time_ms };
-            const next = [entry, ...history.filter(h => !(h.method === method && h.url === entry.url))].slice(0, MAX_HISTORY);
-            setHistory(next);
-            saveHistory(next);
-        } catch (err) {
-            setErrorMsg(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function sendViaServer() {
-        return api.public.request({
-            method: built.method,
-            url: built.url,
-            headers: built.headers,
-            body: built.body
-        });
-    }
-
-    async function sendViaBrowser() {
-        const started = performance.now();
-        let res;
-        try {
-            res = await fetch(built.url, { method: built.method, headers: built.headers, body: built.body });
-        } catch (err) {
-            throw new Error(`${err.message}. The target API probably doesn't allow CORS from this site — switch to "Via HitAPI server".`);
-        }
-        const text = await res.text();
-        const hdrs = {};
-        res.headers.forEach((v, k) => { hdrs[k] = v; });
-        let json = null;
-        try { json = JSON.parse(text); } catch { /* not JSON */ }
-        return {
-            ok: res.ok, status: res.status, status_text: res.statusText,
-            time_ms: Math.round(performance.now() - started),
-            size_bytes: new Blob([text]).size, truncated: false,
-            headers: hdrs, content_type: res.headers.get('content-type') || '',
-            body: text, json, final_url: res.url
-        };
-    }
-
-    function loadEntry(e) {
-        setMethod(e.method); setUrl(e.url);
-        setParams(e.params?.length ? e.params : [emptyRow()]);
-        setHeaders(e.headers?.length ? e.headers : [emptyRow()]);
-        setBodyType(e.bodyType || 'json'); setBody(e.body || '');
-        if (e.auth) setAuth(e.auth);
-        setShowHistory(false);
-    }
-
-    function loadSample(s) {
-        setMethod(s.method); setUrl(s.url); setBody(s.body || ''); setBodyType('json');
-        setParams([emptyRow()]); setHeaders([emptyRow()]);
-        if (s.body) setReqTab('body');
-    }
-
-    // Fill the whole form from a pasted cURL command. Returns true on success.
-    function applyCurl(text) {
-        setCurlError(null);
-        try {
-            const r = parseCurl(text);
-            const notes = [...r.warnings];
-            let m = r.method;
-            if (!METHODS.includes(m)) { notes.push(`Method ${m} isn't supported here; switched to GET`); m = 'GET'; }
-
-            setMethod(m);
-            setUrl(r.url);
-            setParams([emptyRow()]);
-            setHeaders(r.headers.length ? r.headers.map(h => ({ ...h, enabled: true })) : [emptyRow()]);
-            setBody(r.body || '');
-            setBodyType(r.bodyType === 'none' ? 'json' : r.bodyType);
-            setAuth(a => r.auth
-                ? { ...a, type: 'basic', username: r.auth.username, password: r.auth.password }
-                : { ...a, type: 'none' });
-            setReqTab(r.body ? 'body' : r.headers.length ? 'headers' : 'params');
-            setResponse(null);
-            setErrorMsg(null);
-            setCurlNotes(notes);
-            setShowCurl(false);
-            setCurlText('');
-            addToast(`cURL imported — ${m} ${new URL(r.url).host}`, 'success');
-            return true;
-        } catch (err) {
-            setCurlError(err.message);
-            setShowCurl(true);
-            setCurlText(text);
-            return false;
-        }
-    }
-
-    // Pasting a cURL command straight into the URL box imports it
-    function handleUrlPaste(e) {
-        const text = e.clipboardData?.getData('text') || '';
-        if (looksLikeCurl(text)) { e.preventDefault(); applyCurl(text); }
-    }
-    function handleUrlChange(value) {
-        if (looksLikeCurl(value) && value.includes(' http')) { applyCurl(value); return; }
-        setUrl(value);
-    }
-
-    function copy(text, what) {
-        navigator.clipboard?.writeText(text).then(
-            () => addToast(`${what} copied`, 'success'),
-            () => addToast('Copy failed', 'error')
-        );
-    }
-
-    function formatJsonBody() {
-        try { setBody(JSON.stringify(JSON.parse(body), null, 2)); } catch { addToast('Body is not valid JSON', 'error'); }
-    }
-
-    // Ctrl/Cmd + Enter sends
-    useEffect(() => {
-        const onKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); send(); } };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    });
-
-    const prettyBody = response
-        ? (response.json !== null && response.json !== undefined ? JSON.stringify(response.json, null, 2) : response.body)
-        : '';
-
-    const navBtn = { background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 12px', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6 };
-
-    return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-            {/* ── Top nav: home, sign in / sign up, or back to the app ── */}
-            <nav style={{
-                position: 'sticky', top: 0, zIndex: 50,
-                background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(12px)',
-                borderBottom: '1px solid var(--border)',
-                padding: '12px 32px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap'
-            }}>
-                <button onClick={() => navigate('/')} aria-label="HitAPI home"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-primary)', flex: 1, textAlign: 'left' }}>
-                    <LogoMark size={28} />
-                    <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>HitAPI</span>
-                    <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 2 }}>· API Playground</span>
-                </button>
-
-                <button onClick={() => navigate('/')} style={navBtn}><Home size={13} /> Home</button>
-                <button onClick={() => navigate('/how-it-works')} style={navBtn}>How it works</button>
-
-                {user ? (
-                    <button onClick={() => navigate('/')} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 4 }}>
-                        Open app <ArrowRight size={13} />
-                    </button>
-                ) : (
-                    <>
-                        <button onClick={() => navigate('/login')}
-                            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: 'var(--fs-md)', cursor: 'pointer', padding: '6px 14px', borderRadius: 7, marginLeft: 4 }}>
-                            Sign in
-                        </button>
-                        <button onClick={() => navigate('/login?mode=signup')}
-                            style={{ background: 'var(--accent-solid)', border: 'none', color: '#fff', fontSize: 'var(--fs-md)', fontWeight: 600, cursor: 'pointer', padding: '7px 16px', borderRadius: 7 }}>
-                            Sign up free
-                        </button>
-                    </>
-                )}
-            </nav>
-
-            <div className="page" style={{ flex: 1, width: '100%', maxWidth: 1400, margin: '0 auto' }}>
-                <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-                    <div>
-                        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            API Playground <span className="badge badge-green" style={{ fontSize: 'var(--fs-xs)' }}>Public · No login</span>
-                        </h1>
-                        <p className="page-subtitle">Send a request to any public API and inspect the response. No account or project needed.</p>
-                    </div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setShowHistory(s => !s)}>
-                        <History size={13} /> History {history.length ? `(${history.length})` : ''}
-                    </button>
-                </div>
-
-                {/* Samples */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <button className={`btn btn-sm ${showCurl ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setShowCurl(v => !v); setCurlError(null); }}>
-                        <Terminal size={12} /> Paste cURL
-                    </button>
-                    <span className="text-xs text-tertiary" style={{ alignSelf: 'center', margin: '0 4px 0 8px' }}>Try:</span>
-                    {SAMPLES.map(s => (
-                        <button key={s.label} className="btn btn-ghost btn-sm" onClick={() => loadSample(s)}>
-                            <span className={`method-badge method-${s.method}`}>{s.method}</span> {s.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Paste-cURL panel */}
-                {showCurl && (
-                    <div className="card" style={{ padding: 14, marginBottom: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                            <div style={{ fontSize: 'var(--fs-md)', fontWeight: 500, flex: 1 }}>Import from cURL</div>
-                            <button className="btn btn-ghost btn-icon" onClick={() => { setShowCurl(false); setCurlError(null); }} aria-label="Close"><X size={14} /></button>
-                        </div>
-                        <textarea
-                            className="input font-mono"
-                            style={{ width: '100%', height: 150, resize: 'vertical' }}
-                            autoFocus
-                            placeholder={"curl 'https://api.example.com/v1/users' \\\n  -H 'Authorization: Bearer <token>' \\\n  -H 'Content-Type: application/json' \\\n  --data-raw '{\"name\":\"Sunil\"}'"}
-                            value={curlText}
-                            onChange={e => { setCurlText(e.target.value); setCurlError(null); }}
-                            onKeyDown={e => {
-                                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); applyCurl(curlText); }
-                            }}
-                        />
-                        {curlError && (
-                            <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 'var(--fs-base)' }}>
-                                {curlError}
-                            </div>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => applyCurl(curlText)} disabled={!curlText.trim()}>
-                                <Terminal size={12} /> Import
-                            </button>
-                            <span className="text-xs text-tertiary">
-                                Works with "Copy as cURL" from Chrome/Firefox DevTools (bash or cmd), Postman, Insomnia and Swagger. Tip: you can also paste a cURL straight into the URL box.
-                            </span>
-                        </div>
-                    </div>
-                )}
-
-                {curlNotes.length > 0 && (
-                    <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--amber-bg)', border: '1px solid var(--amber-border)', color: 'var(--amber)', fontSize: 'var(--fs-base)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1 }}>{curlNotes.map((n, i) => <div key={i}>{n}</div>)}</div>
-                        <button className="btn btn-ghost btn-icon" onClick={() => setCurlNotes([])} aria-label="Dismiss"><X size={12} /></button>
-                    </div>
-                )}
-
-                {/* Request bar */}
-                <div className="card" style={{ padding: 14, marginBottom: 16 }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <select className="input font-mono" style={{ width: 120, flexShrink: 0, fontWeight: 600 }}
-                            value={method} onChange={e => setMethod(e.target.value)} aria-label="HTTP method">
-                            {METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
-                        <input className="input font-mono" style={{ flex: 1 }} placeholder="https://api.example.com/v1/users — or paste a cURL command"
-                            value={url} onChange={e => handleUrlChange(e.target.value)} onPaste={handleUrlPaste} aria-label="Request URL" />
-                        <button className="btn btn-primary" onClick={send} disabled={loading || !url.trim()} title="Send (Ctrl+Enter)">
-                            {loading ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Sending…</> : <><Send size={14} /> Send</>}
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                        <span className="text-xs text-tertiary">Send:</span>
-                        <button className={`btn btn-sm ${mode === 'server' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setMode('server')}>
-                            <Globe2 size={12} /> Via HitAPI server
-                        </button>
-                        <button className={`btn btn-sm ${mode === 'browser' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setMode('browser')}>
-                            <Monitor size={12} /> Directly from browser
-                        </button>
-                        <span className="text-xs text-tertiary" style={{ marginLeft: 6 }}>
-                            {mode === 'server'
-                                ? 'No CORS issues. Public URLs only, 15s timeout, 60 req/min.'
-                                : 'Can reach localhost/intranet APIs, but the target must allow CORS.'}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="grid-2" style={{ alignItems: 'start' }}>
-                    {/* ── Request config ── */}
-                    <div className="card" style={{ padding: 16 }}>
-                        <Tabs
-                            active={reqTab}
-                            onChange={setReqTab}
-                            tabs={[
-                                { id: 'params', label: 'Params', count: Object.keys(rowsToObject(params)).length },
-                                { id: 'headers', label: 'Headers', count: Object.keys(rowsToObject(headers)).length },
-                                { id: 'body', label: 'Body' },
-                                { id: 'auth', label: 'Auth' },
-                                { id: 'code', label: 'Code' }
-                            ]}
-                        />
-
-                        {reqTab === 'params' && <KeyValueEditor rows={params} onChange={setParams} keyPlaceholder="query param" />}
-                        {reqTab === 'headers' && <KeyValueEditor rows={headers} onChange={setHeaders} keyPlaceholder="Header-Name" />}
-
-                        {reqTab === 'body' && (
-                            !canHaveBody ? (
-                                <p className="text-sm text-tertiary">{method} requests don't send a body.</p>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                        {['json', 'text', 'none'].map(t => (
-                                            <button key={t} className={`btn btn-sm ${bodyType === t ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setBodyType(t)}>
-                                                {t === 'json' ? 'JSON' : t === 'text' ? 'Text' : 'None'}
-                                            </button>
-                                        ))}
-                                        {bodyType === 'json' && <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={formatJsonBody}>Format</button>}
-                                    </div>
-                                    {bodyType !== 'none' && (
-                                        <textarea className="input font-mono" style={{ height: 220, resize: 'vertical' }}
-                                            placeholder={bodyType === 'json' ? '{\n  "name": "value"\n}' : 'Raw text body'}
-                                            value={body} onChange={e => setBody(e.target.value)} />
-                                    )}
-                                </div>
-                            )
-                        )}
-
-                        {reqTab === 'auth' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div>
-                                    <label style={label}>Type</label>
-                                    <select className="input" value={auth.type} onChange={e => setA('type', e.target.value)}>
-                                        <option value="none">No auth</option>
-                                        <option value="bearer">Bearer token</option>
-                                        <option value="basic">Basic auth</option>
-                                        <option value="apikey">API key</option>
-                                    </select>
-                                </div>
-                                {auth.type === 'bearer' && (
-                                    <div><label style={label}>Token</label>
-                                        <input className="input font-mono" value={auth.token} onChange={e => setA('token', e.target.value)} placeholder="eyJhbGciOi…" /></div>
-                                )}
-                                {auth.type === 'basic' && (
-                                    <div className="grid-2">
-                                        <div><label style={label}>Username</label><input className="input" value={auth.username} onChange={e => setA('username', e.target.value)} /></div>
-                                        <div><label style={label}>Password</label><input className="input" type="password" value={auth.password} onChange={e => setA('password', e.target.value)} /></div>
-                                    </div>
-                                )}
-                                {auth.type === 'apikey' && (
-                                    <>
-                                        <div className="grid-2">
-                                            <div><label style={label}>Key name</label><input className="input font-mono" value={auth.header} onChange={e => setA('header', e.target.value)} /></div>
-                                            <div><label style={label}>Add to</label>
-                                                <select className="input" value={auth.in} onChange={e => setA('in', e.target.value)}>
-                                                    <option value="header">Header</option><option value="query">Query params</option>
-                                                </select></div>
-                                        </div>
-                                        <div><label style={label}>Value</label><input className="input font-mono" value={auth.key} onChange={e => setA('key', e.target.value)} /></div>
-                                    </>
-                                )}
-                                <p className="text-xs text-tertiary">Credentials are sent with this request only and are never stored on the server.</p>
-                            </div>
-                        )}
-
-                        {reqTab === 'code' && <CodeSnippet request={built} />}
-                    </div>
-
-                    {/* ── Response ── */}
-                    <div className="card" style={{ padding: 16, minHeight: 300 }}>
-                        {errorMsg && (
-                            <div style={{ padding: 12, borderRadius: 'var(--radius-sm)', background: 'var(--red-bg)', border: '1px solid var(--red-border)', color: 'var(--red)', fontSize: 'var(--fs-md)', marginBottom: 12 }}>
-                                {errorMsg}
-                            </div>
-                        )}
-
-                        {!response && !errorMsg && !loading && (
-                            <div className="empty-state">
-                                <Send size={28} />
-                                <h3>No response yet</h3>
-                                <p>Enter a URL and hit Send. Press Ctrl+Enter to send from anywhere on the page.</p>
-                            </div>
-                        )}
-
-                        {loading && (
-                            <div className="empty-state"><div className="spinner" style={{ width: 22, height: 22 }} /><p>Waiting for response…</p></div>
-                        )}
-
-                        {response && (
-                            <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                                    <span className={`badge ${statusBadge(response.status)}`} style={{ fontSize: 'var(--fs-base)' }}>
-                                        {response.status} {response.status_text}
-                                    </span>
-                                    <span className="text-sm text-secondary" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <Clock size={12} /> {response.time_ms} ms
-                                    </span>
-                                    <span className="text-sm text-secondary">{formatBytes(response.size_bytes)}</span>
-                                    {response.truncated && <span className="badge badge-amber">Truncated at 2 MB</span>}
-                                    {response.redirected && <span className="badge badge-blue">Redirected</span>}
-                                    <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={() => copy(prettyBody, 'Response body')}>
-                                        <Copy size={12} /> Copy
-                                    </button>
-                                </div>
-
-                                <Tabs
-                                    active={resTab}
-                                    onChange={setResTab}
-                                    tabs={[
-                                        { id: 'body', label: 'Body' },
-                                        { id: 'headers', label: 'Headers', count: Object.keys(response.headers || {}).length },
-                                        ...(response.request ? [{ id: 'sent', label: 'Request sent' }] : [])
-                                    ]}
-                                />
-
-                                {resTab === 'body' && (
-                                    <div className="code-block" style={{ maxHeight: 480, overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                                        {prettyBody || <span className="text-tertiary">(empty body)</span>}
-                                    </div>
-                                )}
-
-                                {resTab === 'headers' && (
-                                    <table className="table">
-                                        <tbody>
-                                            {Object.entries(response.headers || {}).map(([k, v]) => (
-                                                <tr key={k}>
-                                                    <td className="font-mono text-sm" style={{ color: 'var(--text-secondary)', width: '38%', verticalAlign: 'top' }}>{k}</td>
-                                                    <td className="font-mono text-sm" style={{ wordBreak: 'break-all' }}>{v}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-
-                                {resTab === 'sent' && response.request && (
-                                    <div className="code-block" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                                        {`${response.request.method} ${response.request.url}\n\n`}
-                                        {Object.entries(response.request.headers || {}).map(([k, v]) => `${k}: ${v}\n`).join('')}
-                                        {response.request.body ? `\n${response.request.body}` : ''}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                {/* History drawer */}
-                {showHistory && (
-                    <div className="modal-backdrop" onClick={() => setShowHistory(false)} style={{ justifyContent: 'flex-end', alignItems: 'stretch' }}>
-                        <div onClick={e => e.stopPropagation()} style={{ width: 380, maxWidth: '90vw', background: 'var(--bg-surface)', borderLeft: '1px solid var(--border)', padding: 18, overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
-                                <div style={{ fontWeight: 600, flex: 1 }}>Recent requests</div>
-                                {history.length > 0 && (
-                                    <button className="btn btn-ghost btn-sm" onClick={() => { setHistory([]); saveHistory([]); }}>Clear</button>
-                                )}
-                                <button className="btn btn-ghost btn-icon" onClick={() => setShowHistory(false)} aria-label="Close"><X size={14} /></button>
-                            </div>
-                            {history.length === 0 && <p className="text-sm text-tertiary">Requests you send are saved here, in this browser only.</p>}
-                            {history.map(h => (
-                                <button key={h.id} className="card card-hover" onClick={() => loadEntry(h)}
-                                    style={{ width: '100%', textAlign: 'left', padding: '10px 12px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span className={`method-badge method-${h.method}`}>{h.method}</span>
-                                    <span className="font-mono text-sm truncate" style={{ flex: 1, color: 'var(--text-secondary)' }}>{h.url}</span>
-                                    <span className={`badge ${statusBadge(h.status)}`} style={{ fontSize: 'var(--fs-xs)' }}>{h.status}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <PublicFooter />
+      <main style={{ flex: 1 }}>
+        <div className="pg-wrap">
+          <h1 className="pg-h1">Free Online API Tester</h1>
+          <p className="pg-lead">
+            Send HTTP requests to any REST or GraphQL API right in your browser: headers, auth, JSON, form and file bodies,
+            cURL import and code snippets. Test localhost APIs too. Free, no sign-up, nothing to install.
+          </p>
+          <Workbench variant="public" />
         </div>
-    );
+
+        <section className="pg-sec" aria-labelledby="pg-features">
+          <h2 id="pg-features">Everything you need to test an API</h2>
+          <div className="pg-grid3">
+            {API_TESTER_FEATURES.map(([t, d]) => <div key={t} className="pg-card"><h3><Check size={15} color="var(--green)" /> {t}</h3><p>{d}</p></div>)}
+          </div>
+        </section>
+
+        <section className="pg-sec" aria-labelledby="pg-how">
+          <h2 id="pg-how">How to test an API online</h2>
+          <div className="pg-grid4">
+            {STEPS.map(([t, d], i) => <div key={t} className="pg-card"><h3><span className="pg-num">{i + 1}</span> {t}</h3><p>{d}</p></div>)}
+          </div>
+        </section>
+
+        <section className="pg-sec" aria-labelledby="pg-modes">
+          <h2 id="pg-modes">Three ways to send a request</h2>
+          <div className="pg-grid3">
+            {MODES.map(([Icon, t, d, limits]) => <div key={t} className="pg-card"><h3><Icon size={16} color="var(--accent)" /> {t}</h3><p>{d}</p><p style={{ marginTop: 8, fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)' }}>{limits}</p></div>)}
+          </div>
+          <p style={{ color: 'var(--text-secondary)', marginTop: 12, fontSize: 'var(--fs-sm)' }}>
+            Testing an API on your own machine? <a href={STORE_URL} target="_blank" rel="noopener noreferrer">Add the free HitAPI extension to Chrome</a> and choose "HitAPI extension": no CORS errors and no proxy.
+          </p>
+        </section>
+
+        <section className="pg-sec" aria-labelledby="pg-next">
+          <h2 id="pg-next">From one request to automated API tests</h2>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>
+            The same tester is in the HitAPI Chrome extension, with collections, environments and <code>{'{{variables}}'}</code>, tests on every response,
+            scenarios that chain requests, scheduled runs and a CLI for CI. Or import your OpenAPI spec and let HitAPI write the tests for you with AI.
+          </p>
+          <div className="pg-cta">
+            <a className="btn btn-primary btn-sm" href={STORE_URL} target="_blank" rel="noopener noreferrer">Get the Chrome extension</a>
+            <Link className="btn btn-ghost btn-sm" to="/how-it-works">How AI test generation works</Link>
+            <Link className="btn btn-ghost btn-sm" to="/mock-api-server">Free mock API server</Link>
+          </div>
+        </section>
+
+        <section className="pg-sec pg-faq" aria-labelledby="pg-faq" style={{ paddingBottom: 48 }}>
+          <h2 id="pg-faq">Frequently asked questions</h2>
+          {API_TESTER_FAQS.map(f => <details key={f.q}><summary>{f.q}</summary><p>{f.a}</p></details>)}
+        </section>
+      </main>
+
+      <PublicFooter />
+    </div>
+  );
 }

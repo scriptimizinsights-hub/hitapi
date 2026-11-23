@@ -124,6 +124,16 @@ headers), the number of redirects and the final URL. **Copy** copies the body (o
   scripts use the HitAPI API — e.g. `hitapi-cli cloud run --project … --suite …` — without your password.
   It's shown once; delete it to stop it working.
 
+## Using the extension from the HitAPI website
+
+- The web Workbench on [hitapi.dev/playground](https://hitapi.dev/playground) can send requests **through this
+  extension** ("HitAPI extension" mode): localhost and private networks, no CORS limits, Cookie / Origin /
+  User-Agent headers, cookies. Added in v2.1.0.
+- The first time, the website asks to connect and the extension opens its own page: *Allow this website to use
+  HitAPI?* — **Allow** / **Don't allow**. Only `https://hitapi.dev` and its subdomains can ask
+  (`externally_connectable`). Requests run only when you press Send on the website.
+- ☁ Backup → **Connected websites…** lists the allowed websites, with **Remove**.
+
 ## Backup and sync
 
 - **☁ Backup** (header) opens *Backup & sync*:
@@ -273,7 +283,7 @@ headers), the number of redirects and the final URL. **Copy** copies the body (o
 
 ## Permission
 
-Uses `declarativeNetRequestWithHostAccess` for protected headers (added in v1.7.0), `alarms` and `notifications` (added in v2.0.0) for scheduled runs. Each rule matches only
+Uses `declarativeNetRequestWithHostAccess` for protected headers (added in v1.7.0), `alarms` and `notifications` (added in v2.0.0) for scheduled runs, and `externally_connectable` (v2.1.0) so hitapi.dev can send requests through the extension after you allow it. Each rule matches only
 requests this extension starts (`initiatorDomains` = the extension), with the same method and URL, and the
 Workbench tab when there is one (the DevTools Workbench has no tab id). Web pages are never affected.
 
@@ -290,5 +300,5 @@ they add), `workbench/oauth.js` (OAuth tokens), `workbench/views/auth-pane.js`, 
 `shared/backup.js`, `shared/sync.js`, `workbench/sync.js` and `workbench/views/backup-dialog.js` (backup and sync),
 `shared/convert/` and `workbench/views/import-dialog.js`, `code-dialog.js` (import, export, code),
 `shared/assert.js` and `workbench/views/tests-pane.js` (tests), `shared/scenarios.js`, `workbench/scenarios-store.js` and
-`workbench/views/scenarios-pane.js`, `scenario-editor.js`, `scenario-dialogs.js` (scenarios), `shared/schedules.js`, `workbench/run-core.js`, `workbench/schedules-store.js`, `workbench/views/schedule-dialog.js` and `background/workbench/scheduler.js` (scheduled runs), `shared/ci.js`, `workbench/github.js` and `workbench/views/github-dialog.js` (CLI export, Publish to GitHub), `shared/vars.js`, `workbench/env-store.js`, `workbench/views/env-dialog.js`, `vars-table.js` and `extract-pane.js` (variables), and in the popup `ui/views/workbench-card.js` and
+`workbench/views/scenarios-pane.js`, `scenario-editor.js`, `scenario-dialogs.js` (scenarios), `shared/schedules.js`, `workbench/run-core.js`, `workbench/schedules-store.js`, `workbench/views/schedule-dialog.js` and `background/workbench/scheduler.js` (scheduled runs), `background/workbench/web-bridge.js` and `workbench/connect.html` (website connection), `shared/ci.js`, `workbench/github.js` and `workbench/views/github-dialog.js` (CLI export, Publish to GitHub), `shared/vars.js`, `workbench/env-store.js`, `workbench/views/env-dialog.js`, `vars-table.js` and `extract-pane.js` (variables), and in the popup `ui/views/workbench-card.js` and
 `ui/views/sign-in-prompt.js`.

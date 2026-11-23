@@ -152,7 +152,7 @@ export function openBackupDialog(o) {
   const d = openDialog({
     title: 'Backup & sync', wide: true,
     body: h('div', { class: 'bk' }, storageEl, backupEl, syncEl),
-    foot: (close) => [h('span', { class: 'grow' }), h('button', { type: 'button', class: 'btn-primary', onclick: close }, 'Done')],
+    foot: (close) => [h('a', { class: 'link-btn small bk-websites', href: chrome.runtime.getURL('workbench/connect.html'), target: '_blank', title: 'Websites allowed to send requests through this extension (hitapi.dev)' }, 'Connected websites…'), h('span', { class: 'grow' }), h('button', { type: 'button', class: 'btn-primary', onclick: close }, 'Done')],
   });
   paintStorage(); paintBackup(); paintSync();
   return d;

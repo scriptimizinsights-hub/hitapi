@@ -8,6 +8,7 @@
 
 // FAQ text for /mock-api-server is shared with the page itself
 import { MOCK_FAQS, PLAYGROUND_FAQS } from './mockApiContent.js';
+import { API_TESTER_FAQS, API_TESTER_FEATURES } from './apiTesterContent.js';
 
 export const SITE = {
     url: 'https://hitapi.dev',
@@ -25,8 +26,8 @@ export const PAGES = {
         changefreq: 'weekly',
     },
     '/playground': {
-        title: 'Free Online API Tester: Send HTTP Requests & Run cURL | HitAPI',
-        description: 'Test any REST API in your browser: send GET, POST, PUT and DELETE requests with headers, auth and JSON, or paste a cURL command. Free, no sign-up.',
+        title: 'Free Online API Tester & REST Client, No Sign-up | HitAPI',
+        description: 'Test any REST or GraphQL API online, free: send GET, POST, PUT and DELETE with headers, auth, JSON, form or file bodies. Paste cURL, copy code. No sign-up.',
         priority: '0.9',
         changefreq: 'weekly',
     },
@@ -75,7 +76,7 @@ export const PAGES = {
 };
 
 // App pages behind login: keep them out of Google
-const NOINDEX_PREFIXES = ['/projects', '/admin', '/login'];
+const NOINDEX_PREFIXES = ['/projects', '/admin', '/login', '/workbench', '/account'];
 
 function normalise(pathname) {
     const p = (pathname || '/').replace(/\/+$/, '');
@@ -241,18 +242,43 @@ export function jsonLdFor(path) {
         };
     }
     if (path === '/playground') {
+        const url = `${SITE.url}/playground`;
         return {
             '@context': 'https://schema.org',
-            '@type': 'WebApplication',
-            name: 'HitAPI API Playground',
-            url: `${SITE.url}/playground`,
-            applicationCategory: 'DeveloperApplication',
-            operatingSystem: 'Web',
-            browserRequirements: 'Requires JavaScript',
-            isAccessibleForFree: true,
-            description: PAGES['/playground'].description,
-            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-            publisher: org,
+            '@graph': [
+                {
+                    '@type': 'WebApplication',
+                    '@id': `${url}#app`,
+                    name: 'HitAPI Online API Tester',
+                    alternateName: 'HitAPI API Playground',
+                    url,
+                    applicationCategory: 'DeveloperApplication',
+                    applicationSubCategory: 'API testing',
+                    operatingSystem: 'Web',
+                    browserRequirements: 'Requires JavaScript',
+                    isAccessibleForFree: true,
+                    description: PAGES['/playground'].description,
+                    featureList: API_TESTER_FEATURES.map(([name, text]) => `${name}: ${text}`),
+                    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                    publisher: org,
+                },
+                {
+                    '@type': 'BreadcrumbList',
+                    itemListElement: [
+                        { '@type': 'ListItem', position: 1, name: 'HitAPI', item: `${SITE.url}/` },
+                        { '@type': 'ListItem', position: 2, name: 'Online API Tester', item: url },
+                    ],
+                },
+                {
+                    '@type': 'FAQPage',
+                    '@id': `${url}#faq`,
+                    mainEntity: API_TESTER_FAQS.map(f => ({
+                        '@type': 'Question',
+                        name: f.q,
+                        acceptedAnswer: { '@type': 'Answer', text: f.a },
+                    })),
+                },
+            ],
         };
     }
     return null;

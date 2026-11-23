@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HitAPI \u2014 AI API Testing",
   "short_name": "HitAPI",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Free API client: build and send any request, no account needed. Also captures a site's API calls and runs HitAPI test suites.",
   "minimum_chrome_version": "116",
   "icons": {
@@ -47,5 +47,11 @@
       },
       "description": "Open the Workbench (send any API request)"
     }
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://hitapi.dev/*",
+      "https://*.hitapi.dev/*"
+    ]
   }
 }

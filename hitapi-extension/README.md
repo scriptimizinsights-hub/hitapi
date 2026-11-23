@@ -60,7 +60,8 @@ hitapi-extension/
 │   │   ├── net-errors.js   the real reason a Workbench request failed
 │   │   ├── tokens.js       bearer tokens seen while capturing (Auth tab)
 │   │   ├── hitapi-sync.js  collections ↔ project endpoints, scenarios ↔ flow suites, data sync
-│   │   └── scheduler.js    scheduled runs: chrome.alarms, runs in the worker, notifications
+│   │   ├── scheduler.js    scheduled runs: chrome.alarms, runs in the worker, notifications
+│   │   └── web-bridge.js   lets hitapi.dev send requests through the extension (after the user allows it)
 │   └── ui/
 │       ├── badge.js        toolbar badge
 │       └── context-menu.js right-click menu
@@ -82,6 +83,7 @@ hitapi-extension/
 │
 ├── workbench/              Request Workbench (full tab)
 │   ├── workbench.html  main.js  workbench.css
+│   ├── connect.html  connect.js  allow / remove websites that use the extension (hitapi.dev)
 │   ├── state.js            the draft, saved to chrome.storage.local
 │   ├── send.js             sends the request, reads the response
 │   ├── oauth.js            OAuth 2.0 client-credentials tokens (session cache)

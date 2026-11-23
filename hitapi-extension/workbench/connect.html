@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HitAPI — allow a website</title>
+  <link rel="stylesheet" href="../ui/styles.css" />
+  <style>
+    body { display: flex; justify-content: center; padding: 48px 16px; }
+    .cn { max-width: 520px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    .cn h1 { font-size: 20px; margin: 0; }
+    .cn-origin { font-family: ui-monospace, monospace; font-size: 15px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-hover); }
+    .cn ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .cn-actions { display: flex; gap: 8px; }
+    .cn-list { display: flex; flex-direction: column; gap: 6px; }
+    .cn-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <main class="cn" id="app"></main>
+  <script type="module" src="connect.js"></script>
+</body>
+</html>
