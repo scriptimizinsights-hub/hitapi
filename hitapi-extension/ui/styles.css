@@ -519,6 +519,7 @@ a { color: var(--accent); }
 .req-time { font-size: 10px; color: var(--text-tertiary); font-family: monospace; flex-shrink: 0; }
 .status-warn { font-size: 10px; font-family: monospace; color: var(--amber); flex-shrink: 0; }
 .req-detail { display: flex; flex-direction: column; gap: 3px; }
+.req-wb-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
 .req-actions .label { margin-bottom: 0; }
 .check { display: flex; gap: 6px; align-items: flex-start; line-height: 1.4; }
 .check input { margin-top: 2px; }
@@ -546,3 +547,34 @@ a { color: var(--accent); }
 .toast-ok { background: var(--green); color: #0a0a0f; }
 .toast-info { background: var(--bg-hover); color: var(--text-primary); border: 1px solid var(--border); }
 .toast-error { background: var(--red); color: #fff; }
+
+/* ── Workbench card (popup) ── */
+.wb-card {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 12px 0; padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(130, 100, 255, 0.16), rgba(92, 168, 255, 0.08));
+  border: 1px solid rgba(130, 100, 255, 0.35);
+}
+.wb-card-icon {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff; font-size: 18px; font-weight: 700;
+}
+.wb-card-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.wb-card-key { margin-top: 2px; }
+.wb-card-key a { color: var(--accent); }
+.wb-card kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px;
+  padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary);
+}
+.wb-new { font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--green); color: #0a0a0f; text-transform: uppercase; letter-spacing: .04em; }
+.signin-card { display: flex; align-items: center; gap: 10px; }
+.signin-card a, .req-actions a { color: var(--accent); }
+
+/* ── Workbench inside the DevTools panel ── */
+.wb-pane-embed { flex: 1; min-height: 0; display: flex; }
+.wb-pane-embed[hidden] { display: none; }
+.wb-frame { flex: 1; width: 100%; border: 0; background: var(--bg); }
+.list-head-actions { display: inline-flex; gap: 6px; }

@@ -8,6 +8,7 @@ import { MSG, ERR } from '../shared/messages.js';
 import { RUN } from '../shared/config.js';
 import { call } from './core/bridge.js';
 import { toast } from './core/dom.js';
+import { capturedToHar } from '../shared/convert/har.js';
 
 const LAST_PROJECT_KEY = 'hitapi:lastProjectId';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -28,10 +29,13 @@ export function createActions(store) {
     return false;
   }
 
+  /** Signed out (or the session ended). Everything except saving keeps working. */
   function sessionExpired(message) {
     store.set({
-      screen: 'login', user: null, authMessage: message,
-      projects: [], projectId: null, suites: [], runs: {},
+      // an expired session shows the sign-in form with the reason; signing out just returns to the app
+      screen: message ? 'login' : 'main', user: null, authMessage: message,
+      projects: [], projectId: null, suites: [], runs: {}, agent: { enabled: false },
+      tab: s.tab === 'suites' ? 'capture' : s.tab,
     });
   }
 
@@ -44,12 +48,27 @@ export function createActions(store) {
         call(MSG.GET_TAB_INFO, { tabId }).catch(() => null),
       ]);
       store.set({ tabInfo });
-      if (!auth.signedIn) { store.set({ screen: 'login' }); return; }
+      loadWorkbenchInfo();
+      // No sign-in wall: the Workbench and capture work without an account.
+      if (!auth.signedIn) { store.set({ screen: 'main', user: null }); await loadMonitor(); return; }
       store.set({ user: auth.user, screen: 'main' });
       await afterSignIn();
     } catch (e) {
-      if (!fail(e, { silent: true })) store.set({ screen: 'login', authMessage: e.message });
+      if (!fail(e, { silent: true })) { store.set({ screen: 'main', user: null }); loadMonitor(); }
     }
+  }
+
+  /** The Workbench keyboard shortcut (users can change it) and the "New" badge after an update. */
+  async function loadWorkbenchInfo() {
+    try {
+      const commands = await chrome.commands.getAll();
+      const cmd = commands.find(c => c.name === 'open-workbench');
+      store.set({ wbShortcut: cmd?.shortcut || '' });
+    } catch { /* commands API unavailable */ }
+    try {
+      const got = await chrome.storage.local.get('wb:whatsNew');
+      store.set({ wbNew: !!got['wb:whatsNew'] });
+    } catch { /* storage unavailable */ }
   }
 
   async function afterSignIn() {
@@ -93,6 +112,21 @@ export function createActions(store) {
       const snap = await call(MSG.STOP_MONITORING, { tabId: s.tabId });
       store.set({ monitor: { active: snap.active, origin: snap.origin, token: snap.token } });
     } catch (e) { fail(e); }
+  }
+
+  /** Download the captured requests as a HAR file (roadmap feature 10). */
+  function exportHar() {
+    const reqs = store.state.requests || [];
+    if (!reqs.length) { toast('Nothing captured yet', 'info'); return; }
+    const har = capturedToHar(reqs, { creator: 'HitAPI', version: chrome.runtime.getManifest().version });
+    let host = 'capture';
+    try { host = new URL(reqs[0].url).host.replace(/[^\w.-]+/g, '_'); } catch { /* keep */ }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(har, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `${host}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.har`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast(`Exported ${reqs.length} request${reqs.length === 1 ? '' : 's'} as HAR`, 'ok');
   }
 
   async function clearCaptured() {
@@ -250,12 +284,32 @@ export function createActions(store) {
     }
   }
 
+  // ── Request Workbench ────────────────────────────────────────────────────
+  /** Open the Workbench tab; with a captured request id, load that request into it. */
+  async function openWorkbench(requestId = null, { autoSend = false } = {}) {
+    try {
+      if (s.wbNew) { store.set({ wbNew: false }); chrome.storage.local.remove('wb:whatsNew').catch(() => {}); }
+      if (s.mode === 'panel') {
+        // DevTools: the Workbench is a tab of the panel itself
+        if (requestId != null) await call(MSG.OPEN_WORKBENCH, { tabId: s.tabId, requestId, target: 'panel', autoSend });
+        store.set({ tab: 'workbench' });
+        return;
+      }
+      await call(MSG.OPEN_WORKBENCH, requestId != null ? { tabId: s.tabId, requestId, autoSend } : {});
+      if (s.mode === 'popup') window.close();
+    } catch (err) { fail(err); }
+  }
+
   return {
-    init, login, logout,
-    startMonitoring, stopMonitoring, clearCaptured,
+    init, login, logout, openWorkbench,
+    /** Send a captured request again at once, in the Workbench (it is kept in history there). */
+    resendCaptured: (requestId) => openWorkbench(requestId, { autoSend: true }),
+    startMonitoring, stopMonitoring, clearCaptured, exportHar,
     loadProjects, selectProject, createProject,
     addToSuite, reportBug, runSuite, importOpenApi,
     setAgent, onLiveEvent,
+    showLogin: () => store.set({ screen: 'login', authMessage: '' }),
+    continueAsGuest: () => store.set({ screen: 'main', authMessage: '' }),
     showNewProject: (show) => store.set({ showNewProject: show }),
     showImport: (show) => store.set({ showImport: show }),
     setTab: (tab) => store.set({ tab }),

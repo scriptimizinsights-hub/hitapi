@@ -3,7 +3,7 @@ import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
   HelpCircle, LogOut, User, Lock, GitBranch,
-  Send, Shield, Server
+  Send, Shield, Server, KeyRound
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
@@ -234,6 +234,12 @@ export function Sidebar({ onNewProject }) {
               <div style={{ fontSize: 'var(--fs-base)', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
               <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
             </div>
+            <button onClick={() => navigate('/account/api-keys')} title="API keys (CI, scripts)" aria-label="API keys"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '4px', borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>
+              <KeyRound size={14} />
+            </button>
             <button onClick={logout} title="Sign out"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '4px', borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}

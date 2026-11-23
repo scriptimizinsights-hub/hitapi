@@ -19,6 +19,8 @@ import { ProjectBarView } from './views/project-bar.js';
 import { createCapturePanel } from './views/capture-panel.js';
 import { SuitesPanelView } from './views/suites-panel.js';
 import { FooterView } from './views/footer.js';
+import { WorkbenchCardView } from './views/workbench-card.js';
+import { SignInPromptView } from './views/sign-in-prompt.js';
 
 const INITIAL = {
   screen: 'loading',      // 'loading' | 'login' | 'main'
@@ -37,7 +39,10 @@ const INITIAL = {
   suitesLoading: false,
   runs: {},               // suiteId → { state, passed, failed, error }
   agent: { enabled: false },
-  tab: 'capture',
+  tab: 'capture',          // 'capture' | 'suites' | 'workbench' (DevTools panel only)
+  mode: 'popup',           // 'popup' | 'panel'
+  wbShortcut: '',          // keyboard shortcut for the Workbench, as Chrome reports it
+  wbNew: false,            // show "New" on the Workbench card after updating to 1.7
   showNewProject: false,
   showImport: false,
 };
@@ -45,14 +50,16 @@ const INITIAL = {
 /**
  * @param {HTMLElement} root
  * @param {number} tabId   the tab this UI shows
+ * @param {{ mode?: 'popup'|'panel' }} [opts]
  */
-export function startApp(root, tabId) {
-  const store = createStore(INITIAL);
+export function startApp(root, tabId, { mode = 'popup' } = {}) {
+  const store = createStore({ ...INITIAL, mode });
   const actions = createActions(store);
 
   // Regions of the main screen
   const regions = {
     header: h('div'),
+    hero: h('div'),
     agent: h('div'),
     monitor: h('div'),
     tabs: h('div'),
@@ -61,20 +68,36 @@ export function startApp(root, tabId) {
     footer: h('div'),
   };
   const content = h('div', { class: 'content', id: 'content' }, regions.top, regions.main);
+  // DevTools panel: the Workbench page, embedded once and kept (moving an iframe reloads it)
+  const workbenchPane = h('div', { class: 'wb-pane-embed', hidden: true });
   const shell = h('div', { class: 'shell' },
-    regions.header, regions.agent, regions.monitor, regions.tabs, content, regions.footer);
+    regions.header, regions.hero, regions.agent, regions.monitor, regions.tabs, content, workbenchPane, regions.footer);
 
   let capturePanel = null;
 
   const draw = {
     header: () => mount(regions.header, HeaderView(store, actions)),
-    agent: () => mount(regions.agent, AgentBarView(store, actions)),
+    hero: () => mount(regions.hero, store.state.mode === 'popup' ? WorkbenchCardView(store, actions) : null),
+    agent: () => mount(regions.agent, store.state.user ? AgentBarView(store, actions) : null),
     monitor: () => mount(regions.monitor, MonitorBarView(store, actions)),
     tabs: () => mount(regions.tabs, TabsView(store, actions)),
-    top: () => mount(regions.top, ProjectBarView(store, actions)),
+    top: () => mount(regions.top, store.state.user ? ProjectBarView(store, actions) : SignInPromptView(store, actions)),
     footer: () => mount(regions.footer, FooterView(store)),
     main: () => {
       const { tab } = store.state;
+      const onWorkbench = tab === 'workbench';
+      content.hidden = onWorkbench;
+      workbenchPane.hidden = !onWorkbench;
+      regions.monitor.hidden = onWorkbench;
+      if (onWorkbench) {
+        if (!workbenchPane.firstChild) {
+          workbenchPane.append(h('iframe', {
+            class: 'wb-frame', title: 'HitAPI Workbench',
+            src: chrome.runtime.getURL('workbench/workbench.html?embed=panel'),
+          }));
+        }
+        return;
+      }
       if (tab === 'capture') {
         capturePanel = createCapturePanel(store, actions);
         mount(regions.main, capturePanel.el);
@@ -96,7 +119,8 @@ export function startApp(root, tabId) {
   const onMain = (fn) => () => { if (store.state.screen === 'main') fn(); };
 
   store.watch(['screen'], drawScreen);
-  store.watch(['user'], onMain(draw.header));
+  store.watch(['user'], onMain(() => { draw.header(); draw.agent(); draw.top(); draw.footer(); draw.tabs(); draw.main(); }));
+  store.watch(['wbShortcut', 'wbNew'], onMain(draw.hero));
   store.watch(['agent'], onMain(draw.agent));
   store.watch(['monitor', 'tabInfo'], onMain(() => { draw.monitor(); capturePanel?.onMonitor(); }));
   store.watch(['requests', 'suites', 'tab'], onMain(draw.tabs));

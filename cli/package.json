@@ -1,0 +1,17 @@
+{
+  "name": "hitapi-cli",
+  "version": "0.1.0",
+  "description": "Run HitAPI collections and scenarios (and Postman collections) from the command line and in CI. Also triggers HitAPI cloud flow suites.",
+  "type": "module",
+  "bin": { "hitapi": "bin/hitapi.mjs" },
+  "files": ["bin", "src", "README.md", "examples"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "copy-shared": "node scripts/copy-shared.mjs",
+    "prepack": "node scripts/copy-shared.mjs",
+    "test": "node scripts/copy-shared.mjs && node --test test/*.test.mjs"
+  },
+  "keywords": ["api", "testing", "cli", "ci", "hitapi", "postman", "junit"],
+  "homepage": "https://hitapi.dev",
+  "license": "MIT"
+}

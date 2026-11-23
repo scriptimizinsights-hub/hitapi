@@ -29,6 +29,7 @@ import { PlaygroundPage } from './components/playground/PlaygroundPage.jsx';
 import { LogoMark } from './components/ui/Logo.jsx';
 import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
 import { RouteMeta } from './seo/RouteMeta.jsx';
+import { ApiKeysPage } from './components/account/ApiKeysPage.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -211,6 +212,12 @@ export default function App() {
           <Route path="/" element={
             <AppLayout onNewProject={handleNewProject}>
               <Landing onNewProject={handleNewProject} />
+            </AppLayout>
+          } />
+
+          <Route path="/account/api-keys" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <ApiKeysPage />
             </AppLayout>
           } />
 

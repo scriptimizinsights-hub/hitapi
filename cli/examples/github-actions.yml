@@ -1,0 +1,38 @@
+# .github/workflows/hitapi.yml — run HitAPI tests on every push and pull request.
+# The extension's "Publish to GitHub" writes this file for you.
+name: HitAPI tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run HitAPI tests
+        env:
+          # {{token}} in your requests ← repository secret HITAPI_VAR_token
+          HITAPI_VAR_token: ${{ secrets.HITAPI_VAR_token }}
+        run: npx --yes hitapi-cli run hitapi/*.json --junit hitapi-results.xml
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hitapi-results
+          path: hitapi-results.xml
+
+  # Optional: run a flow suite in HitAPI's cloud (needs a personal API key)
+  cloud-suite:
+    runs-on: ubuntu-latest
+    if: ${{ vars.HITAPI_PROJECT != '' }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx --yes hitapi-cli cloud run --project ${{ vars.HITAPI_PROJECT }} --suite ${{ vars.HITAPI_SUITE }} --junit cloud-results.xml
+        env:
+          HITAPI_API_KEY: ${{ secrets.HITAPI_API_KEY }}

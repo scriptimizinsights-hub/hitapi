@@ -1,5 +1,5 @@
 /**
- * ui/views/tabs.js — Capture / Run suites tab strip.
+ * ui/views/tabs.js — Capture / Workbench (DevTools panel) / Run suites tab strip.
  */
 
 import { h } from '../core/dom.js';
@@ -13,6 +13,7 @@ export function TabsView(store, actions) {
 
   return h('div', { class: 'tabs', role: 'tablist' },
     item('capture', 'Capture', requests.length),
+    store.state.mode === 'panel' ? item('workbench', '⇄ Workbench') : null,
     item('suites', '▶ Run suites', suites.length),
   );
 }

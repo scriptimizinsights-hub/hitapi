@@ -1,0 +1,12 @@
+# .gitlab-ci.yml — HitAPI tests with a JUnit report in merge requests
+api-tests:
+  image: node:20
+  script:
+    - npx --yes hitapi-cli run hitapi/*.json --junit hitapi-results.xml
+  variables:
+    # set HITAPI_VAR_token under Settings → CI/CD → Variables (masked)
+    HITAPI_VAR_token: $HITAPI_VAR_token
+  artifacts:
+    when: always
+    reports:
+      junit: hitapi-results.xml

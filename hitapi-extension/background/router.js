@@ -14,6 +14,12 @@ import * as flows from './flows/flows.js';
 import * as bugs from './bugs/bugs.js';
 import * as openapi from './openapi/import.js';
 import * as agent from './agent/local-agent.js';
+import * as workbench from './workbench/open.js';
+import * as headerRules from './workbench/protected-headers.js';
+import * as netErrors from './workbench/net-errors.js';
+import * as tokens from './workbench/tokens.js';
+import * as hitapiSync from './workbench/hitapi-sync.js';
+import * as scheduler from './workbench/scheduler.js';
 
 const handlers = {
   [MSG.LOGIN]: (m) => session.login(m.email, m.password),
@@ -38,13 +44,28 @@ const handlers = {
 
   [MSG.IMPORT_OPENAPI]: (m) => openapi.importOpenApi(m),
 
+  [MSG.OPEN_WORKBENCH]: (m) => workbench.openWorkbench(m),
+  [MSG.WB_APPLY_HEADER_RULE]: (m) => headerRules.applyRule(m),
+  [MSG.WB_REMOVE_HEADER_RULE]: (m) => headerRules.removeRule(m),
+  [MSG.WB_GET_NET_ERROR]: (m) => netErrors.getNetError(m),
+  [MSG.WB_LIST_TOKENS]: () => tokens.listDetectedTokens(),
+  [MSG.WB_PUSH_ENDPOINTS]: (m) => hitapiSync.pushEndpoints(m),
+  [MSG.WB_PULL_ENDPOINTS]: (m) => hitapiSync.pullEndpoints(m),
+  [MSG.WB_PUSH_FLOW]: (m) => hitapiSync.pushFlowSuite(m),
+  [MSG.WB_GET_FLOW]: (m) => hitapiSync.getFlowSuite(m),
+  [MSG.WB_SYNC_GET]: () => hitapiSync.getSyncDocs(),
+  [MSG.WB_SYNC_PUT]: (m) => hitapiSync.putSyncDoc(m),
+  [MSG.WB_SYNC_DELETE]: () => hitapiSync.deleteSyncDocs(),
+  [MSG.WB_RUN_SCHEDULE]: (m) => scheduler.runSchedule({ id: m.id, reason: 'manual' }),
+  [MSG.WB_NEXT_RUNS]: () => scheduler.nextRuns(),
+
   [MSG.GET_AGENT_STATE]: () => agent.getState(),
   [MSG.SET_AGENT_STATE]: (m) => agent.setEnabled(!!m.enabled),
 };
 
 export function registerRouter() {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    // Only our own pages (popup, DevTools panel) may call the background.
+    // Only our own pages (popup, DevTools panel, Workbench) may call the background.
     if (sender.id !== chrome.runtime.id || !String(sender.url || '').startsWith(chrome.runtime.getURL(''))) return false;
 
     const handler = handlers[msg?.type];

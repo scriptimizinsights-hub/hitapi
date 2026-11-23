@@ -51,7 +51,9 @@ export function createCapturePanel(store, actions) {
     emptySlot.replaceChildren();
     headerSlot.replaceChildren(h('div', { class: 'list-head' },
       h('div', { class: 'label' }, `${requests.length} request${requests.length === 1 ? '' : 's'} captured`),
-      h('button', { id: 'clear-btn', class: 'btn-ghost btn-sm', onclick: actions.clearCaptured }, 'Clear'),
+      h('span', { class: 'list-head-actions' },
+        h('button', { id: 'har-btn', class: 'btn-ghost btn-sm', title: 'Download these requests as a HAR file (opens in DevTools, Postman, or the Workbench\'s Import)', onclick: actions.exportHar }, 'Export HAR'),
+        h('button', { id: 'clear-btn', class: 'btn-ghost btn-sm', onclick: actions.clearCaptured }, 'Clear')),
     ));
   }
 

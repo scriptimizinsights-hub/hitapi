@@ -40,6 +40,12 @@ export const api = {
     acceptTerms: (version) => request('/auth/accept-terms', { method: 'POST', body: JSON.stringify({ version }) }),
     termsHistory: () => request('/auth/terms-history'),
   },
+  // Personal API keys (CI, scripts)
+  keys: {
+    list: () => request('/keys'),
+    create: (body) => request('/keys', { method: 'POST', body: JSON.stringify(body) }),
+    remove: (id) => request(`/keys/${id}`, { method: 'DELETE' }),
+  },
   // Projects
   projects: {
     list: () => request('/projects'),

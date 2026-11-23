@@ -38,6 +38,11 @@ export function get(tabId) {
   return tabs.get(tabId) || null;
 }
 
+/** Every tab's state, as [tabId, state] pairs. */
+export function all() {
+  return [...tabs.entries()];
+}
+
 export function isActive(tabId) {
   return !!tabs.get(tabId)?.active;
 }

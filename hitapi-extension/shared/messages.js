@@ -31,6 +31,22 @@ export const MSG = Object.freeze({
   // OpenAPI import
   IMPORT_OPENAPI: 'IMPORT_OPENAPI',
 
+  // Request Workbench
+  OPEN_WORKBENCH: 'OPEN_WORKBENCH',            // { tabId?, requestId? }
+  WB_APPLY_HEADER_RULE: 'WB_APPLY_HEADER_RULE', // { tabId, url, method, headers } → { ruleId }
+  WB_REMOVE_HEADER_RULE: 'WB_REMOVE_HEADER_RULE', // { ruleId }
+  WB_GET_NET_ERROR: 'WB_GET_NET_ERROR',        // { url } → { code, message } | null
+  WB_LIST_TOKENS: 'WB_LIST_TOKENS',            // → [{ value, origin, at }] bearer tokens seen while capturing
+  WB_PUSH_ENDPOINTS: 'WB_PUSH_ENDPOINTS',      // { projectId, endpoints } → { created, skipped, failed }
+  WB_PULL_ENDPOINTS: 'WB_PULL_ENDPOINTS',      // { projectId } → { endpoints }
+  WB_PUSH_FLOW: 'WB_PUSH_FLOW',                // { projectId, name, steps } → { suiteId, steps }
+  WB_GET_FLOW: 'WB_GET_FLOW',                  // { projectId, suiteId } → { suite, steps }
+  WB_SYNC_GET: 'WB_SYNC_GET',                  // → { docs }
+  WB_SYNC_PUT: 'WB_SYNC_PUT',                  // { kind, data, baseVersion, device } → { version } | { conflict, current }
+  WB_SYNC_DELETE: 'WB_SYNC_DELETE',            // remove the cloud copy
+  WB_RUN_SCHEDULE: 'WB_RUN_SCHEDULE',          // run a scheduled run now → run record
+  WB_NEXT_RUNS: 'WB_NEXT_RUNS',                // { scheduleId: next run time }
+
   // local agent
   GET_AGENT_STATE: 'GET_AGENT_STATE',
   SET_AGENT_STATE: 'SET_AGENT_STATE',

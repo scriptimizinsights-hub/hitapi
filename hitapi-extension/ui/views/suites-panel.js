@@ -13,7 +13,11 @@ function runStatus(run) {
 }
 
 export function SuitesPanelView(store, actions) {
-  const { suites, runs, suitesLoading, projectId } = store.state;
+  const { suites, runs, suitesLoading, projectId, user } = store.state;
+  if (!user) {
+    return h('div', { class: 'empty' }, h('div', { class: 'icon' }, '▶'),
+      h('p', {}, 'Test suites live in your HitAPI projects.', h('br'), 'Sign in above to run them from here.'));
+  }
   if (!projectId) return h('div');
   if (suitesLoading && !suites.length) return h('div', { class: 'muted small pad' }, spinner(), ' Loading suites…');
   if (!suites.length) {

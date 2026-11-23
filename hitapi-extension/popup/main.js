@@ -14,4 +14,4 @@ async function currentTabId() {
   return tab?.id ?? null;
 }
 
-currentTabId().then(tabId => startApp(document.getElementById('app'), tabId));
+currentTabId().then(tabId => startApp(document.getElementById('app'), tabId, { mode: 'popup' }));

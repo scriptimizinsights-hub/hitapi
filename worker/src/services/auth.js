@@ -84,7 +84,13 @@ export async function verifyJWT(token, secret) {
 export async function requireAuth(request, env) {
     const secret = env.JWT_SECRET || 'hitapi-dev-secret-change-in-prod';
     const auth = request.headers.get('Authorization') || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : null;
+    // Personal API key (CI, scripts): "Authorization: Bearer hk_…" or "X-API-Key: hk_…"
+    const apiKey = token?.startsWith('hk_') ? token : (request.headers.get('X-API-Key') || '').trim();
+    if (apiKey.startsWith('hk_')) {
+        const { verifyApiKey } = await import('./apiKeys.js');
+        return verifyApiKey(apiKey, env);
+    }
     if (!token) return null;
     return verifyJWT(token, secret);
 }

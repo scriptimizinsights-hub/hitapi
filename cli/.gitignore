@@ -1,0 +1,4 @@
+# copied from ../hitapi-extension by scripts/copy-shared.mjs (npm test / npm pack)
+src/shared/
+src/lib/
+node_modules/

@@ -5,7 +5,7 @@ Capture the API calls a browser tab makes, then save them as test steps or repor
 ## Use
 
 1. Open a website, then open the HitAPI popup.
-2. Sign in and select or create a project.
+2. Optional: sign in and select or create a project (needed only to save requests or report bugs).
 3. Select **▶ Start**. The popup shows **● Capturing this tab**.
 4. Use the site. Requests appear in the **Capture** tab as they happen.
 5. Select a request to add it to a suite or report it as a bug. **Clear** empties the list; **■ Stop** ends capture.

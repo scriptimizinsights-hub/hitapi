@@ -6,4 +6,4 @@
 
 import { startApp } from '../ui/app.js';
 
-startApp(document.getElementById('app'), chrome.devtools.inspectedWindow.tabId);
+startApp(document.getElementById('app'), chrome.devtools.inspectedWindow.tabId, { mode: 'panel' });

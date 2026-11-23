@@ -133,14 +133,21 @@ export function createRequestRow(initialReq, { store, actions }) {
     const detail = req.status === 0
       ? `Failed: ${req.error || 'network error'}`
       : `HTTP ${req.status}${req.duration != null ? ` · ${req.duration} ms` : ''}${req.fromCache ? ' · from cache' : ''}`;
-    panel.replaceChildren(
+    panel.replaceChildren(...[
       h('div', { class: 'req-detail' },
         h('div', { class: 'mono small break' }, `${req.method} ${req.url}`),
         h('div', { class: 'small muted' }, detail),
+        h('div', { class: 'req-wb-btns' },
+          h('button', { type: 'button', class: 'btn-ghost btn-sm', dataset: { workbench: req.id },
+            title: 'Edit and resend this request in the Workbench', onclick: () => actions.openWorkbench(req.id) }, '⇄ Open in Workbench'),
+          h('button', { type: 'button', class: 'btn-ghost btn-sm', dataset: { resend: req.id },
+            title: 'Send this request again now, in the Workbench (it is kept in the Workbench history)', onclick: () => actions.resendCaptured(req.id) }, '↻ Resend')),
       ),
-      store.state.projectId ? suiteSection() : h('div', { class: 'small muted' }, 'Create or select a project to save this request.'),
+      store.state.projectId ? suiteSection() : h('div', { class: 'small muted' }, store.state.user
+        ? 'Create or select a project to save this request.'
+        : ['Sign in to save this request to a project or report it as a bug. ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); actions.showLogin(); } }, 'Sign in')]),
       store.state.projectId ? bugSection() : null,
-    );
+    ].filter(Boolean)); // replaceChildren() would print a null child as the text "null"
   }
 
   paintHead();

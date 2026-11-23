@@ -41,6 +41,8 @@ import {
 import { handleMockRequest } from './services/mock/serve.js';
 import { withRequestLog, trackPageView } from './services/requestLog.js';
 import { adminTraffic } from './routes/traffic.js';
+import { getExtensionSync, putExtensionSync, deleteExtensionSync } from './routes/extensionSync.js';
+import { listApiKeys, createApiKey, deleteApiKey } from './routes/apiKeys.js';
 import { createPlaygroundMock, updatePlaygroundMock, generateMockData, importSpecRoutes } from './routes/mockPlayground.js';
 import { adminStats, adminListUsers, adminListProjects, adminActivity, isSuperAdmin, getProjectOwnerId, redactResponse } from './routes/admin.js';
 
@@ -155,6 +157,15 @@ const ROUTES = [
   router('GET', '/api/agent/jobs', pollAgentJobs),
   router('POST', '/api/agent/jobs/:jobId/result', submitAgentJobResult),
   router('GET', '/api/agent/status', agentStatus),
+  // Browser extension: Workbench sync across devices
+  router('GET', '/api/extension/sync', getExtensionSync),
+  router('PUT', '/api/extension/sync/:kind', putExtensionSync),
+  router('DELETE', '/api/extension/sync', deleteExtensionSync),
+
+  // Personal API keys (CI, scripts)
+  router('GET', '/api/keys', listApiKeys),
+  router('POST', '/api/keys', createApiKey),
+  router('DELETE', '/api/keys/:id', deleteApiKey),
 ];
 
 /**
@@ -210,6 +221,10 @@ async function handleFetch(request, env, ctx) {
           if (!authUser) {
             return json({ success: false, error: 'Unauthorized — please log in to HitAPI' }, 401, env);
           }
+          // API keys act as their user, but never as a super admin
+          if (authUser.via === 'api_key' && urlPath.startsWith('/api/admin')) {
+            return json({ success: false, error: 'API keys can\'t use admin routes. Sign in instead.' }, 403, env);
+          }
 
           if (params?.id && urlPath.startsWith('/api/projects/')) {
             const { assertProjectOwner } = await import('./routes/index.js');
@@ -217,7 +232,7 @@ async function handleFetch(request, env, ctx) {
             if (!owns) {
               // Super admins may VIEW any project (read-only), seen as its owner
               const ownerId = await getProjectOwnerId(env, params.id);
-              if (!ownerId || !(await isSuperAdmin(env, authUser))) {
+              if (!ownerId || authUser.via === 'api_key' || !(await isSuperAdmin(env, authUser))) {
                 return json({ success: false, error: 'Project not found' }, 404, env);
               }
               if (method !== 'GET') {

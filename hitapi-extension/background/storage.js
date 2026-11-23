@@ -12,6 +12,14 @@ export const LOCAL = Object.freeze({
   AGENT_ENABLED: 'localAgentEnabled',
 });
 
+/** Request Workbench (chrome.storage.local). */
+export const WB = Object.freeze({
+  DRAFT: 'wb:draft',        // the request being edited (kept when the tab closes)
+  INCOMING: 'wb:incoming',  // a captured request handed to the Workbench to open
+  WELCOME: 'wb:welcome',    // show the "Start here" note (set on install)
+  WHATS_NEW: 'wb:whatsNew', // show "New" on the popup's Workbench card (set when updating from < 1.7)
+});
+
 /** Key holding one tab's capture state in storage.session. */
 export const tabKey = (tabId) => `tab:${tabId}`;
 export const isTabKey = (key) => key.startsWith('tab:');
