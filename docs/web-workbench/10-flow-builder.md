@@ -54,6 +54,23 @@ Only the canvas layout and the connection labels are new (`scenario.flow = { lin
 - **Run** warns when inputs are missing ("2 inputs are missing (id, token). Run anyway?").
 - **Phone:** one column of cards in run order, "+ Add a step…" list, tap a card for its settings below; every drag
   has a button (+, Run earlier / later), and cards are keyboard reachable (Tab, Enter).
+### A flow on its own page, and Flow settings (added after review)
+- **Its own page:** opening a scenario (click it, "Run" in its menu, a new scenario, "Back to the scenario") goes to
+  `/playground/flows/:id` (signed in: `/workbench/flows/:id`, without the app sidebar). The whole window is the flow:
+  ← Workbench, name, List / Canvas, environment, Schedule… (signed in), Flow settings, Run, and "Send from" above.
+  The address can be bookmarked, reloaded or opened in another tab; the tab is named after the flow; an unknown
+  address says "This flow isn't here". "Open to edit" / a result goes back to the Workbench with that request open;
+  "Back to the scenario" returns. Changes made just before leaving are written first; leaving during a run asks.
+- **Flow settings** (⚙ in the flow's top bar, also in the box): **Open flows** — on their own page (default), in a
+  new browser tab (edits there show in the Workbench tab), or inside the Workbench (the box, as before);
+  **Canvas** — snap cards to the grid (22 px), show what each line passes on, show the mini-map (click to go there),
+  cards per row when arranging (as many as fit, or 1–6), and whether a flow without a saved view opens as a canvas
+  (default) or a list. Saved in this browser (`hitapi:web:flowPrefs`), not in the account.
+- **Files:** `flow-prefs.js`, `FlowSettings.jsx` (new); `Workbench.jsx` (flow page mode, opening by the setting,
+  hand-off back to the Workbench, saving before leaving), `ScenarioEditor.jsx` (Flow settings button, back label,
+  default view), `FlowCanvas.jsx` (snap, labels, mini-map, cards per row), `workbench.css`; `App.jsx` (routes),
+  `seo/pages.js` (`/playground/flows` not indexed).
+
 - **Files:** `flow-model.js`, `FlowCanvas.jsx` (new); `ScenarioEditor.jsx` (switch, Run check), `Workbench.jsx`
   (changing several drafts at once), `workbench.css`.
 
@@ -71,6 +88,8 @@ Only the canvas layout and the connection labels are new (`scenario.flow = { lin
 - [x] Fields come from the last response (or from the Swagger example/schema before the first run).
 - [x] Saved as an ordinary scenario, so sync, schedules and CLI export are unchanged (their tests still pass).
 - [x] Works signed out and on a phone (single column, buttons instead of drag).
+- [x] A flow opens on its own page by default (signed out and in); Flow settings switch to a new tab or the box,
+      and change snap, labels, mini-map, cards per row and the default view.
 
 ## Decisions
 1. Where: both — the Workbench first (done), then the project Flow Suites page with the same canvas (next).

@@ -2,10 +2,12 @@
  * HitAPI Web Workbench (web roadmap W1): build any HTTP request, send it from
  * HitAPI cloud, this browser or the HitAPI extension, and read the response.
  * Used by the public /playground page and the signed-in /workbench page.
+ * With flowId (W10) it is a flow's own page: /playground/flows/:id, /workbench/flows/:id.
  * The request logic is the HitAPI extension's (@hitapi/shared).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Square, Terminal, Code2, Copy, FilePlus2, History, X, RotateCcw, Library, Save, Unlink, Workflow, ArrowLeft, Cloud, CloudOff, HardDrive } from 'lucide-react';
 import { METHODS, paramsFromUrl, importHeaders, normalizeUrl } from '@hitapi/shared/http.js';
 import { detectBody } from '@hitapi/shared/body.js';
@@ -47,6 +49,10 @@ import { pingExtension, connectExtension } from './bridge.js';
 import { RequestTabs } from './RequestTabs.jsx';
 import { ResponseView } from './ResponseView.jsx';
 import { ModePicker } from './ModePicker.jsx';
+import { loadFlowPrefs, saveFlowPrefs, onFlowPrefs } from './flow-prefs.js';
+import { FlowSettingsDialog } from './FlowSettings.jsx';
+
+const HANDOFF_KEY = 'hitapi:web:flowHandoff';   // the flow page → the Workbench: open this step / result
 import { CodeDialog, CurlDialog } from './Dialogs.jsx';
 import { cachedToken } from './send.js';
 import { useStore } from '../../store/index.js';
@@ -94,7 +100,14 @@ export const SAMPLES = [
 ];
 
 
-export function Workbench({ variant = 'public' }) {
+export function Workbench({ variant = 'public', flowId = null }) {
+  const navigate = useNavigate();
+  const [search, setSearch] = useSearchParams();
+  const base = variant === 'app' ? '/workbench' : '/playground';
+  const flowUrl = (id) => `${base}/flows/${encodeURIComponent(id)}`;
+  const [flowPrefs, setFlowPrefs] = useState(() => (typeof window === 'undefined' ? null : loadFlowPrefs()));
+  useEffect(() => onFlowPrefs(setFlowPrefs), []);
+  const [flowMissing, setFlowMissing] = useState(false);
   const addToast = useStore((s) => s.addToast);
   const notify = useCallback((m, type = 'info') => addToast?.(m, type), [addToast]);
   const [draft, setDraft] = useState(emptyDraft);
@@ -147,6 +160,13 @@ export function Workbench({ variant = 'public' }) {
   const [ready, setReady] = useState(false);
   const ctrl = useRef(null);
   const saveTimer = useRef(null);
+  const pendingDraft = useRef(null);
+  const pendingScen = useRef(null);
+  // leaving the page (e.g. Workbench ↔ a flow's page): write what is still waiting to be saved
+  useEffect(() => () => {
+    if (pendingDraft.current) { clearTimeout(saveTimer.current); saveDraft(pendingDraft.current); }
+    if (pendingScen.current) { clearTimeout(scenSaveTimer.current); pendingScen.current(); }
+  }, []);
 
   // load the draft, recent list, chosen mode and the extension state (browser only, after the first paint)
   useEffect(() => {
@@ -277,7 +297,8 @@ export function Workbench({ variant = 'public' }) {
       const next = { ...d, ...patch };
       if ('url' in patch && !('params' in patch)) next.params = paramsFromUrl(patch.url, d.params);
       clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => saveDraft(next), 300);
+      pendingDraft.current = next;
+      saveTimer.current = setTimeout(() => { saveDraft(next); pendingDraft.current = null; }, 300);
       return next;
     });
   }, []);
@@ -420,26 +441,41 @@ export function Workbench({ variant = 'public' }) {
   const editScen = useCallback((fn) => {
     try { return updateScenarios(fn).result; } catch (e) { notify(e.message, 'error'); return undefined; }
   }, [notify]);
-  const openScenario = useCallback((id, { focusName = false } = {}) => {
+  /**
+   * Open a scenario. W10: by the Flow settings, on its own page (default), in a new tab or here.
+   * Returns 'here' | 'page' | 'tab' | null (not found).
+   */
+  const openScenario = useCallback((id, { focusName = false, run = false, here = false } = {}) => {
     const sc = loadScenarios().items.find(x => x.id === id);
-    if (!sc) return;
-    setScenEdit(structuredClone(sc)); setOpenScen({ id, focusName }); showSide('scenarios');
-  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+    if (!sc) return null;
+    const where = flowId || here ? 'inline' : (loadFlowPrefs().open);
+    if (where !== 'inline') {
+      const url = `${flowUrl(id)}${run ? '?run=1' : focusName ? '?name=1' : ''}`;
+      if (where === 'tab') { const w = window.open(url, '_blank'); if (w) { try { w.opener = null; } catch { /* ignore */ } return 'tab'; } }
+      navigate(url);
+      return 'page';
+    }
+    setScenEdit(structuredClone(sc)); setOpenScen({ id, focusName }); if (!flowId) showSide('scenarios');
+    return 'here';
+  }, [flowId, navigate, base]);   // eslint-disable-line react-hooks/exhaustive-deps
   const closeScenario = () => { setOpenScen(null); setScenEdit(null); };
   /** Edits of the open scenario are saved shortly after (typing in a number box writes once). */
   const changeScenario = (next) => {
     setScenEdit(next);
     clearTimeout(scenSaveTimer.current);
-    scenSaveTimer.current = setTimeout(() => editScen((st) => {
+    const write = () => { pendingScen.current = null; editScen((st) => {
       const i = st.items.findIndex(x => x.id === next.id);
       if (i < 0) return false;
       st.items[i] = { ...structuredClone(next), lastReport: st.items[i].lastReport, hitapi: st.items[i].hitapi ?? next.hitapi };
       return true;
-    }), 300);
+    }); };
+    pendingScen.current = write;
+    scenSaveTimer.current = setTimeout(write, 300);
   };
   const uniqueScenName = (base) => { const names = new Set(scenState.items.map(x => x.name)); if (!names.has(base)) return base; for (let i = 2; ; i++) if (!names.has(`${base} ${i}`)) return `${base} ${i}`; };
   const newScenarioNow = () => {
     const sc = newScenario(uniqueScenName('New scenario'));
+    sc.flow = { view: loadFlowPrefs().defaultView };
     if (editScen((st) => { st.items.push(sc); return true; }) === true) openScenario(sc.id, { focusName: true });
   };
 
@@ -509,6 +545,7 @@ export function Workbench({ variant = 'public' }) {
 
   /** Open a step's request: a saved one as itself, a copied one with "Save to step". */
   const openStep = (scenarioId, step) => {
+    if (flowId) { leaveFlow({ type: 'step', scenarioId, stepId: step.id }); return false; }
     if (step.kind === 'saved') { if (!openSaved(step.requestId)) return false; closeScenario(); return true; }
     if (!confirmLeave()) return false;
     loadInto(structuredClone(step.draft), null, { step: { scenarioId, stepId: step.id } });
@@ -516,10 +553,37 @@ export function Workbench({ variant = 'public' }) {
     return true;
   };
   const openScenarioResult = (scenarioId, r, step) => {
+    if (flowId) { leaveFlow({ type: 'result', scenarioId, stepId: step?.id, response: r.response && JSON.stringify(r.response).length < 2e6 ? r.response : null }); return; }
     const name = scenEditRef.current?.name;
     if (!step || !openStep(scenarioId, step)) return;
     if (r.response) setRes({ ...r.response, fromScenario: { id: scenarioId, name } });
   };
+
+  /** From a flow's page back to the Workbench, optionally opening a step or a run result there. */
+  const leaveFlow = (handoff = null) => {
+    if (scenRun.current && !confirm('A run is in progress. Leave the flow and stop it?')) return;
+    scenRun.current?.controller.abort('cancel');
+    try { if (handoff) sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(handoff)); } catch { /* too big or blocked */ }
+    navigate(base);
+  };
+  // the Workbench page: a flow's page asked to open a step or a result here
+  useEffect(() => {
+    if (!ready || flowId) return;
+    let h = null; try { h = JSON.parse(sessionStorage.getItem(HANDOFF_KEY) || 'null'); sessionStorage.removeItem(HANDOFF_KEY); } catch { /* ignore */ }
+    if (!h) return;
+    const sc = loadScenarios().items.find(x => x.id === h.scenarioId); const step = sc?.steps.find(x => x.id === h.stepId);
+    if (!step) return;
+    if (openStep(h.scenarioId, step) && h.type === 'result' && h.response) setRes({ ...h.response, fromScenario: { id: sc.id, name: sc.name } });
+  }, [ready]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // a flow's page: open it (and run it when asked)
+  useEffect(() => {
+    if (!ready || !flowId) return;
+    const r = openScenario(flowId, { here: true, focusName: search.get('name') === '1' });
+    if (!r) { setFlowMissing(true); return; }
+    if (search.get('run') === '1') { const sc = loadScenarios().items.find(x => x.id === flowId); if (sc) setTimeout(() => runScenarioNow(sc, null), 0); }
+    if (search.get('run') || search.get('name')) setSearch({}, { replace: true });
+  }, [ready, flowId]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (flowId && scenEdit?.name) document.title = `${scenEdit.name} · Flow · HitAPI`; }, [flowId, scenEdit?.name]);
 
   /** A scenario → flow suite steps: environment values filled in, except secrets and variables a step sets. */
   const flowSteps = (sc) => {
@@ -730,6 +794,136 @@ export function Workbench({ variant = 'public' }) {
       <button type="button" role="tab" aria-selected={side === 'history'} className={`wbw-sidetab${side === 'history' ? ' on' : ''}`} onClick={() => showSide('history')}>History</button>
     </div>
   );
+  const envSelect = (
+        <select className={`input wbw-env${envs.active ? ' on' : ''}`} aria-label="Environment" value={envs.active}
+          title={activeEnv ? `Environment: ${activeEnv.name}` : 'No environment: {{variables}} come from the collection and Globals'}
+          onChange={(e) => { const v = e.target.value; if (v === '__manage__') openEnvs(); else { try { setActiveEnv(v); } catch (err) { notify(err.message, 'error'); } } }}>
+          <option value="">No environment</option>
+          {envs.envs.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+          <option value="__manage__">{envs.envs.length ? 'Manage environments…' : '+ Add an environment…'}</option>
+        </select>
+  );
+  const flowExtra = (<>
+    {envSelect}
+    {signedIn && scenEdit && <button type="button" className="btn btn-ghost btn-sm wbw-flow-sched" onClick={() => setCdlg({ type: 'schedule', target: { kind: 'scenario', id: scenEdit.id, name: scenEdit.name } })}>Schedule…</button>}
+  </>);
+  const scenEditorEl = openScen && scenEdit ? (
+          <ScenarioEditor scenario={scenEdit} onChange={changeScenario} tree={tree} report={scenReports[scenEdit.id] || scenEdit.lastReport || scenState.items.find(x => x.id === scenEdit.id)?.lastReport || null}
+            running={scenRunning === scenEdit.id} paused={scenRunning === scenEdit.id ? scenPaused : 0} envLabel={activeEnv?.name || 'none'} focusName={openScen.focusName}
+            onRun={(only) => runScenarioNow(structuredClone(scenEdit), only)} onStop={() => scenRun.current?.controller.abort('cancel')} onBack={flowId ? () => leaveFlow() : closeScenario}
+            onOpenStep={(step) => openStep(scenEdit.id, step)} onOpenResult={(r, step) => openScenarioResult(scenEdit.id, r, step)}
+            currentRequest={() => (draft.url ? { draft: forSave(draft), name: linked?.node.name || requestName(draft), savedId: linked?.node.id || null } : null)}
+            signedIn={signedIn} scopeFor={scopeForStep} onEditDrafts={editStepDrafts} notify={notify}
+            prefs={flowPrefs} onSettings={() => setCdlg({ type: 'flowSettings' })} page={!!flowId} extra={flowId ? flowExtra : null} />
+  ) : null;
+  const dialogs = (<>
+      {dialog === 'code' && final && <CodeDialog request={final} onClose={() => setDialog(null)} onNotify={(m) => notify(m, 'success')} />}
+      {dialog === 'curl' && <CurlDialog onImport={importCurl} onClose={() => setDialog(null)} />}
+      {cdlg?.type === 'schedule' && (
+        <ScheduleDialog target={cdlg.target} signedIn={signedIn} syncOn={!!sync.enabled} onClose={() => setCdlg(null)}
+          onOpenBackup={() => setCdlg({ type: 'backup' })}
+          beforeSave={async () => { const r = await runSync({ force: true }); if (r && !r.ok && !r.skipped) throw new Error(`Couldn't save your Workbench to your account first: ${r.error}`); }}
+          onSaved={(sch) => notify(`Scheduled "${sch.name}". See its runs on the Schedules page.`, 'success')} />
+      )}
+      {(cdlg?.type === 'ci' || cdlg?.type === 'github') && cdlg.file && (() => {
+        const f = cdlg.file;
+        return cdlg.type === 'ci'
+          ? <CiDialog file={f} signedIn={signedIn} onNotify={(m) => notify(m, 'success')} onPublish={() => setCdlg({ ...cdlg, type: 'github' })} onClose={() => setCdlg(null)} />
+          : <GitHubDialog itemKey={cdlg.id} file={f} onNotify={(m) => notify(m, 'success')} onClose={() => setCdlg(null)} />;
+      })()}
+      {cdlg?.type === 'backup' && (
+        <BackupDialog signedIn={signedIn} sync={sync} onClose={() => setCdlg(null)} onNotify={(m) => notify(m, 'success')}
+          onImported={() => { setTree(loadTree()); setEnvs(loadEnvs()); setScenState(loadScenarios()); }}
+          onSyncToggle={(on) => { if (on) { saveSyncState({ enabled: true, userId: String(user.id ?? user.email ?? ''), lastError: '' }); runSync(); } else stopSync(); }}
+          onSyncNow={() => runSync({ force: true })}
+          onDeleteCloud={async () => { await stopSync({ deleteCloud: true }); notify('The account copy was deleted. This browser keeps its own copy.', 'info'); }} />
+      )}
+      {accountAsk?.kind === 'first' && (
+        <Dialog title="Keep your Workbench in your account?" onClose={() => setAccountAsk(null)} footer={<>
+          <span className="wbw-grow" />
+          <button type="button" className="btn btn-ghost btn-sm wbw-acct-local" onClick={() => { saveSyncState({ enabled: false, userId: accountAsk.uid, kinds: {} }); setAccountAsk(null); notify('Kept in this browser only. Turn on "Keep my Workbench in my HitAPI account" in Backup and sync any time.', 'info'); }}>Keep them in this browser only</button>
+          <button type="button" className="btn btn-ghost btn-sm text-red wbw-acct-discard" onClick={() => { if (!confirm('Delete the collections, environments and scenarios in this browser and use only the ones in your account?')) return; clearLocalData(); saveSyncState({ enabled: true, userId: accountAsk.uid, kinds: {}, lastError: '' }); setAccountAsk(null); runSync(); }}>Use only my account's</button>
+          <button type="button" className="btn btn-primary btn-sm wbw-acct-merge" onClick={() => { saveSyncState({ enabled: true, userId: accountAsk.uid, kinds: {}, lastError: '' }); setAccountAsk(null); runSync(); }}>Add them to my account</button>
+        </>}>
+          <p className="text-sm">This browser has {[accountAsk.counts.collections && `${accountAsk.counts.collections} collection${accountAsk.counts.collections === 1 ? '' : 's'}`, accountAsk.counts.envs && `${accountAsk.counts.envs} environment${accountAsk.counts.envs === 1 ? '' : 's'}`, accountAsk.counts.scenarios && `${accountAsk.counts.scenarios} scenario${accountAsk.counts.scenarios === 1 ? '' : 's'}`].filter(Boolean).join(', ') || 'variables'} made before you signed in.</p>
+          <p className="text-sm">Add them to your HitAPI account? Then they are on every computer you sign in on, and in the HitAPI extension (with sync on). Whatever is already in your account is kept too.</p>
+          <p className="text-xs text-tertiary">Tokens, passwords and secret values stay in this browser; they are never saved to your account.</p>
+        </Dialog>
+      )}
+      {accountAsk?.kind === 'signedOut' && (
+        <Dialog title="You signed out" onClose={() => { saveSyncState({ enabled: false, userId: null, kinds: {} }); setAccountAsk(null); }} footer={<>
+          <span className="wbw-grow" />
+          <button type="button" className="btn btn-ghost btn-sm wbw-out-keep" onClick={() => { saveSyncState({ enabled: false, userId: null, kinds: {}, lastError: '' }); setAccountAsk(null); }}>Keep a copy in this browser</button>
+          <button type="button" className="btn btn-primary btn-sm wbw-out-remove" onClick={() => { clearLocalData(); saveSyncState({ enabled: false, userId: null, kinds: {}, lastError: '', lastSyncAt: 0, lastResult: null }); setAccountAsk(null); notify('Your account\'s Workbench was removed from this browser. It is still in your account.', 'info'); }}>Remove it from this browser</button>
+        </>}>
+          <p className="text-sm">This browser still has the collections, environments and scenarios from your HitAPI account (and the tokens and passwords you typed here).</p>
+          <p className="text-sm">On a shared computer, remove them. They stay in your account: sign in again to get them back (tokens and passwords need filling in again).</p>
+        </Dialog>
+      )}
+      {cdlg?.type === 'import' && <ImportDialog tree={tree} onImport={applyImport} onFromProject={() => setCdlg({ type: 'pull' })} onClose={() => setCdlg(null)} />}
+      {cdlg?.type === 'flowPush' && scenState.items.find(x => x.id === cdlg.id) && (
+        <FlowPushDialog scenario={scenState.items.find(x => x.id === cdlg.id)} signedIn={signedIn} onClose={() => setCdlg(null)}
+          steps={() => flowSteps(scenState.items.find(x => x.id === cdlg.id))}
+          onLinked={(projectId, suiteId) => editScen((st) => { const x = st.items.find(i => i.id === cdlg.id); if (!x) return false; x.hitapi = { projectId, suiteId }; return true; })} />
+      )}
+      {cdlg?.type === 'flowPull' && (
+        <FlowPullDialog signedIn={signedIn} onClose={() => setCdlg(null)} onImport={(project, suite, steps) => {
+          const sc = fromFlowSuite(suite, steps, project, emptyDraft);
+          if (editScen((st) => { st.items.push(sc); return true; }) === true) { openScenario(sc.id); notify(`Imported "${sc.name}" (${sc.steps.length} steps)`, 'success'); }
+        }} />
+      )}
+      {(cdlg?.type === 'save' || cdlg?.type === 'saveAs') && (
+        <SaveDialog tree={tree} title={linked && cdlg.type === 'saveAs' ? 'Save as a new request' : 'Save request'}
+          defaultName={linked && cdlg.type === 'saveAs' ? `${linked.node.name} copy` : linked ? linked.node.name : requestName(draft)}
+          defaultParentId={linked?.parent?.id || (lastParentId.current && find(tree, lastParentId.current) ? lastParentId.current : tree.items[0]?.id)}
+          onSave={saveNew} onClose={() => setCdlg(null)} />
+      )}
+      {envDlg && (
+        <EnvDialog state={envs} select={envDlg.select} addName={envDlg.addName} onClose={() => setEnvDlg(null)}
+          onSave={(work, active) => {
+            try { updateEnvs((st) => { st.globals = work.globals; st.envs = work.envs; }); setEnvs(setActiveEnv(active)); }
+            catch (e) { return e.message; }
+            setEnvDlg(null); notify('Environments saved', 'success'); return null;
+          }} />
+      )}
+      {cdlg?.type === 'settings' && (
+        <SettingsDialog tree={tree} id={cdlg.id} mode={mode} onClose={() => setCdlg(null)}
+          onSave={({ name, settings }) => { if (edit(t => { const x = find(t, cdlg.id); if (!x) return false; x.node.name = name; x.node.settings = settings; return true; }) === true) { setCdlg(null); notify('Settings saved', 'success'); } }} />
+      )}
+      {cdlg?.type === 'move' && (
+        <MoveDialog tree={tree} id={cdlg.id} onClose={() => setCdlg(null)}
+          onMove={(target) => { if (edit(t => (move(t, cdlg.id, target, 'inside') ? true : false)) === true) { setCdlg(null); notify(`Moved to "${find(loadTree(), target)?.node.name || 'the folder'}"`, 'success'); } }} />
+      )}
+      {cdlg?.type === 'export' && find(tree, cdlg.id) && <ExportDialog node={find(tree, cdlg.id).node} onClose={() => setCdlg(null)} onNotify={(m) => notify(m, 'success')} />}
+      {cdlg?.type === 'push' && find(tree, cdlg.id) && (
+        <PushDialog collection={find(tree, cdlg.id).node} signedIn={signedIn} onClose={() => setCdlg(null)}
+          endpoints={(base) => toEndpoints(tree, cdlg.id, base)}
+          onLinked={(pid) => edit(t => { const x = find(t, cdlg.id); if (!x) return false; x.node.hitapiProjectId = pid; return true; })} />
+      )}
+      {cdlg?.type === 'pull' && (
+        <PullDialog signedIn={signedIn} onClose={() => setCdlg(null)}
+          onImport={(project, eps) => { const c = fromProject(project, eps); if (edit(t => { t.items.push(c); return true; }) === true) { showSide('collections'); notify(`Imported "${c.name}" (${eps.length} endpoint${eps.length === 1 ? '' : 's'})`, 'success'); } }} />
+      )}
+      {cdlg?.type === 'flowSettings' && flowPrefs && <FlowSettingsDialog prefs={flowPrefs} onChange={(p) => setFlowPrefs(saveFlowPrefs(p))} onClose={() => setCdlg(null)} />}
+  </>);
+  // W10: a flow's own page — just the flow, the whole window
+  if (flowId) {
+    return (
+      <div className={`wbw wbw-${variant} wbw-flowpage`} data-ready={ready ? '1' : '0'}>
+        {flowMissing ? (
+          <div className="card wbw-flowmissing" role="alert">
+            <h2>This flow isn't here</h2>
+            <p className="text-sm text-tertiary">It may have been deleted, or it was made in another browser.{signedIn ? ' Turn on "Keep my Workbench in my account" (Backup and sync) to have your flows on every device.' : ''}</p>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate(base)}>Open the Workbench</button>
+          </div>
+        ) : scenEditorEl ? <>
+          <ModePicker mode={mode} setMode={chooseMode} ext={ext} onConnect={connect} connecting={connecting} auto={false} />
+          {scenEditorEl}
+        </> : <p className="text-sm text-tertiary">Loading the flow…</p>}
+        {dialogs}
+      </div>
+    );
+  }
   return (
     <div className={`wbw wbw-${variant}`} data-ready={ready ? '1' : '0'}>
       <div className="wbw-toolbar">
@@ -743,13 +937,7 @@ export function Workbench({ variant = 'public' }) {
           title={user ? (sync.enabled ? `Your Workbench is kept in your HitAPI account${sync.lastSyncAt ? ` (last saved ${ago(sync.lastSyncAt)})` : ''}. Click for backup and sync.` : 'Kept in this browser only. Click to keep it in your account.') : 'Backup: export or import everything'}>
           {user ? (sync.enabled && !sync.offline && !sync.lastError ? <Cloud size={13} /> : <CloudOff size={13} />) : <HardDrive size={13} />} {user ? syncLabel : 'Backup'}
         </button>
-        <select className={`input wbw-env${envs.active ? ' on' : ''}`} aria-label="Environment" value={envs.active}
-          title={activeEnv ? `Environment: ${activeEnv.name}` : 'No environment: {{variables}} come from the collection and Globals'}
-          onChange={(e) => { const v = e.target.value; if (v === '__manage__') openEnvs(); else { try { setActiveEnv(v); } catch (err) { notify(err.message, 'error'); } } }}>
-          <option value="">No environment</option>
-          {envs.envs.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          <option value="__manage__">{envs.envs.length ? 'Manage environments…' : '+ Add an environment…'}</option>
-        </select>
+        {envSelect}
         <button type="button" className="btn btn-ghost btn-sm wbw-collections-btn" aria-expanded={side === 'collections'} onClick={() => toggleSide('collections')}><Library size={13} /> Collections</button>
         <button type="button" className="btn btn-ghost btn-sm wbw-scenarios-btn" aria-expanded={side === 'scenarios'} onClick={() => toggleSide('scenarios')}><Workflow size={13} /> Scenarios</button>
         <button type="button" className="btn btn-ghost btn-sm wbw-history-btn" aria-expanded={side === 'history'} onClick={() => toggleSide('history')}><History size={13} /> History{historyCount ? ` (${historyCount})` : ''}</button>
@@ -852,7 +1040,7 @@ export function Workbench({ variant = 'public' }) {
         {side === 'scenarios' && (
           <ScenariosPanel state={scenState} activeId={openScen?.id || null} runningId={scenRunning} signedIn={signedIn} tabs={sideTabs} onClose={() => showSide(null)}
             onNew={newScenarioNow} onOpen={(id) => openScenario(id)} onRename={(id) => openScenario(id, { focusName: true })}
-            onRun={(id) => { openScenario(id); const sc = loadScenarios().items.find(x => x.id === id); if (sc) runScenarioNow(sc, null); }}
+            onRun={(id) => { if (openScenario(id, { run: true }) !== 'here') return; const sc = loadScenarios().items.find(x => x.id === id); if (sc) runScenarioNow(sc, null); }}
             onDuplicate={(id) => { const sc = scenState.items.find(x => x.id === id); if (!sc) return; const c = cloneScenario(sc); if (editScen((st) => { const i = st.items.findIndex(x => x.id === id); st.items.splice(i + 1, 0, c); return true; }) === true) notify(`Duplicated as "${c.name}"`, 'success'); }}
             onExportCli={exportScenarioFile} onPush={(id) => { const sc = scenState.items.find(x => x.id === id); if (!sc?.steps.some(x => x.enabled)) { notify('Add a step first.', 'info'); return; } setCdlg({ type: 'flowPush', id }); }}
             onPull={() => setCdlg({ type: 'flowPull' })}
@@ -860,14 +1048,7 @@ export function Workbench({ variant = 'public' }) {
             onCi={(id) => openCi('ci', 'scenario', id)} onGitHub={(id) => openCi('github', 'scenario', id)}
             onDelete={(id) => { const sc = scenState.items.find(x => x.id === id); if (!sc || !confirm(`Delete the scenario "${sc.name}"? This can't be undone.`)) return; if (editScen((st) => { st.items = st.items.filter(x => x.id !== id); return true; }) === true) { if (openScen?.id === id) closeScenario(); notify('Deleted', 'info'); } }} />
         )}
-        {openScen && scenEdit ? (
-          <ScenarioEditor scenario={scenEdit} onChange={changeScenario} tree={tree} report={scenReports[scenEdit.id] || scenEdit.lastReport || scenState.items.find(x => x.id === scenEdit.id)?.lastReport || null}
-            running={scenRunning === scenEdit.id} paused={scenRunning === scenEdit.id ? scenPaused : 0} envLabel={activeEnv?.name || 'none'} focusName={openScen.focusName}
-            onRun={(only) => runScenarioNow(structuredClone(scenEdit), only)} onStop={() => scenRun.current?.controller.abort('cancel')} onBack={closeScenario}
-            onOpenStep={(step) => openStep(scenEdit.id, step)} onOpenResult={(r, step) => openScenarioResult(scenEdit.id, r, step)}
-            currentRequest={() => (draft.url ? { draft: forSave(draft), name: linked?.node.name || requestName(draft), savedId: linked?.node.id || null } : null)}
-            signedIn={signedIn} scopeFor={scopeForStep} onEditDrafts={editStepDrafts} notify={notify} />
-        ) : <>
+        {scenEditorEl || <>
         <section className="card wbw-req" aria-label="Request">
           <RequestTabs draft={draft} update={update} files={files} setFiles={setFiles} mode={mode} tab={tab} setTab={setTab} inherit={inherit} extract={{ target: targetOf(envs), results: extractResults }} onSuggestTests={suggestFromLast} />
         </section>
@@ -895,93 +1076,7 @@ export function Workbench({ variant = 'public' }) {
         </>}
       </div>
 
-      {dialog === 'code' && final && <CodeDialog request={final} onClose={() => setDialog(null)} onNotify={(m) => notify(m, 'success')} />}
-      {dialog === 'curl' && <CurlDialog onImport={importCurl} onClose={() => setDialog(null)} />}
-      {cdlg?.type === 'schedule' && (
-        <ScheduleDialog target={cdlg.target} signedIn={signedIn} syncOn={!!sync.enabled} onClose={() => setCdlg(null)}
-          onOpenBackup={() => setCdlg({ type: 'backup' })}
-          beforeSave={async () => { const r = await runSync({ force: true }); if (r && !r.ok && !r.skipped) throw new Error(`Couldn't save your Workbench to your account first: ${r.error}`); }}
-          onSaved={(sch) => notify(`Scheduled "${sch.name}". See its runs on the Schedules page.`, 'success')} />
-      )}
-      {(cdlg?.type === 'ci' || cdlg?.type === 'github') && cdlg.file && (() => {
-        const f = cdlg.file;
-        return cdlg.type === 'ci'
-          ? <CiDialog file={f} signedIn={signedIn} onNotify={(m) => notify(m, 'success')} onPublish={() => setCdlg({ ...cdlg, type: 'github' })} onClose={() => setCdlg(null)} />
-          : <GitHubDialog itemKey={cdlg.id} file={f} onNotify={(m) => notify(m, 'success')} onClose={() => setCdlg(null)} />;
-      })()}
-      {cdlg?.type === 'backup' && (
-        <BackupDialog signedIn={signedIn} sync={sync} onClose={() => setCdlg(null)} onNotify={(m) => notify(m, 'success')}
-          onImported={() => { setTree(loadTree()); setEnvs(loadEnvs()); setScenState(loadScenarios()); }}
-          onSyncToggle={(on) => { if (on) { saveSyncState({ enabled: true, userId: String(user.id ?? user.email ?? ''), lastError: '' }); runSync(); } else stopSync(); }}
-          onSyncNow={() => runSync({ force: true })}
-          onDeleteCloud={async () => { await stopSync({ deleteCloud: true }); notify('The account copy was deleted. This browser keeps its own copy.', 'info'); }} />
-      )}
-      {accountAsk?.kind === 'first' && (
-        <Dialog title="Keep your Workbench in your account?" onClose={() => setAccountAsk(null)} footer={<>
-          <span className="wbw-grow" />
-          <button type="button" className="btn btn-ghost btn-sm wbw-acct-local" onClick={() => { saveSyncState({ enabled: false, userId: accountAsk.uid, kinds: {} }); setAccountAsk(null); notify('Kept in this browser only. Turn on "Keep my Workbench in my HitAPI account" in Backup and sync any time.', 'info'); }}>Keep them in this browser only</button>
-          <button type="button" className="btn btn-ghost btn-sm text-red wbw-acct-discard" onClick={() => { if (!confirm('Delete the collections, environments and scenarios in this browser and use only the ones in your account?')) return; clearLocalData(); saveSyncState({ enabled: true, userId: accountAsk.uid, kinds: {}, lastError: '' }); setAccountAsk(null); runSync(); }}>Use only my account's</button>
-          <button type="button" className="btn btn-primary btn-sm wbw-acct-merge" onClick={() => { saveSyncState({ enabled: true, userId: accountAsk.uid, kinds: {}, lastError: '' }); setAccountAsk(null); runSync(); }}>Add them to my account</button>
-        </>}>
-          <p className="text-sm">This browser has {[accountAsk.counts.collections && `${accountAsk.counts.collections} collection${accountAsk.counts.collections === 1 ? '' : 's'}`, accountAsk.counts.envs && `${accountAsk.counts.envs} environment${accountAsk.counts.envs === 1 ? '' : 's'}`, accountAsk.counts.scenarios && `${accountAsk.counts.scenarios} scenario${accountAsk.counts.scenarios === 1 ? '' : 's'}`].filter(Boolean).join(', ') || 'variables'} made before you signed in.</p>
-          <p className="text-sm">Add them to your HitAPI account? Then they are on every computer you sign in on, and in the HitAPI extension (with sync on). Whatever is already in your account is kept too.</p>
-          <p className="text-xs text-tertiary">Tokens, passwords and secret values stay in this browser; they are never saved to your account.</p>
-        </Dialog>
-      )}
-      {accountAsk?.kind === 'signedOut' && (
-        <Dialog title="You signed out" onClose={() => { saveSyncState({ enabled: false, userId: null, kinds: {} }); setAccountAsk(null); }} footer={<>
-          <span className="wbw-grow" />
-          <button type="button" className="btn btn-ghost btn-sm wbw-out-keep" onClick={() => { saveSyncState({ enabled: false, userId: null, kinds: {}, lastError: '' }); setAccountAsk(null); }}>Keep a copy in this browser</button>
-          <button type="button" className="btn btn-primary btn-sm wbw-out-remove" onClick={() => { clearLocalData(); saveSyncState({ enabled: false, userId: null, kinds: {}, lastError: '', lastSyncAt: 0, lastResult: null }); setAccountAsk(null); notify('Your account\'s Workbench was removed from this browser. It is still in your account.', 'info'); }}>Remove it from this browser</button>
-        </>}>
-          <p className="text-sm">This browser still has the collections, environments and scenarios from your HitAPI account (and the tokens and passwords you typed here).</p>
-          <p className="text-sm">On a shared computer, remove them. They stay in your account: sign in again to get them back (tokens and passwords need filling in again).</p>
-        </Dialog>
-      )}
-      {cdlg?.type === 'import' && <ImportDialog tree={tree} onImport={applyImport} onFromProject={() => setCdlg({ type: 'pull' })} onClose={() => setCdlg(null)} />}
-      {cdlg?.type === 'flowPush' && scenState.items.find(x => x.id === cdlg.id) && (
-        <FlowPushDialog scenario={scenState.items.find(x => x.id === cdlg.id)} signedIn={signedIn} onClose={() => setCdlg(null)}
-          steps={() => flowSteps(scenState.items.find(x => x.id === cdlg.id))}
-          onLinked={(projectId, suiteId) => editScen((st) => { const x = st.items.find(i => i.id === cdlg.id); if (!x) return false; x.hitapi = { projectId, suiteId }; return true; })} />
-      )}
-      {cdlg?.type === 'flowPull' && (
-        <FlowPullDialog signedIn={signedIn} onClose={() => setCdlg(null)} onImport={(project, suite, steps) => {
-          const sc = fromFlowSuite(suite, steps, project, emptyDraft);
-          if (editScen((st) => { st.items.push(sc); return true; }) === true) { openScenario(sc.id); notify(`Imported "${sc.name}" (${sc.steps.length} steps)`, 'success'); }
-        }} />
-      )}
-      {(cdlg?.type === 'save' || cdlg?.type === 'saveAs') && (
-        <SaveDialog tree={tree} title={linked && cdlg.type === 'saveAs' ? 'Save as a new request' : 'Save request'}
-          defaultName={linked && cdlg.type === 'saveAs' ? `${linked.node.name} copy` : linked ? linked.node.name : requestName(draft)}
-          defaultParentId={linked?.parent?.id || (lastParentId.current && find(tree, lastParentId.current) ? lastParentId.current : tree.items[0]?.id)}
-          onSave={saveNew} onClose={() => setCdlg(null)} />
-      )}
-      {envDlg && (
-        <EnvDialog state={envs} select={envDlg.select} addName={envDlg.addName} onClose={() => setEnvDlg(null)}
-          onSave={(work, active) => {
-            try { updateEnvs((st) => { st.globals = work.globals; st.envs = work.envs; }); setEnvs(setActiveEnv(active)); }
-            catch (e) { return e.message; }
-            setEnvDlg(null); notify('Environments saved', 'success'); return null;
-          }} />
-      )}
-      {cdlg?.type === 'settings' && (
-        <SettingsDialog tree={tree} id={cdlg.id} mode={mode} onClose={() => setCdlg(null)}
-          onSave={({ name, settings }) => { if (edit(t => { const x = find(t, cdlg.id); if (!x) return false; x.node.name = name; x.node.settings = settings; return true; }) === true) { setCdlg(null); notify('Settings saved', 'success'); } }} />
-      )}
-      {cdlg?.type === 'move' && (
-        <MoveDialog tree={tree} id={cdlg.id} onClose={() => setCdlg(null)}
-          onMove={(target) => { if (edit(t => (move(t, cdlg.id, target, 'inside') ? true : false)) === true) { setCdlg(null); notify(`Moved to "${find(loadTree(), target)?.node.name || 'the folder'}"`, 'success'); } }} />
-      )}
-      {cdlg?.type === 'export' && find(tree, cdlg.id) && <ExportDialog node={find(tree, cdlg.id).node} onClose={() => setCdlg(null)} onNotify={(m) => notify(m, 'success')} />}
-      {cdlg?.type === 'push' && find(tree, cdlg.id) && (
-        <PushDialog collection={find(tree, cdlg.id).node} signedIn={signedIn} onClose={() => setCdlg(null)}
-          endpoints={(base) => toEndpoints(tree, cdlg.id, base)}
-          onLinked={(pid) => edit(t => { const x = find(t, cdlg.id); if (!x) return false; x.node.hitapiProjectId = pid; return true; })} />
-      )}
-      {cdlg?.type === 'pull' && (
-        <PullDialog signedIn={signedIn} onClose={() => setCdlg(null)}
-          onImport={(project, eps) => { const c = fromProject(project, eps); if (edit(t => { t.items.push(c); return true; }) === true) { showSide('collections'); notify(`Imported "${c.name}" (${eps.length} endpoint${eps.length === 1 ? '' : 's'})`, 'success'); } }} />
-      )}
+      {dialogs}
     </div>
   );
 }

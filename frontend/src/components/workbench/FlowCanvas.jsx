@@ -22,6 +22,7 @@ import { describe as describeTest } from '@hitapi/shared/assert.js';
 import { formatBytes } from '@hitapi/shared/http.js';
 import { api } from '../../store/index.js';
 import { emptyDraft } from './core.js';
+import { DEFAULT_FLOW_PREFS, snapTo } from './flow-prefs.js';
 import {
   NODE_W, GAP, positions, autoPos, freeSpot, needsOf, givesOf, producedBefore, lastResults, linksOf, missingInputs,
   suggestName, ensureRule, fillNeed, passInto, endpointStep,
@@ -323,6 +324,24 @@ function Node({ step, index, req, pos, result, needs, selected, compact, onPoint
   );
 }
 
+/** A small overview of every card; the box is what the canvas shows. Click to go there. */
+function MiniMap({ steps, posOf, view, stage, onGo }) {
+  const ps = steps.map(st => posOf(st.id)).filter(Boolean);
+  const minX = Math.min(...ps.map(p => p.x)) - 40, minY = Math.min(...ps.map(p => p.y)) - 40;
+  const maxX = Math.max(...ps.map(p => p.x)) + NODE_W + 40, maxY = Math.max(...ps.map(p => p.y)) + 240;
+  const vw = stage ? stage.clientWidth / view.k : 800, vh = stage ? stage.clientHeight / view.k : 600;
+  const vx = -view.x / view.k, vy = -view.y / view.k;
+  const x0 = Math.min(minX, vx), y0 = Math.min(minY, vy), x1 = Math.max(maxX, vx + vw), y1 = Math.max(maxY, vy + vh);
+  const W = 180, H = 120, k = Math.min(W / (x1 - x0), H / (y1 - y0));
+  return (
+    <svg className="wbw-fmini" width={W} height={H} role="img" aria-label="Mini-map: click to go there"
+      onPointerDown={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); onGo(x0 + (e.clientX - r.left) / k, y0 + (e.clientY - r.top) / k); }}>
+      {ps.map((p, i) => <rect key={i} x={(p.x - x0) * k} y={(p.y - y0) * k} width={NODE_W * k} height={200 * k} rx={2} className="card" />)}
+      <rect x={(vx - x0) * k} y={(vy - y0) * k} width={vw * k} height={vh * k} className="view" />
+    </svg>
+  );
+}
+
 /** A cubic line from a's out port to b's in port, and its middle point. */
 function curve(a, b) {
   const x1 = a.x + NODE_W, y1 = a.y + PORT_Y, x2 = b.x, y2 = b.y + PORT_Y;
@@ -338,7 +357,7 @@ function curve(a, b) {
  * @param {object} p
  * @param {(list: Array<{ step, fn }>) => boolean} p.onEditDrafts  change step drafts (saved requests or the flow's copies) at once
  */
-export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running, signedIn, scopeFor, onEditDrafts, onRun, onOpenStep, notify, overview }) {
+export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running, signedIn, scopeFor, onEditDrafts, onRun, onOpenStep, notify, overview, prefs = DEFAULT_FLOW_PREFS }) {
   const compact = useCompact();
   const [sel, setSel] = useState(null);
   const [tab, setTab] = useState('cfg');
@@ -349,7 +368,8 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
   const stageRef = useRef(null);
   const gesture = useRef(null);
 
-  const [perRow, setPerRow] = useState(3);
+  const [fitRow, setPerRow] = useState(3);
+  const perRow = prefs.perRow || fitRow;
   useEffect(() => {   // the automatic layout fits as many cards per row as the canvas is wide
     const el = stageRef.current; if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => setPerRow(Math.max(1, Math.floor((el.clientWidth - 40 + GAP) / (NODE_W + GAP)))));
@@ -369,7 +389,7 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
 
   const posOf = (id) => (live?.id === id ? live : pos[id]);
   const setFlow = (patch) => onChange({ ...s, flow: { ...(s.flow || {}), ...patch } });
-  const savePos = (id, p) => setFlow({ pos: { ...(s.flow?.pos || pos), [id]: { x: Math.round(p.x), y: Math.round(p.y) } } });
+  const savePos = (id, p) => setFlow({ pos: { ...(s.flow?.pos || pos), [id]: { x: snapTo(p.x, prefs.snap), y: snapTo(p.y, prefs.snap) } } });
   const toWorld = (cx, cy) => { const r = stageRef.current.getBoundingClientRect(); return { x: (cx - r.left - view.x) / view.k, y: (cy - r.top - view.y) / view.k }; };
 
   /** Add a step from the palette at a point (or at the end); dropped on a card: right after it. */
@@ -385,7 +405,7 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
       const room = (stageRef.current?.clientWidth || 1200) / view.k - view.x / view.k;
       const prefer = pp && pp.x + 2 * NODE_W + GAP < room ? { x: pp.x + NODE_W + GAP, y: pp.y } : null;   // right of the step before, if free
       return freeSpot(others, perRow, prefer); })();
-    onChange({ ...s, steps, flow: { ...(s.flow || {}), pos: { ...(s.flow?.pos || pos), [st.id]: { x: Math.round(p.x), y: Math.round(p.y) } } } });
+    onChange({ ...s, steps, flow: { ...(s.flow || {}), pos: { ...(s.flow?.pos || pos), [st.id]: { x: snapTo(p.x, prefs.snap), y: snapTo(p.y, prefs.snap) } } } });
     setSel(st.id); setTab('cfg');
   };
   const removeStep = (id) => { const st = s.steps.find(x => x.id === id); const req = st && reqOf(st); if (!confirm(`Remove "${req?.name || 'this step'}" from the flow?${st?.kind === 'saved' ? ' The saved request is kept.' : ''}`)) return; const { [id]: _, ...rest } = s.flow?.pos || {}; onChange({ ...s, steps: s.steps.filter(x => x.id !== id), flow: { ...(s.flow || {}), pos: rest } }); };
@@ -399,7 +419,7 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
     notify?.(`"${reqOf(x)?.name || 'Step'}" now runs after "${reqOf(steps[i])?.name || 'step'}".`, 'info');
   };
   const moveBy = (id, d) => { const i = s.steps.findIndex(x => x.id === id); const j = i + d; if (j < 0 || j >= s.steps.length) return; const steps = [...s.steps]; [steps[i], steps[j]] = [steps[j], steps[i]]; onChange({ ...s, steps }); };
-  const arrange = () => { const p = {}; s.steps.forEach((st, i) => { p[st.id] = autoPos(i, perRow); }); setFlow({ pos: p }); setView({ x: 0, y: 0, k: 1 }); };
+  const arrange = () => { const p = {}; s.steps.forEach((st, i) => { const a = autoPos(i, perRow); p[st.id] = { x: snapTo(a.x, prefs.snap), y: snapTo(a.y, prefs.snap) }; }); setFlow({ pos: p }); setView({ x: 0, y: 0, k: 1 }); };
   const fit = () => {
     const el = stageRef.current; if (!el || !s.steps.length) { setView({ x: 0, y: 0, k: 1 }); return; }
     const ps = s.steps.map(x => pos[x.id]); const minX = Math.min(...ps.map(p => p.x)), minY = Math.min(...ps.map(p => p.y));
@@ -434,7 +454,7 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
   // ── pointer gestures: pan, move a card, draw a line ──
   const onStageDown = (e) => {
     if (e.button !== 0 || compact) return;
-    if (e.target.closest('.wbw-fnode, .wbw-ftools, .wbw-flabel')) return;
+    if (e.target.closest('.wbw-fnode, .wbw-ftools, .wbw-flabel, .wbw-fmini')) return;
     gesture.current = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
@@ -515,6 +535,7 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
           </div>
         )}
         {compact && missing.length > 0 && <button type="button" className="wbw-fmissing" onClick={() => { setSel(missing[0].stepId); setTab('cfg'); }}>{missing.length} input{missing.length === 1 ? '' : 's'} missing</button>}
+        {!compact && prefs.minimap && s.steps.length > 0 && <MiniMap steps={s.steps} posOf={posOf} view={view} stage={stageRef.current} onGo={(x, y) => { const el = stageRef.current; setView(v => ({ ...v, x: el.clientWidth / 2 - x * v.k, y: el.clientHeight / 2 - y * v.k })); }} />}
         <div className="wbw-fworld" style={compact ? undefined : { transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`, width: size.w, height: size.h }}>
           {!compact && (
             <svg className="wbw-fwires" width={size.w} height={size.h} aria-hidden="true">
@@ -523,7 +544,7 @@ export function FlowCanvas({ scenario: s, onChange, tree, reqOf, report, running
               {wire && posOf(wire.from) && <path d={curve(posOf(wire.from), { x: wire.x, y: wire.y - PORT_Y }).d} className="wire" />}
             </svg>
           )}
-          {!compact && links.filter(l => l.names.length).map(l => {
+          {!compact && prefs.labels && links.filter(l => l.names.length).map(l => {
             const a = posOf(l.from), b = posOf(l.to); if (!a || !b) return null; const c = curve(a, b);
             return <button key={`lbl-${l.from}>${l.to}`} type="button" className={`wbw-flabel${l.chain ? '' : ' data'}`} style={{ left: c.mx, top: c.my }}
               title="What this step passes on — click to change" onClick={() => { setSel(l.to); setTab('cfg'); }}>{l.names.join(', ')}</button>;

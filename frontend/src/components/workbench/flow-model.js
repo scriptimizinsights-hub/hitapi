@@ -329,15 +329,20 @@ export function missingInputs(scenario, reqOf, { scope, columns }) {
 const parse = (v, fallback) => { if (v == null) return fallback; if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return fallback; } };
 
 /** A HitAPI project endpoint → a step's own copy of the request, with what the spec says it needs and gives. */
-export function endpointStep(project, ep) {
+export function endpointStep(project, raw) {
+  // stored JSON may come back as a string (or a string of a string): read it into values first
+  const deep = (v, fb) => { let x = parse(v, fb); if (typeof x === 'string') x = parse(x, fb); return x ?? fb; };
+  const arr = (v) => { const x = deep(v, []); return Array.isArray(x) ? x : []; };
+  const obj = (v) => { const x = deep(v, null); return x && typeof x === 'object' && !Array.isArray(x) ? x : null; };
+  const ep = { ...raw, parameters: arr(raw.parameters), tags: arr(raw.tags), request_body: obj(raw.request_body), responses: obj(raw.responses) || {} };
   const req = fromProject(project, [ep]).children.flatMap(c => (c.type === 'folder' ? c.children : [c]))[0];
   const draft = structuredClone(req.draft);
   const base = String(project.base_url || '').replace(/\/+$/, '');
   if (base && !/^[a-z][\w+.-]*:\/\//i.test(draft.url)) draft.url = `${base}${draft.url.startsWith('/') ? '' : '/'}${draft.url}`;
   if (draft.auth?.type === 'inherit') draft.auth = { ...draft.auth, type: 'none' };
   draft.extract = []; draft.tests = [newTest('status', { op: 'in_range', expected: '2xx' })];
-  const params = parse(ep.parameters, []).filter(p => p?.name && p.in).map(p => ({ name: p.name, in: p.in, required: !!p.required || p.in === 'path' }));
-  const responses = parse(ep.responses, {}) || {};
+  const params = ep.parameters.filter(p => p?.name && p.in).map(p => ({ name: p.name, in: p.in, required: !!p.required || p.in === 'path' }));
+  const responses = ep.responses;
   const ok = Object.keys(responses).find(c => /^2\d\d$/.test(c));
   const json = ok && responses[ok]?.content?.['application/json'];
   const response = json ? (json.example ?? exampleOf(json.schema)) : undefined;

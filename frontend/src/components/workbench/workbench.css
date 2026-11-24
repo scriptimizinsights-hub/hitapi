@@ -485,3 +485,22 @@ span.wbw-bar > span { display: block; height: 100%; background: var(--accent); }
 .wbw-main:has(.wbw-flow:not(.compact)) { grid-template-columns: minmax(0, 1fr); }
 .wbw-main:has(.wbw-flow:not(.compact)) > .wbw-side { display: none; }
 .wbw-main:has(.wbw-flow:not(.compact)) > .wbw-scenario { grid-column: 1 / -1; }
+.wbw-fmini { position: absolute; right: 10px; bottom: 10px; z-index: 5; background: var(--bg-card); border: 1px solid var(--border-hover); border-radius: 8px; cursor: pointer; }
+.wbw-fmini .card { fill: var(--accent-dim); stroke: var(--accent); stroke-width: 1; }
+.wbw-fmini .view { fill: rgba(255,255,255,.04); stroke: var(--text-tertiary); stroke-width: 1; stroke-dasharray: 3 2; }
+/* Flow settings dialog */
+.wbw-fset fieldset { border: 0; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.wbw-fset legend { margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+.wbw-fset-opt { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-sm); cursor: pointer; }
+.wbw-fset-opt input { margin-top: 3px; }
+.wbw-fset-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--fs-sm); }
+.wbw-fset-row select { width: auto; min-width: 140px; }
+/* W10: a flow on its own page — the whole window */
+.wbw-flowpage { min-height: 100vh; padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+.wbw-flowpage > .wbw-scenario { flex: 1; padding: 10px; }
+.wbw-flowpage .wbw-sc-head .wbw-env { width: auto; max-width: 200px; }
+.wbw-flowpage .wbw-flow { height: calc(100vh - 128px); min-height: 480px; }
+.wbw-flowpage .wbw-modes { margin: 0; }
+.wbw-flowmissing { max-width: 540px; margin: 14vh auto 0; padding: 24px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.wbw-flowmissing h2 { margin: 0; font-size: var(--fs-xl); }
+@media (max-width: 760px) { .wbw-flowpage { padding: 8px; } .wbw-flowpage .wbw-flow { height: auto; } }

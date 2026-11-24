@@ -31,6 +31,12 @@ import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
 import { RouteMeta } from './seo/RouteMeta.jsx';
 import { ApiKeysPage } from './components/account/ApiKeysPage.jsx';
 import { Workbench } from './components/workbench/Workbench.jsx';
+
+/** A Workbench flow on its own page (web roadmap W10): /playground/flows/:id, /workbench/flows/:id */
+function FlowPage({ variant }) {
+  const { id } = useParams();
+  return <Workbench key={id} variant={variant} flowId={id} />;
+}
 import { SchedulesPage } from './components/workbench/SchedulesPage.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
@@ -176,6 +182,7 @@ export default function App() {
           <Route path="/support" element={<SupportPage />} />
           {/* API Playground — public, no login required */}
           <Route path="/playground" element={<PlaygroundPage />} />
+          <Route path="/playground/flows/:id" element={<FlowPage variant="public" />} />
           {/* Marketing landing page — root for unauthenticated visitors */}
           <Route path="/" element={
             <LandingPage onGetStarted={() => window.location.href = '/login'} />
@@ -211,6 +218,7 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
           <Route path="/playground" element={<PlaygroundPage />} />
+          <Route path="/playground/flows/:id" element={<FlowPage variant="public" />} />
 
           <Route path="/" element={
             <AppLayout onNewProject={handleNewProject}>
@@ -218,6 +226,7 @@ export default function App() {
             </AppLayout>
           } />
 
+          <Route path="/workbench/flows/:id" element={<FlowPage variant="app" />} />
           <Route path="/workbench" element={
             <AppLayout onNewProject={handleNewProject}>
               <div className="page" style={{ maxWidth: 1600 }}>

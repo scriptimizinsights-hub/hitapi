@@ -51,7 +51,7 @@ next one we review what was built.
 | W7 | Import and export ✅ | 10 | ✅ | ✅ | [07-import-export.md](07-import-export.md) |
 | W8 | Account storage, backup and sync with the extension ✅ | 11 | backup file | ✅ sync | [08-storage-sync.md](08-storage-sync.md) |
 | W9 | Automation: cloud schedules, CLI, API keys, GitHub ✅ | 12 | — | ✅ | [09-automation.md](09-automation.md) |
-| W10 | Visual flow builder: drag and drop, connect, pass data ✅ (Workbench; Flow Suites next) | — | ✅ | ✅ + project endpoints | [10-flow-builder.md](10-flow-builder.md) |
+| W10 | Visual flow builder: drag and drop, connect, pass data, own page + Flow settings ✅ (Workbench; Flow Suites next) | — | ✅ | ✅ + project endpoints | [10-flow-builder.md](10-flow-builder.md) |
 
 Why this order: W1 is what everything else sits on (and what search traffic lands on). W2–W7 follow the order the
 extension was built in, because each one uses the one before (scenarios need saved requests, variables and

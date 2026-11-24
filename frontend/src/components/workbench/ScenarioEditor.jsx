@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Play, Square, RotateCcw, GripVertical, FileUp } from 'lucide-react';
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Play, Square, RotateCcw, GripVertical, FileUp, Settings2 } from 'lucide-react';
 import { find, walk } from '@hitapi/shared/collections.js';
 import { newStep, parseData, reportSummary, failedSteps, MAX_REPEAT } from '@hitapi/shared/scenarios.js';
 import { formatBytes } from '@hitapi/shared/http.js';
@@ -163,8 +163,8 @@ function Report({ scenario, report, running, paused, envLabel, tree, onOpenResul
  * @param {(s) => void} p.onChange
  * @param {() => object|null} p.currentRequest  { draft, name, savedId } of the open request
  */
-export function ScenarioEditor({ scenario: s, onChange, tree, report, running, paused, envLabel, focusName, onRun, onStop, onBack, onOpenStep, onOpenResult, currentRequest, signedIn = false, scopeFor = () => new Set(), onEditDrafts = () => false, notify }) {
-  const canvas = s.flow?.view === 'canvas';
+export function ScenarioEditor({ scenario: s, onChange, tree, report, running, paused, envLabel, focusName, onRun, onStop, onBack, onOpenStep, onOpenResult, currentRequest, signedIn = false, scopeFor = () => new Set(), onEditDrafts = () => false, notify, prefs, onSettings, page = false, extra = null }) {
+  const canvas = (s.flow?.view || prefs?.defaultView || 'list') === 'canvas';
   const reqOf = useMemo(() => (st) => requestOfStep(st, tree), [tree]);
   const [hint, setHint] = useState('');
   const [drag, setDrag] = useState({ id: null, over: null, where: null });
@@ -201,7 +201,7 @@ export function ScenarioEditor({ scenario: s, onChange, tree, report, running, p
   return (
     <section className="card wbw-scenario" aria-label="Scenario">
       <div className="wbw-sc-head">
-        <button type="button" className="btn btn-ghost btn-sm wbw-sc-back" onClick={onBack} title="Back to the request"><ArrowLeft size={12} /> Request</button>
+        <button type="button" className="btn btn-ghost btn-sm wbw-sc-back" onClick={onBack} title={page ? 'Back to the Workbench' : 'Back to the request'}><ArrowLeft size={12} /> {page ? 'Workbench' : 'Request'}</button>
         <input ref={nameRef} className="input wbw-sc-title" aria-label="Scenario name" maxLength={120} value={s.name} onChange={(e) => onChange({ ...s, name: e.target.value })}
           onBlur={() => { if (!s.name.trim()) onChange({ ...s, name: 'Scenario' }); }} />
         <div className="wbw-seg wbw-sc-view" role="group" aria-label="View">
@@ -209,6 +209,8 @@ export function ScenarioEditor({ scenario: s, onChange, tree, report, running, p
           <button type="button" className={`wbw-seg-btn${canvas ? ' on' : ''}`} aria-pressed={canvas} onClick={() => onChange({ ...s, flow: { ...(s.flow || {}), view: 'canvas' } })}>Canvas</button>
         </div>
         <span className="wbw-grow" />
+        {extra}
+        {onSettings && <button type="button" className="btn btn-ghost btn-sm wbw-fset-btn" onClick={onSettings} title="Where flows open, grid, line labels, mini-map"><Settings2 size={12} /> Flow settings</button>}
         {running ? <button type="button" className="btn btn-danger btn-sm wbw-sc-stop" onClick={onStop}><Square size={12} /> Stop</button> : <>
           {failed.size > 0 && <button type="button" className="btn btn-ghost btn-sm wbw-sc-rerun" title="Run only the steps that failed last time" onClick={() => onRun(failed)}><RotateCcw size={12} /> Re-run {failed.size} failed</button>}
           <button type="button" className="btn btn-primary btn-sm wbw-sc-run" disabled={!s.steps.some(x => x.enabled)} onClick={() => {
@@ -223,7 +225,7 @@ export function ScenarioEditor({ scenario: s, onChange, tree, report, running, p
       </div>
       {canvas ? (
         <FlowCanvas scenario={s} onChange={onChange} tree={tree} reqOf={reqOf} report={report} running={running} signedIn={signedIn} scopeFor={scopeFor}
-          onEditDrafts={onEditDrafts} onRun={onRun} onOpenStep={onOpenStep} notify={notify}
+          onEditDrafts={onEditDrafts} onRun={onRun} onOpenStep={onOpenStep} notify={notify} prefs={prefs}
           overview={<div className="wbw-fover">
             <p className="text-xs text-tertiary">Select a step to set its inputs. Drag from a step's right port onto another step to make it run next.</p>
             <DataSection data={s.data} onChange={(data) => onChange({ ...s, data })} />
