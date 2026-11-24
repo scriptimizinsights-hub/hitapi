@@ -479,6 +479,34 @@ export function Workbench({ variant = 'public' }) {
     notify(`${sc.name}: ${sm.passed} passed, ${sm.failed} failed`, sm.failed ? 'error' : 'success');
   }, [runScenarioStep, notify, editScen]);
 
+  /**
+   * W10 flow builder: change step drafts together — saved requests (one tree edit) and the
+   * flow's own copies (one scenario change). fn(draft) mutates. Returns true when saved.
+   */
+  const editStepDrafts = (list) => {
+    try {
+      const saved = list.filter(x => x.step.kind === 'saved');
+      const own = list.filter(x => x.step.kind !== 'saved');
+      // check everything on copies first, so a mistake (e.g. a broken JSON body) changes nothing
+      for (const x of list) { const req = requestOfStep(x.step, treeRef.current); if (!req) throw new Error('The saved request for this step was deleted.'); x.fn(normalizeDraft(structuredClone(req.draft))); }
+      if (saved.length) {
+        const openWasClean = linked && !dirty;
+        const ok = edit((t) => { for (const x of saved) { const f = find(t, x.step.requestId); if (!f) return false; const d = normalizeDraft(structuredClone(f.node.draft)); x.fn(d); f.node.draft = d; } return true; });
+        if (ok !== true) return false;
+        // the open request is one of them and had no unsaved edits: show the new version
+        const hit = openWasClean && saved.find(x => x.step.requestId === linked.node.id);
+        if (hit) { const f = find(loadTree(), linked.node.id); if (f) setDraft(normalizeDraft(structuredClone(f.node.draft))); }
+      }
+      if (own.length) {
+        const next = structuredClone(scenEditRef.current);
+        for (const x of own) { const st = next.steps.find(y => y.id === x.step.id); if (!st) return false; st.draft = normalizeDraft(st.draft); x.fn(st.draft); }
+        changeScenario(next);
+      }
+      return true;
+    } catch (e) { notify(e.message, 'error'); return false; }
+  };
+  const scopeForStep = useCallback((req) => scopeOf(envs, req?.ancestors || []), [envs]);
+
   /** Open a step's request: a saved one as itself, a copied one with "Save to step". */
   const openStep = (scenarioId, step) => {
     if (step.kind === 'saved') { if (!openSaved(step.requestId)) return false; closeScenario(); return true; }
@@ -837,7 +865,8 @@ export function Workbench({ variant = 'public' }) {
             running={scenRunning === scenEdit.id} paused={scenRunning === scenEdit.id ? scenPaused : 0} envLabel={activeEnv?.name || 'none'} focusName={openScen.focusName}
             onRun={(only) => runScenarioNow(structuredClone(scenEdit), only)} onStop={() => scenRun.current?.controller.abort('cancel')} onBack={closeScenario}
             onOpenStep={(step) => openStep(scenEdit.id, step)} onOpenResult={(r, step) => openScenarioResult(scenEdit.id, r, step)}
-            currentRequest={() => (draft.url ? { draft: forSave(draft), name: linked?.node.name || requestName(draft), savedId: linked?.node.id || null } : null)} />
+            currentRequest={() => (draft.url ? { draft: forSave(draft), name: linked?.node.name || requestName(draft), savedId: linked?.node.id || null } : null)}
+            signedIn={signedIn} scopeFor={scopeForStep} onEditDrafts={editStepDrafts} notify={notify} />
         ) : <>
         <section className="card wbw-req" aria-label="Request">
           <RequestTabs draft={draft} update={update} files={files} setFiles={setFiles} mode={mode} tab={tab} setTab={setTab} inherit={inherit} extract={{ target: targetOf(envs), results: extractResults }} onSuggestTests={suggestFromLast} />

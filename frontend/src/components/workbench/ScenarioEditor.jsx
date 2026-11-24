@@ -4,6 +4,7 @@
  *
  *   left   steps: order (drag or ↑↓), on/off, wait before, repeat, stop or continue on failure; add steps; data rows
  *   right  the run: live progress, each step's status, time, tests and variables set; re-run failed steps
+ * W10: "Canvas" shows the same scenario as a flow you build by drag and drop (FlowCanvas.jsx).
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -11,6 +12,8 @@ import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Play, Square, RotateCcw, GripVer
 import { find, walk } from '@hitapi/shared/collections.js';
 import { newStep, parseData, reportSummary, failedSteps, MAX_REPEAT } from '@hitapi/shared/scenarios.js';
 import { formatBytes } from '@hitapi/shared/http.js';
+import { FlowCanvas } from './FlowCanvas.jsx';
+import { missingInputs } from './flow-model.js';
 
 /** The request a step sends: { draft, name, where } or null (saved request deleted). */
 export function requestOfStep(step, tree) {
@@ -160,7 +163,9 @@ function Report({ scenario, report, running, paused, envLabel, tree, onOpenResul
  * @param {(s) => void} p.onChange
  * @param {() => object|null} p.currentRequest  { draft, name, savedId } of the open request
  */
-export function ScenarioEditor({ scenario: s, onChange, tree, report, running, paused, envLabel, focusName, onRun, onStop, onBack, onOpenStep, onOpenResult, currentRequest }) {
+export function ScenarioEditor({ scenario: s, onChange, tree, report, running, paused, envLabel, focusName, onRun, onStop, onBack, onOpenStep, onOpenResult, currentRequest, signedIn = false, scopeFor = () => new Set(), onEditDrafts = () => false, notify }) {
+  const canvas = s.flow?.view === 'canvas';
+  const reqOf = useMemo(() => (st) => requestOfStep(st, tree), [tree]);
   const [hint, setHint] = useState('');
   const [drag, setDrag] = useState({ id: null, over: null, where: null });
   const nameRef = useRef(null);
@@ -199,12 +204,32 @@ export function ScenarioEditor({ scenario: s, onChange, tree, report, running, p
         <button type="button" className="btn btn-ghost btn-sm wbw-sc-back" onClick={onBack} title="Back to the request"><ArrowLeft size={12} /> Request</button>
         <input ref={nameRef} className="input wbw-sc-title" aria-label="Scenario name" maxLength={120} value={s.name} onChange={(e) => onChange({ ...s, name: e.target.value })}
           onBlur={() => { if (!s.name.trim()) onChange({ ...s, name: 'Scenario' }); }} />
+        <div className="wbw-seg wbw-sc-view" role="group" aria-label="View">
+          <button type="button" className={`wbw-seg-btn${canvas ? '' : ' on'}`} aria-pressed={!canvas} onClick={() => onChange({ ...s, flow: { ...(s.flow || {}), view: 'list' } })}>List</button>
+          <button type="button" className={`wbw-seg-btn${canvas ? ' on' : ''}`} aria-pressed={canvas} onClick={() => onChange({ ...s, flow: { ...(s.flow || {}), view: 'canvas' } })}>Canvas</button>
+        </div>
         <span className="wbw-grow" />
         {running ? <button type="button" className="btn btn-danger btn-sm wbw-sc-stop" onClick={onStop}><Square size={12} /> Stop</button> : <>
           {failed.size > 0 && <button type="button" className="btn btn-ghost btn-sm wbw-sc-rerun" title="Run only the steps that failed last time" onClick={() => onRun(failed)}><RotateCcw size={12} /> Re-run {failed.size} failed</button>}
-          <button type="button" className="btn btn-primary btn-sm wbw-sc-run" disabled={!s.steps.some(x => x.enabled)} onClick={() => onRun(null)}><Play size={12} /> Run</button>
+          <button type="button" className="btn btn-primary btn-sm wbw-sc-run" disabled={!s.steps.some(x => x.enabled)} onClick={() => {
+            if (canvas) {   // the flow view says what's missing before anything is sent
+              let columns = []; try { const r = parseData(s.data); columns = r.length ? Object.keys(r[0]) : []; } catch { /* shown in Data */ }
+              const miss = missingInputs(s, reqOf, { scope: scopeFor, columns });
+              if (miss.length && !confirm(`${miss.length} input${miss.length === 1 ? ' is' : 's are'} missing (${miss.slice(0, 3).map(m => m.need.label).join(', ')}). Run anyway?`)) return;
+            }
+            onRun(null);
+          }}><Play size={12} /> Run</button>
         </>}
       </div>
+      {canvas ? (
+        <FlowCanvas scenario={s} onChange={onChange} tree={tree} reqOf={reqOf} report={report} running={running} signedIn={signedIn} scopeFor={scopeFor}
+          onEditDrafts={onEditDrafts} onRun={onRun} onOpenStep={onOpenStep} notify={notify}
+          overview={<div className="wbw-fover">
+            <p className="text-xs text-tertiary">Select a step to set its inputs. Drag from a step's right port onto another step to make it run next.</p>
+            <DataSection data={s.data} onChange={(data) => onChange({ ...s, data })} />
+            <Report scenario={s} report={report} running={running} paused={paused} envLabel={envLabel} tree={tree} onOpenResult={onOpenResult} />
+          </div>} />
+      ) : (
       <div className="wbw-sc-body">
         <div className="wbw-sc-left">
           <div className="text-xs text-tertiary wbw-sc-label">Steps</div>
@@ -230,6 +255,7 @@ export function ScenarioEditor({ scenario: s, onChange, tree, report, running, p
         </div>
         <Report scenario={s} report={report} running={running} paused={paused} envLabel={envLabel} tree={tree} onOpenResult={onOpenResult} />
       </div>
+      )}
     </section>
   );
 }
