@@ -2,7 +2,7 @@
 
 **Extension feature covered:** 12 Automation.
 **Who:** signed-in users (these need an account and the server). Free with fair limits.
-**Status:** 📝 Requirements.
+**Status:** ✅ Built. Needs a worker deploy, migration 0019 (run it yourself in D1 Studio) and the cron trigger.
 
 ## Goal
 Run collections and scenarios on a schedule **in the cloud** (the browser can be closed — better than the
@@ -59,14 +59,58 @@ extension's Chrome-only schedules), get alerts when they fail, and connect to CI
 `shared/schedules.js` (model, run records, notification text), `shared/scenarios.js`, `shared/assert.js`,
 `shared/vars.js`, `shared/ci.js`; extension's schedule and GitHub dialogs as UI reference.
 
+## What was built
+- **Schedule a collection, folder or scenario** (⋯ → "Schedule runs in the cloud…") and a **Schedules** page
+  (`/schedules`, sidebar link; the project "Monitors" placeholder now points there): name, what, how often,
+  environment, secret names, last result (with the failures), next run, On/Off, Run now, run history (last 50; open
+  a run for each request: status, time, tests, variables set, body cut to 10 KB), edit, delete, "+ New schedule".
+- **Frequencies:** every 5 / 15 / 30 min, hourly, 3 / 6 / 12 h, daily. **Limits:** 10 schedules per account,
+  every 5 minutes at most, 100 requests per run (data rows × repeats counted before saving and during the run),
+  a run is stopped after 5 minutes.
+- **Where the requests come from:** the account copy of the Workbench (W8 must be on; the dialog says so).
+  Before saving, the website saves its latest changes to the account.
+- **Secrets:** the dialog lists the secret `{{variables}}` the requests use (not ones a "Set vars" step makes),
+  filled in from this browser; they are stored for that schedule only, **AES-GCM encrypted** (the existing
+  `ENCRYPTION_KEY`), never returned (the API gives names). Editing: empty = keep, typed = replace. A token typed
+  straight into a request (not a variable) is pointed out: it can't run in the cloud.
+- **Fix in W8 sync (`shared/sync.js`):** `{{variable}}` references such as `Bearer {{token}}` are now kept in the
+  account copy (they were blanked with the secrets, so cloud runs and new devices got an empty token). Shared with
+  the extension → **extension 2.1.1**.
+- **Runs on the worker:** a cron every minute (`[triggers] crons = ["* * * * *"]`) claims due schedules (25 at a
+  time, so two workers can't run one twice) and sends them to the existing queue (`schedule_run` messages); without
+  a queue they run in the background. The engine is the extension's own (`hitapi-extension/shared`: collections,
+  variables, tests, Set vars, `runScenario`), bundled into the worker; requests go through the public proxy (no
+  private hosts, redirects checked, 15 s, 2 MB). XPath checks are not available in cloud runs (they say so).
+- **Alerts:** "when a run fails (and when it works again)" / "after every run" / "never"; a **webhook** (https,
+  Slack-compatible JSON: `text`, `status`, `passed`, `failed`, `failures`) and **email** through Resend when the
+  worker has `RESEND_API_KEY` (and optionally `ALERT_FROM`, `SITE_URL`). Without it the run records "email
+  skipped: no email provider is set up on the server" and the Schedules page says email isn't set up yet.
+- **CI:** collection / scenario ⋯ → "Use in CI (hitapi-cli)…": the `npx hitapi-cli run …` command with the
+  variables CI must give (`--var`, `HITAPI_VAR_*`), JUnit, the cloud-run command with an API key (link to the API
+  keys page), **Download for the CLI** and Publish to GitHub.
+- **Publish to GitHub:** the extension's dialog and logic (repo, branch, folder, token, workflow, GitHub
+  Enterprise URL). The token goes from the browser straight to GitHub and is kept in this browser only
+  (`hitapi:web:github`), never sent to HitAPI.
+- **Worker files:** `migrations/0019_schedules.sql` (tables `schedules`, `schedule_runs`),
+  `src/services/schedules/engine.js`, `src/services/schedules/runner.js`, `src/routes/schedules.js`;
+  `src/index.js` (routes, cron, queue); `wrangler.toml` (cron).
+  **Website files:** `schedules-api.js`, `ScheduleDialog.jsx`, `SchedulesPage.jsx`, `github.js`, `CiDialogs.jsx`
+  (new); `Workbench.jsx`, `CollectionsPanel.jsx`, `ScenariosPanel.jsx`, `sync.js`, `workbench.css`; `App.jsx`
+  (route, Monitors page), `Sidebar.jsx` (link), `seo/pages.js` (noindex).
+
 ## Acceptance checklist
-- [ ] A schedule runs with the browser closed and records the run; failures email the user.
-- [ ] Secrets entered for a schedule are encrypted at rest and never returned by the API.
-- [ ] Limits enforced (count, frequency, requests per run).
-- [ ] Download for the CLI → `hitapi-cli run` passes in a GitHub Actions run.
-- [ ] Publish to GitHub from the website writes the file and the workflow.
+- [x] A schedule runs with the browser closed and records the run (the cron through the queue, tested locally).
+      Failure alerts: webhook tested; **email needs `RESEND_API_KEY`** (see open question 1).
+- [x] Secrets entered for a schedule are encrypted at rest (checked in D1: `enc:v1:…`) and never returned by the API
+      or stored in run results.
+- [x] Limits enforced (10 schedules, every 5 minutes, 100 requests per run).
+- [x] Download for the CLI → `hitapi-cli run` passes (run locally the way the workflow runs it; a real GitHub
+      Actions run is still to do).
+- [x] Publish to GitHub from the website writes the file and the workflow (tested against a fake GitHub API).
 
 ## Open questions
-1. Email provider for alerts?
-2. Limits OK (10 schedules, 5 min, 100 requests/run)?
+1. **Email provider:** built for Resend (one API key). Set `RESEND_API_KEY` (and a verified `ALERT_FROM`) as worker
+   secrets, or pick another provider.
+2. Limits OK (10 schedules, 5 min, 100 requests/run)? They are constants in `services/schedules/runner.js`.
 3. Should extension schedules be able to "move to the cloud" (same schedule, runs on the server)?
+4. R9 (`hitapi cloud run` by schedule id) is not built yet.

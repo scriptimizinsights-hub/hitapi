@@ -5,11 +5,12 @@ import { fileURLToPath } from 'node:url';
 // The Workbench uses the HitAPI extension's own request / body / auth / cURL / code logic
 // (hitapi-extension/shared), so the website and the extension behave the same.
 const sharedDir = fileURLToPath(new URL('../hitapi-extension/shared', import.meta.url));
+const libDir = fileURLToPath(new URL('../hitapi-extension/lib', import.meta.url));   // js-yaml (OpenAPI YAML import / export)
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { '@hitapi/shared': sharedDir },
+    alias: { '@hitapi/shared': sharedDir, '@hitapi/lib': libDir },
   },
   server: {
     port: 5173,
@@ -33,7 +34,7 @@ export default defineConfig({
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) return 'vendor';
           if (id.includes('node_modules/recharts')) return 'charts';
           if (id.includes('node_modules/lucide-react')) return 'icons';
-          if (id.includes('hitapi-extension/shared')) return 'hitapi-shared';
+          if (id.includes('hitapi-extension/shared') || id.includes('hitapi-extension/lib')) return 'hitapi-shared';
         }
       }
     }

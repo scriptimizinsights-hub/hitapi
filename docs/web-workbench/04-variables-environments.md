@@ -2,7 +2,7 @@
 
 **Extension feature covered:** 7 Variables and environments.
 **Who:** everyone (browser). Signed-in: environments saved to the account (secret values stay in the browser).
-**Status:** 📝 Requirements.
+**Status:** ✅ Built (saved in the browser). The account copy of environments comes with W8.
 
 ## Goal
 Write `{{baseUrl}}` and `{{token}}` once, switch between Development / Staging / Production in one click, and
@@ -40,9 +40,43 @@ None (account storage via W8).
 ## Reuse from the extension
 `shared/vars.js` (whole file), env store logic (`workbench/env-store.js` → web version).
 
+## What was built
+- **Environment picker** in the toolbar: "No environment", your environments, "Manage environments…"
+  ("+ Add an environment…" when there are none). The choice is remembered and other open tabs follow it.
+- **Environments and variables dialog:** Globals and environments; add (a new environment gets the same variable
+  names with empty values), rename, Use this one / Stop using, duplicate (secret values not copied), export as a
+  Postman environment or globals file (secret values left out, marked `secret`), delete (asks first). Two
+  environments can't share a name. Variable rows: on/off, name (checked), value, Secret. Names like token,
+  secret, password, key or auth are marked secret as you type (unless you change the box). Secret values are
+  hidden except while you edit them. A reference list of the dynamic variables is at the bottom.
+- **Under the URL:** the URL as it will be sent (secrets hidden) and a chip for every `{{variable}}` the request
+  uses: its value, "not defined" (amber) or "new each send" (dynamic). Clicking a chip opens where it is set
+  (missing → the dialog with a row ready for it; environment / Globals → the dialog; collection / folder →
+  its settings).
+- **Sending with missing variables** is blocked with a message naming them: "Add variables" when one is in the
+  URL, otherwise "Send anyway" (sends them as written).
+- **`{{name}}` works** in the URL, params, headers, body (JSON, XML, text, form, URL-encoded, GraphQL), auth
+  fields and a collection's base URL. Scope order: environment → folder → collection → globals
+  (`buildScope`). Values may themselves use variables.
+- **Collection and folder variables** in their settings dialogs (left out of exports when secret).
+- **Set vars tab:** rules `name ← JSON body path / header / status code`, run after each response, written to the
+  environment in use (or Globals); results shown in the tab ("✓ token set", "✗ x not set: $.x is not in the
+  response") and as a message. The runner applies them in order, so a Login request can set `{{token}}` for
+  the next requests of the same run.
+- **History** keeps the request as written (`{{token}}` kept, so reopening works) and the URL as sent; secret
+  values (secret variables, auth fields, auth headers) are blanked from the stored URL, request and response.
+- **Code / Copy as cURL** use the request with variables filled in (secrets included, as before).
+- **Storage:** `localStorage` keys `hitapi:web:environments` (same shape as the extension's `wb:environments`)
+  and `hitapi:web:activeEnv`.
+- **Files:** `src/components/workbench/env-store.js`, `VarsTable.jsx`, `EnvDialog.jsx` (new);
+  `Workbench.jsx`, `RequestTabs.jsx` (Set vars tab), `CollectionDialogs.jsx` (variables in settings),
+  `history-db.js` (templates and secret values), `workbench.css`. No worker change.
+
 ## Acceptance checklist
-- [ ] Same resolution results as the extension for the same scope cases.
-- [ ] Switching environment changes the resolved URL chips at once.
-- [ ] Login → Set vars → next request uses the token.
-- [ ] Secret values masked on screen, absent from exports and from the account copy.
-- [ ] Postman environment export imports into Postman (manual check).
+- [x] Same resolution results as the extension for the same scope cases (same shared code; environment, folder,
+  collection and globals checked end to end).
+- [x] Switching environment changes the resolved URL chips at once.
+- [x] Login → Set vars → next request uses the token (by hand and in a collection run).
+- [x] Secret values masked on screen and absent from exports and History. (Account copy: W8.)
+- [ ] Postman environment export imports into Postman (manual check — the file follows Postman's environment
+  format: `values` with `key`, `value`, `type`, `enabled`).

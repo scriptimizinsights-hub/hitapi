@@ -18,7 +18,8 @@
     added) or **Replace** (exactly the backup, after a confirm).
   - **Sync across devices** (signed in, opt-in): collections, environments + Globals and scenarios. Secrets never
     leave the browser: they are removed before upload and filled back in from the device's own copy when a newer
-    version arrives. History, run reports and the chosen environment stay per device. Device name, status
+    version arrives. `{{variable}}` references such as `Bearer {{token}}` are kept (they are not secrets; since
+    2.1.1 — before, they were blanked too, so a new device or a cloud schedule got an empty token). History, run reports and the chosen environment stay per device. Device name, status
     (last sync, what was sent/received, conflicts, errors), **Sync now**, **Delete the cloud copy**.
   - Sync runs when the Workbench opens, a few seconds after any change, and every 5 minutes while it is open.
     Three-way merge per item (collection, environment, scenario) against the last synced copy: one-sided changes

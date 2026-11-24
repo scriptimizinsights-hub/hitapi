@@ -25,7 +25,7 @@ function search(value, q) {
   return out;
 }
 
-function Node({ name, value, path, depth, open, toggle, matchSet, current, onCopy, baseUrl, isLastKey }) {
+function Node({ name, value, path, depth, open, toggle, matchSet, current, onCopy, onAddTest, baseUrl, isLastKey }) {
   const t = typeOf(value);
   const k = keyOf(path);
   const isMatch = matchSet.has(k);
@@ -38,6 +38,7 @@ function Node({ name, value, path, depth, open, toggle, matchSet, current, onCop
     <span className="jt-actions">
       <button type="button" onClick={() => onCopy(jsonPath(path), 'path')} title="Copy the JSONPath">path</button>
       <button type="button" onClick={() => onCopy(typeof value === 'string' ? value : JSON.stringify(value, null, 2), 'value')} title="Copy the value">copy</button>
+      {onAddTest && <button type="button" className="jt-test" onClick={() => onAddTest(jsonPath(path), value)} title="Add a check for this value to the request's Tests">test</button>}
     </span>
   );
   if (t !== 'object' && t !== 'array') {
@@ -61,7 +62,7 @@ function Node({ name, value, path, depth, open, toggle, matchSet, current, onCop
         {label}<span className="jt-sum" onClick={() => toggle(k)}>{summary}</span>{actions}
       </div>
       {isOpen && entries.slice(0, limit).map(([ck, cv]) => (
-        <Node key={ck} name={ck} value={cv} path={[...path, ck]} depth={depth + 1} open={open} toggle={toggle} matchSet={matchSet} current={current} onCopy={onCopy} baseUrl={baseUrl} />
+        <Node key={ck} name={ck} value={cv} path={[...path, ck]} depth={depth + 1} open={open} toggle={toggle} matchSet={matchSet} current={current} onCopy={onCopy} onAddTest={onAddTest} baseUrl={baseUrl} />
       ))}
       {isOpen && entries.length > limit && (
         <div className="jt-row" style={{ paddingLeft: (depth + 1) * 16 }}>
@@ -73,7 +74,7 @@ function Node({ name, value, path, depth, open, toggle, matchSet, current, onCop
 }
 
 /** Collapsible JSON with search, expand/collapse all, copy value / JSONPath, clickable links. */
-export function JsonTree({ value, baseUrl, onCopy }) {
+export function JsonTree({ value, baseUrl, onCopy, onAddTest = null }) {
   const initial = useMemo(() => {
     const s = new Set([keyOf([])]);
     const walk = (v, path, d) => {
@@ -122,7 +123,7 @@ export function JsonTree({ value, baseUrl, onCopy }) {
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(new Set([keyOf([])]))}>Collapse all</button>
       </div>
       <div className="jt font-mono" role="tree" aria-label="JSON response">
-        <Node value={value} path={[]} depth={0} open={open} toggle={toggle} matchSet={matchSet} current={current} onCopy={onCopy} baseUrl={baseUrl} />
+        <Node value={value} path={[]} depth={0} open={open} toggle={toggle} matchSet={matchSet} current={current} onCopy={onCopy} onAddTest={onAddTest} baseUrl={baseUrl} />
       </div>
     </div>
   );

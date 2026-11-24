@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Wand2, KeyRound, RefreshCw } from 'lucide-react';
+import { Wand2, KeyRound, RefreshCw, Trash2, Plus } from 'lucide-react';
+import { isValidVarName } from '@hitapi/shared/vars.js';
+import { TARGETS, OPS, JSON_TYPES, newTest, needsPath, needsExpected } from '@hitapi/shared/assert.js';
 import { KvTable } from './KvTable.jsx';
 import { COMMON_HEADERS, COMMON_VALUES, hasNoBody, buildUrl, splitUrl, paramsFromUrl } from '@hitapi/shared/http.js';
 import { BODY_TYPES, checkJson, formatJson, formatXml, rowId } from '@hitapi/shared/body.js';
-import { AUTH_TYPES } from '@hitapi/shared/auth.js';
+import { AUTH_TYPES, INHERIT_TYPE } from '@hitapi/shared/auth.js';
 import { cachedToken, fetchToken, forgetToken } from './send.js';
 
 export function Tabs({ tabs, active, onChange, label }) {
@@ -30,12 +32,29 @@ function ParamsTab({ draft, update }) {
 }
 
 // ── Headers ──
-function HeadersTab({ draft, update }) {
+function HeadersTab({ draft, update, inherit }) {
+  const own = new Set(draft.headers.filter(r => r.enabled !== false && String(r.key || '').trim()).map(r => String(r.key).trim().toLowerCase()));
+  const added = inherit?.headers || [];
   return (
-    <KvTable label="Headers" rows={draft.headers} suggestions={COMMON_HEADERS}
-      valueSuggestions={(k) => COMMON_VALUES[String(k || '').trim().toLowerCase()] || []}
-      hint={draft.auth.type !== 'none' ? 'The Auth tab adds its own header when you send.' : 'Content-Type is added for you from the Body tab.'}
-      onChange={(headers) => update({ headers })} />
+    <>
+      <KvTable label="Headers" rows={draft.headers} suggestions={COMMON_HEADERS}
+        valueSuggestions={(k) => COMMON_VALUES[String(k || '').trim().toLowerCase()] || []}
+        hint={draft.auth.type !== 'none' ? 'The Auth tab adds its own header when you send.' : 'Content-Type is added for you from the Body tab.'}
+        onChange={(headers) => update({ headers })} />
+      {added.length > 0 && (
+        <div className="wbw-inherited" aria-label="Headers from the collection">
+          <div className="text-xs text-tertiary">Added from the collection and folders:</div>
+          {added.map(h => {
+            const over = own.has(h.key.toLowerCase());
+            return (
+              <div key={h.key} className={`wbw-inh-row${over ? ' over' : ''}`} title={over ? 'Your own header with this name is sent instead' : `From "${h.from}"`}>
+                <span className="font-mono">{h.key}</span><span className="font-mono truncate">{h.value}</span><span className="text-xs text-tertiary">{over ? 'replaced by yours' : h.from}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -109,7 +128,7 @@ function Field({ label, children }) {
   return <label className="wbw-field"><span>{label}</span>{children}</label>;
 }
 
-function AuthTab({ draft, update, mode }) {
+export function AuthTab({ draft, update, mode, inherit = null, note = 'Kept in this browser only.' }) {
   const a = draft.auth;
   const set = (section, patch) => update({ auth: { ...a, [section]: { ...a[section], ...patch } } });
   const [tokenState, setTokenState] = useState({ busy: false, msg: '' });
@@ -123,8 +142,9 @@ function AuthTab({ draft, update, mode }) {
   return (
     <div className="wbw-auth">
       <div className="wbw-seg" role="radiogroup" aria-label="Auth type">
-        {AUTH_TYPES.map(t => <button key={t.id} type="button" role="radio" aria-checked={a.type === t.id} className={`wbw-seg-btn${a.type === t.id ? ' on' : ''}`} onClick={() => update({ auth: { ...a, type: t.id } })}>{t.label}</button>)}
+        {(inherit || a.type === 'inherit' ? [{ ...INHERIT_TYPE, label: inherit?.label || INHERIT_TYPE.label }, ...AUTH_TYPES] : AUTH_TYPES).map(t => <button key={t.id} type="button" role="radio" aria-checked={a.type === t.id} className={`wbw-seg-btn${a.type === t.id ? ' on' : ''}`} onClick={() => update({ auth: { ...a, type: t.id } })}>{t.label}</button>)}
       </div>
+      {a.type === 'inherit' && <p className="text-sm text-tertiary wbw-inh-auth" role="status">{inherit ? inherit.describe : 'This request is not in a collection, so there is nothing to inherit: no auth is added.'}</p>}
       {a.type === 'none' && <p className="text-sm text-tertiary">No auth. Add your own Authorization header in Headers if you need one.</p>}
       {a.type === 'bearer' && <div className="wbw-grid">{text('bearer', 'prefix', 'Prefix', 'Bearer')}{secret('bearer', 'token', 'Token', 'eyJhbGciOi…')}</div>}
       {a.type === 'basic' && <div className="wbw-grid">{text('basic', 'username', 'Username')}{secret('basic', 'password', 'Password')}</div>}
@@ -157,7 +177,112 @@ function AuthTab({ draft, update, mode }) {
           </div>
         </>
       )}
-      {a.type !== 'none' && <p className="text-xs text-tertiary">Kept in this browser only.</p>}
+      {a.type !== 'none' && a.type !== 'inherit' && note && <p className="text-xs text-tertiary">{note}</p>}
+    </div>
+  );
+}
+
+// ── Set vars (W4): after each response, save values from it into variables ──
+const FROM = [['json', 'JSON body'], ['header', 'Header'], ['status', 'Status code']];
+const FROM_PLACEHOLDER = { json: '$.data.token', header: 'Location', status: '' };
+
+function ExtractTab({ draft, update, target, results }) {
+  const rules = draft.extract || [];
+  const set = (i, patch) => update({ extract: rules.map((r, j) => (j === i ? { ...r, ...patch } : r)) });
+  return (
+    <div className="wbw-xt">
+      <p className="text-xs text-tertiary">After each response, save values from it into variables in <strong>{target}</strong>. Example: after a login request, save <code>$.token</code> into <code>token</code>, then use <code>{'{{token}}'}</code> in other requests.</p>
+      {rules.map((r, i) => {
+        const bad = r.name && !isValidVarName(String(r.name).trim());
+        return (
+          <div key={i} className={`wbw-xt-row${r.enabled === false ? ' off' : ''}`}>
+            <input type="checkbox" checked={r.enabled !== false} aria-label="Use this rule" onChange={(e) => set(i, { enabled: e.target.checked })} />
+            <input className={`input font-mono${bad ? ' invalid' : ''}`} placeholder="variable" spellCheck={false} aria-label="Variable to set" value={r.name || ''}
+              title={bad ? 'Use letters, digits, _ . or -, starting with a letter or _' : ''} onChange={(e) => set(i, { name: e.target.value })} />
+            <span className="text-tertiary" aria-hidden="true">←</span>
+            <select className="input" aria-label="Take it from" value={r.from || 'json'} onChange={(e) => set(i, { from: e.target.value })}>
+              {FROM.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            <input className="input font-mono" placeholder={FROM_PLACEHOLDER[r.from || 'json']} spellCheck={false} aria-label="JSON path or header name" value={r.path || ''}
+              style={{ visibility: r.from === 'status' ? 'hidden' : 'visible' }} onChange={(e) => set(i, { path: e.target.value })} />
+            <button type="button" className="btn btn-ghost btn-icon" aria-label="Delete rule" onClick={() => update({ extract: rules.filter((_, j) => j !== i) })}><Trash2 size={13} /></button>
+          </div>
+        );
+      })}
+      <div><button type="button" className="btn btn-ghost btn-sm wbw-xt-add" onClick={() => update({ extract: [...rules, { name: '', from: 'json', path: '', enabled: true }] })}><Plus size={12} /> Add rule</button></div>
+      {results?.length > 0 && (
+        <div className="wbw-xt-results text-sm" role="status" aria-label="Last response">
+          {results.map((x, i) => <div key={i} className={x.ok ? 'text-green' : 'text-red'}>{x.ok ? `✓ ${x.name} set` : `✗ ${x.name} not set: ${x.reason}`}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Tests (W5): checks that run on every response ──
+const TEST_PATH_PLACEHOLDER = { header: 'Content-Type', json: '$.data.id', xml: '/user/name' };
+const testKey = (t) => `${t.target}|${t.path}|${t.op}`;
+
+function TestRow({ t, onChange, onDelete }) {
+  const set = (patch) => {
+    const next = { ...t, ...patch };
+    if (!OPS[next.target].some(o => o[0] === next.op)) next.op = OPS[next.target][0][0];
+    if (next.target === 'json' && next.op === 'type_is' && !JSON_TYPES.includes(next.expected)) next.expected = 'string';
+    onChange(next);
+  };
+  const changeTarget = (target) => {
+    const fresh = newTest(target);
+    onChange({ ...t, target, op: fresh.op, path: needsPath(fresh) ? (t.target === target ? t.path : fresh.path) : '', expected: fresh.expected });
+  };
+  const schema = t.target === 'body' && t.op === 'schema';
+  return (
+    <div className={`wbw-ts-row${t.enabled === false ? ' off' : ''}${needsPath(t) ? '' : ' nopath'}`} data-id={t.id}>
+      <input type="checkbox" checked={t.enabled !== false} aria-label="Run this check" onChange={(e) => set({ enabled: e.target.checked })} />
+      <select className="input" aria-label="What to check" value={t.target} onChange={(e) => changeTarget(e.target.value)}>
+        {TARGETS.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+      </select>
+      {needsPath(t) && <input className="input font-mono wbw-ts-path" aria-label="Path or header name" spellCheck={false} placeholder={TEST_PATH_PLACEHOLDER[t.target] || ''} value={t.path || ''}
+        onChange={(e) => set({ path: e.target.value })} />}
+      <div className={`wbw-ts-cond${schema ? ' schema' : ''}`}>
+      <select className="input" aria-label="Check" value={t.op} onChange={(e) => set({ op: e.target.value })}>
+        {OPS[t.target].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+      </select>
+      <span className="wbw-ts-exp">
+        {!needsExpected(t) ? null
+          : t.target === 'json' && t.op === 'type_is'
+            ? <select className="input" aria-label="Expected type" value={JSON_TYPES.includes(t.expected) ? t.expected : 'string'} onChange={(e) => set({ expected: e.target.value })}>{JSON_TYPES.map(x => <option key={x} value={x}>{x}</option>)}</select>
+            : schema
+              ? <textarea className="input font-mono wbw-ts-schema" rows={4} spellCheck={false} aria-label="JSON Schema" placeholder={'{ "type": "object", "required": ["id"] }'} value={t.expected ?? ''} onChange={(e) => set({ expected: e.target.value })} />
+              : <input className="input font-mono" aria-label="Expected value" spellCheck={false} placeholder={{ status: '200', time: '1000', header: 'json' }[t.target] || 'value'} value={t.expected ?? ''} onChange={(e) => set({ expected: e.target.value })} />}
+      </span>
+      </div>
+      <button type="button" className="btn btn-ghost btn-icon" aria-label="Delete check" onClick={onDelete}><Trash2 size={13} /></button>
+    </div>
+  );
+}
+
+function TestsTab({ draft, update, onSuggest }) {
+  const tests = draft.tests || [];
+  const [note, setNote] = useState('');
+  const setAll = (list) => update({ tests: list });
+  return (
+    <div className="wbw-ts">
+      <p className="text-xs text-tertiary">Checks run on every response, and decide pass/fail in collection runs. You can use {'{{variables}}'} in paths and expected values.</p>
+      {tests.length ? tests.map((t, i) => (
+        <TestRow key={t.id || i} t={t} onChange={(n) => setAll(tests.map((x, j) => (j === i ? n : x)))} onDelete={() => setAll(tests.filter((_, j) => j !== i))} />
+      )) : <p className="text-sm text-tertiary wbw-ts-empty">No checks yet. Add one, or press "Suggest checks" after a response. You can also hover a value in the JSON response and press "test".</p>}
+      <div className="wbw-row">
+        <button type="button" className="btn btn-ghost btn-sm wbw-ts-add" onClick={() => { setAll([...tests, newTest('status')]); setNote(''); }}><Plus size={12} /> Add check</button>
+        <button type="button" className="btn btn-ghost btn-sm wbw-ts-suggest" title="Add checks for the status, time, content type and top-level JSON fields of the last response" onClick={() => {
+          const list = onSuggest?.();
+          if (!list) { setNote('Send the request first, then suggest checks from its response.'); return; }
+          const have = new Set(tests.map(testKey));
+          const fresh = list.filter(x => !have.has(testKey(x)));
+          setAll([...tests, ...fresh]);
+          setNote(fresh.length ? `Added ${fresh.length} check${fresh.length === 1 ? '' : 's'} from the last response. Edit or delete any you don't need.` : 'These checks are already there.');
+        }}><Wand2 size={12} /> Suggest checks</button>
+      </div>
+      {note && <p className="text-xs text-tertiary" role="status">{note}</p>}
     </div>
   );
 }
@@ -176,12 +301,14 @@ function SettingsTab({ draft, update, mode }) {
   );
 }
 
-export function RequestTabs({ draft, update, files, setFiles, mode, tab, setTab }) {
+export function RequestTabs({ draft, update, files, setFiles, mode, tab, setTab, inherit = null, extract = null, onSuggestTests = null }) {
   const tabs = [
     { id: 'params', label: 'Params', count: enabledCount(draft.params) },
-    { id: 'auth', label: 'Auth', dot: draft.auth.type !== 'none' },
+    { id: 'auth', label: 'Auth', dot: draft.auth.type !== 'none' && draft.auth.type !== 'inherit' },
     { id: 'headers', label: 'Headers', count: enabledCount(draft.headers) },
     { id: 'body', label: 'Body', dot: !hasNoBody(draft.method) && draft.bodyType !== 'none' && (['json', 'xml', 'text'].includes(draft.bodyType) ? !!draft.bodies[draft.bodyType].trim() : true) },
+    { id: 'tests', label: 'Tests', count: (draft.tests || []).filter(t => t.enabled !== false).length },
+    { id: 'extract', label: 'Set vars', count: (draft.extract || []).filter(r => r.enabled !== false && String(r.name || '').trim()).length },
     { id: 'settings', label: 'Settings' },
   ];
   return (
@@ -189,9 +316,11 @@ export function RequestTabs({ draft, update, files, setFiles, mode, tab, setTab 
       <Tabs tabs={tabs} active={tab} onChange={setTab} label="Request" />
       <div className="wbw-tabpane" role="tabpanel">
         {tab === 'params' && <ParamsTab draft={draft} update={update} />}
-        {tab === 'headers' && <HeadersTab draft={draft} update={update} />}
+        {tab === 'headers' && <HeadersTab draft={draft} update={update} inherit={inherit} />}
         {tab === 'body' && <BodyTab draft={draft} update={update} files={files} setFiles={setFiles} />}
-        {tab === 'auth' && <AuthTab draft={draft} update={update} mode={mode} />}
+        {tab === 'auth' && <AuthTab draft={draft} update={update} mode={mode} inherit={inherit?.auth || null} />}
+        {tab === 'tests' && <TestsTab draft={draft} update={update} onSuggest={onSuggestTests} />}
+        {tab === 'extract' && <ExtractTab draft={draft} update={update} target={extract?.target || 'Globals'} results={extract?.results} />}
         {tab === 'settings' && <SettingsTab draft={draft} update={update} mode={mode} />}
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 **Extension feature covered:** 11 Data backup and sync.
 **Who:** everyone (backup file); signed-in users (account storage and sync).
-**Status:** 📝 Requirements.
+**Status:** ✅ Built. No worker change (the website uses the existing `/api/extension/sync` route).
 
 ## Goal
 Anonymous users can back up and restore everything with one file. Signed-in users have their collections,
@@ -46,9 +46,36 @@ on every device.
 ## Reuse from the extension
 `shared/backup.js`, `shared/sync.js`, `workbench/sync.js` (→ web version with localStorage).
 
+## What was built
+- **Toolbar button:** signed out "Backup"; signed in the account status — "Saved · 2 min ago", "Saving…",
+  "Offline", "Not saved", "Not in account" — opening **Backup and sync**.
+- **Backup and sync dialog:**
+  - *Your HitAPI account* (signed in): "Keep my Workbench in my HitAPI account" (on by default), status with the
+    last save and any conflict copies, this browser's name ("Website (Chrome on Mac)"), Save now, Delete the account
+    copy (every device keeps its own copy). Signed out: a note and a sign-in link.
+  - *In this browser:* space used by collections, environments, scenarios and history.
+  - *Export everything:* a `hitapi-backup-YYYY-MM-DD.json` file (`shared/backup.js`), optionally with history and
+    with secrets (warning).
+  - *Import a backup:* preview per kind (new / updated / kept / removed, history, whether it has secrets), Merge or
+    Replace (asks first). Backups from the extension import, and the extension reads the website's.
+- **Account storage** (`sync.js`, the extension's algorithm): per kind (collections, environments + Globals,
+  scenarios) download, three-way merge per item (`merge3`), save here, upload with the version it replaces
+  (conflict → merge again). Secrets are removed before upload and filled back in from this browser
+  (`itemsOf` / `applyItems`); a new computer gets empty secret fields. Scenario run reports stay in the browser.
+- **When it saves:** on load, 3 s after a change, every 5 minutes, on tab focus, when back online. Offline
+  changes stay here and are saved later.
+- **First sign-in with data in this browser:** "Keep your Workbench in your account?" → Add them to my account
+  (merged with what the account has) / Keep them in this browser only / Use only my account's (asks first).
+  Without local data it just turns on.
+- **Signed out:** "You signed out" → Remove it from this browser (still in the account) / Keep a copy here.
+- **Files:** `sync.js`, `BackupDialog.jsx` (new); `Workbench.jsx`, `history-db.js` (`exportAll` / `importAll`),
+  `workbench.css`.
+
 ## Acceptance checklist
-- [ ] Extension ↔ website: a collection made on one appears on the other after a refresh (both signed in).
-- [ ] Both-sides edits produce a conflict copy, nothing lost.
-- [ ] Server copy contains no secret values (checked in D1).
-- [ ] First sign-in with local data offers merge; Replace/Merge backup import shows a correct preview.
-- [ ] Offline edits sync later.
+- [x] Extension ↔ website: a collection made on one appears on the other (a real extension with sync on and the
+  website, same account).
+- [x] Both-sides edits produce a conflict copy, nothing lost.
+- [x] Server copy contains no secret values (checked in the stored copy the server returns).
+- [x] First sign-in with local data offers merge; Replace/Merge backup import shows a correct preview.
+- [x] Offline edits sync later.
+- [x] 500 requests (~300 KB) saved in well under a second.

@@ -12,9 +12,8 @@ import { emptyAuth, normalizeAuth, authParts, addQuery } from '@hitapi/shared/au
 import { toCurl } from '@hitapi/shared/curl.js';
 
 export const DRAFT_KEY = 'hitapi:web:draft';
-export const RECENT_KEY = 'hitapi:web:recent';
+export const RECENT_KEY = 'hitapi:web:recent';          // W1's Recent list, moved into History (W2) once
 export const OLD_HISTORY_KEY = 'apiforge.playground.history';
-export const MAX_RECENT = 25;
 export const DEFAULT_SETTINGS = Object.freeze({ timeoutSec: 30, followRedirects: true, withCookies: false });
 
 export function emptyDraft() {
@@ -46,43 +45,6 @@ export function loadDraft() {
 }
 export function saveDraft(d) {
   try { ls()?.setItem(DRAFT_KEY, JSON.stringify(d)); } catch { /* storage full or blocked */ }
-}
-
-/** Recent requests (a simple list until History arrives, W2). Old playground history is moved over once. */
-export function loadRecent() {
-  const store = ls();
-  if (!store) return [];
-  try {
-    const now = JSON.parse(store.getItem(RECENT_KEY) || 'null');
-    if (Array.isArray(now)) return now;
-    const old = JSON.parse(store.getItem(OLD_HISTORY_KEY) || '[]');
-    const moved = (Array.isArray(old) ? old : []).map(e => ({
-      id: String(e.id || Date.now()), at: Number(e.id) || Date.now(), status: e.status || 0, ms: e.time_ms || 0,
-      draft: normalizeDraft({
-        method: e.method, url: e.url,
-        params: (e.params || []).filter(r => r.key), headers: (e.headers || []).filter(r => r.key),
-        bodyType: e.bodyType === 'text' ? 'text' : e.bodyType === 'none' ? 'none' : 'json',
-        bodies: { ...emptyBodies(), [e.bodyType === 'text' ? 'text' : 'json']: e.body || '' },
-        auth: e.auth?.type === 'bearer' ? { type: 'bearer', bearer: { token: '', prefix: 'Bearer' } } : e.auth?.type === 'basic' ? { type: 'basic', basic: { username: e.auth.username || '', password: '' } } : { type: 'none' },
-      }),
-    }));
-    store.setItem(RECENT_KEY, JSON.stringify(moved));
-    return moved;
-  } catch { return []; }
-}
-export function addRecent(list, draft, res) {
-  const entry = { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, at: Date.now(), status: res.status || 0, ms: res.ms || 0, error: res.error ? res.kind || 'error' : null, draft: maskForRecent(draft) };
-  const next = [entry, ...list].slice(0, MAX_RECENT);
-  try { ls()?.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-  return next;
-}
-/** Tokens and passwords are not kept in the recent list. */
-function maskForRecent(d) {
-  const c = structuredClone(d);
-  c.headers = c.headers.map(r => (/^(authorization|cookie|x-api-key|api-key|proxy-authorization)$/i.test(String(r.key).trim()) ? { ...r, value: '' } : r));
-  c.auth = { ...c.auth, bearer: { ...c.auth.bearer, token: '' }, basic: { ...c.auth.basic, password: '' }, apikey: { ...c.auth.apikey, value: '' }, custom: { ...c.auth.custom, value: '' }, oauth2: { ...c.auth.oauth2, clientSecret: '' } };
-  for (const r of c.bodies.form) if (r.kind === 'file') r.value = '';
-  return c;
 }
 
 // ── send modes ──────────────────────────────────────────────────────────────

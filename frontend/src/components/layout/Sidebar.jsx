@@ -3,7 +3,7 @@ import {
   Zap, LayoutDashboard, Globe, TestTube, Play, Bug,
   BarChart3, Bell, Settings, ChevronDown, Plus, Loader2,
   HelpCircle, LogOut, User, Lock, GitBranch,
-  Send, Shield, Server, KeyRound, SquareTerminal
+  Send, Shield, Server, KeyRound, SquareTerminal, Clock
 } from 'lucide-react';
 import { useStore } from '../../store/index.js';
 import { useState } from 'react';
@@ -95,6 +95,20 @@ export function Sidebar({ onNewProject }) {
         >
           <SquareTerminal size={15} />
           <span style={{ flex: 1 }}>API Workbench</span>
+        </NavLink>
+        <NavLink
+          to="/schedules"
+          style={({ isActive }) => ({
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 10px', borderRadius: 7, marginTop: 2,
+            color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+            background: isActive ? 'var(--bg-card)' : 'transparent',
+            fontSize: 'var(--fs-md)', fontWeight: isActive ? 500 : 400, textDecoration: 'none',
+            borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+          })}
+        >
+          <Clock size={15} />
+          <span style={{ flex: 1 }}>Schedules</span>
         </NavLink>
       </div>
 

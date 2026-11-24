@@ -2,7 +2,7 @@
 
 **Extension feature covered:** 8 Assertions.
 **Who:** everyone.
-**Status:** 📝 Requirements.
+**Status:** ✅ Built.
 
 ## Goal
 Check every response automatically: status, headers, JSON values, XML, time, body text, JSON Schema — and see at a
@@ -35,7 +35,30 @@ None.
 ## Reuse from the extension
 `shared/assert.js` (whole file); tests-pane UI ported to React.
 
+## What was built
+- **Tests tab** in the request (with a count): each check is target (status, JSON body, header, response time,
+  body text, XML body), path (JSONPath / header name / XPath, only where it applies), operator, expected value
+  (a type list for "type is", a text box for a JSON Schema), on/off and delete. Two lines per check so long paths
+  fit; one column on phones. `{{variables}}` in paths and expected values are filled in first.
+- **After a response:** a badge in the status line ("✓ 3 tests passed" / "✗ 1 of 3 tests failed") that opens
+  a **Tests** tab in the response with each check: ✓/✗, expected, actual and why it failed. When the request
+  itself fails, every check is listed as failed with the reason.
+- **"test" in the JSON tree:** a value → "equals" that value; an object or array → "type is object/array";
+  the request's Tests tab opens.
+- **Suggest checks:** status, a time budget, Content-Type and the top-level JSON fields of the last response;
+  checks already there are skipped. Before a response it explains to send first.
+- **Pass rule** (runner, and W6 scenarios): all checks pass; with none, status below 400. The runner shows
+  "1/1 tests" and the first failure on each request.
+- **History** keeps each response's check results (secret values blanked), shows ✓/✗ passed/total on each item,
+  has the "Tests failed" filter, and shows the results when you reopen a request.
+- Checks are saved with the request (changing them marks a saved request "edited").
+- **Files:** `RequestTabs.jsx` (Tests tab), `ResponseView.jsx` (badge, Tests results), `JsonTree.jsx` ("test"),
+  `Workbench.jsx` (run checks after send and in runs, "test", Suggest), `history-db.js`, `HistoryPanel.jsx`,
+  `workbench.css`. No worker change.
+
 ## Acceptance checklist
-- [ ] Every target × operator combination gives the same result as the extension (unit tests reuse its cases).
-- [ ] "Add test" from the tree and "Suggest checks" create working tests.
-- [ ] Runner and scenarios use the tests for pass/fail.
+- [x] Every target × operator combination gives the same result as the extension (the extension's own cases,
+  run in the website's browser; the website bundles the same `shared/assert.js`).
+- [x] "Add test" from the tree and "Suggest checks" create working tests.
+- [x] Runner uses the tests for pass/fail. (Scenarios: W6.)
+- [x] 20 checks on a 2 MB JSON response: well under 100 ms.

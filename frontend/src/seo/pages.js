@@ -76,7 +76,7 @@ export const PAGES = {
 };
 
 // App pages behind login: keep them out of Google
-const NOINDEX_PREFIXES = ['/projects', '/admin', '/login', '/workbench', '/account'];
+const NOINDEX_PREFIXES = ['/projects', '/admin', '/login', '/workbench', '/account', '/schedules'];
 
 function normalise(pathname) {
     const p = (pathname || '/').replace(/\/+$/, '');

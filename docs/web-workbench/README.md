@@ -43,14 +43,14 @@ next one we review what was built.
 | # | Web feature | Extension features | Anyone | Signed in | Doc |
 |---|---|---|---|---|---|
 | W1 | Web Workbench: request builder + response viewer ✅ | 1, 2, 3, 4 | ✅ | ✅ | [01-web-workbench.md](01-web-workbench.md) |
-| W2 | History | 5 | ✅ browser | ✅ + account (opt-in) | [02-history.md](02-history.md) |
-| W3 | Collections + runner | 6 | ✅ browser | ✅ account | [03-collections.md](03-collections.md) |
-| W4 | Variables and environments | 7 | ✅ | ✅ | [04-variables-environments.md](04-variables-environments.md) |
-| W5 | Tests | 8 | ✅ | ✅ | [05-tests.md](05-tests.md) |
-| W6 | Scenarios | 9 | ✅ | ✅ | [06-scenarios.md](06-scenarios.md) |
-| W7 | Import and export | 10 | ✅ | ✅ | [07-import-export.md](07-import-export.md) |
-| W8 | Account storage, backup and sync with the extension | 11 | backup file | ✅ sync | [08-storage-sync.md](08-storage-sync.md) |
-| W9 | Automation: cloud schedules, CLI, API keys, GitHub | 12 | — | ✅ | [09-automation.md](09-automation.md) |
+| W2 | History ✅ | 5 | ✅ browser | ✅ + account (opt-in) | [02-history.md](02-history.md) |
+| W3 | Collections + runner ✅ | 6 | ✅ browser | ✅ account | [03-collections.md](03-collections.md) |
+| W4 | Variables and environments ✅ | 7 | ✅ | ✅ | [04-variables-environments.md](04-variables-environments.md) |
+| W5 | Tests ✅ | 8 | ✅ | ✅ | [05-tests.md](05-tests.md) |
+| W6 | Scenarios ✅ | 9 | ✅ | ✅ | [06-scenarios.md](06-scenarios.md) |
+| W7 | Import and export ✅ | 10 | ✅ | ✅ | [07-import-export.md](07-import-export.md) |
+| W8 | Account storage, backup and sync with the extension ✅ | 11 | backup file | ✅ sync | [08-storage-sync.md](08-storage-sync.md) |
+| W9 | Automation: cloud schedules, CLI, API keys, GitHub ✅ | 12 | — | ✅ | [09-automation.md](09-automation.md) |
 
 Why this order: W1 is what everything else sits on (and what search traffic lands on). W2–W7 follow the order the
 extension was built in, because each one uses the one before (scenarios need saved requests, variables and
@@ -122,4 +122,11 @@ sends, every control reachable by Tab.
 | # | Status |
 |---|---|
 | W1 | ✅ Built — deploy worker + frontend, publish extension 2.1.0 |
-| W2–W9 | 📝 Requirements written, not started |
+| W2 | ✅ Built — deploy frontend (no worker change) |
+| W3 | ✅ Built — deploy frontend (no worker change) |
+| W4 | ✅ Built — deploy frontend (no worker change) |
+| W5 | ✅ Built — deploy frontend (no worker change) |
+| W6 | ✅ Built — deploy frontend (no worker change) |
+| W7 | ✅ Built — deploy frontend (no worker change) |
+| W8 | ✅ Built — deploy frontend (no worker change) |
+| W9 | ✅ Built — deploy worker (migration 0019 in D1 Studio, cron) + frontend; extension 2.1.1 |

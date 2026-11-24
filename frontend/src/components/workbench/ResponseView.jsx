@@ -6,6 +6,7 @@ import { bodyKind, parseSetCookies, fileNameFor, headersSize, parseLinkHeader } 
 import { formatBytes } from '@hitapi/shared/http.js';
 import { formatXml } from '@hitapi/shared/body.js';
 import { base64ToBytes } from './core.js';
+import { describe as describeTest, needsExpected } from '@hitapi/shared/assert.js';
 
 const TAB_KEY = 'hitapi:web:responseTab';
 const statusClass = (s) => (!s ? 'gray' : s < 300 ? 'green' : s < 400 ? 'blue' : s < 500 ? 'amber' : 'red');
@@ -53,7 +54,31 @@ function Preview({ r, kind, text }) {
   return <p className="text-sm text-tertiary">Nothing to preview for this content type. See Pretty or Raw.</p>;
 }
 
-export function ResponseView({ res, sending, onNotify, onSwitchMode }) {
+/** Results of the request's checks (W5): each ✓/✗ with expected, actual and why it failed. */
+function TestResults({ results }) {
+  const passed = results.filter(r => r.pass).length;
+  return (
+    <div className="wbw-tr">
+      <div className={`wbw-tr-sum ${passed === results.length ? 'ok' : 'bad'}`}>{passed} of {results.length} passed</div>
+      {results.map((r, i) => (
+        <div key={i} className={`wbw-tr-item ${r.pass ? 'ok' : 'bad'}`}>
+          <span className="wbw-tr-mark" aria-hidden="true">{r.pass ? '✓' : '✗'}</span>
+          <div className="wbw-tr-body">
+            <div className="font-mono wbw-tr-name">{describeTest(r.test)}</div>
+            <div className="text-xs text-tertiary">
+              {needsExpected(r.test) && !(r.test.target === 'body' && r.test.op === 'schema') ? <>Expected <code>{String(r.test.expected)}</code> · </> : null}
+              Actual <code>{r.actual || '—'}</code>
+            </div>
+            {!r.pass && r.message && <div className="wbw-tr-msg text-xs">{r.message}</div>}
+          </div>
+        </div>
+      ))}
+      <p className="text-xs text-tertiary">Edit the checks in the request's Tests tab.</p>
+    </div>
+  );
+}
+
+export function ResponseView({ res, sending, onNotify, onSwitchMode, banner = null, onAddTest = null }) {
   const [tab, setTab] = useState('pretty');
   useEffect(() => { try { const t = localStorage.getItem(TAB_KEY); if (t) setTab(t); } catch { /* ignore */ } }, []);
   const pick = (t) => { setTab(t); try { localStorage.setItem(TAB_KEY, t); } catch { /* ignore */ } };
@@ -72,6 +97,7 @@ export function ResponseView({ res, sending, onNotify, onSwitchMode }) {
   if (res.error) {
     return (
       <div className="wbw-res">
+        {banner}
         <div className="wbw-errbox" role="alert">
           <strong>{res.kind === 'invalid' ? 'Can\'t send yet' : res.kind === 'cancel' ? 'Cancelled' : 'No response'}</strong>
           <div className="wbw-pre">{res.error}</div>
@@ -84,6 +110,7 @@ export function ResponseView({ res, sending, onNotify, onSwitchMode }) {
           )}
         </div>
         {res.warnings?.length > 0 && <Warnings list={res.warnings} />}
+        {res.tests?.length > 0 && <TestResults results={res.tests} />}
       </div>
     );
   }
@@ -93,6 +120,9 @@ export function ResponseView({ res, sending, onNotify, onSwitchMode }) {
     { id: 'pretty', label: 'Pretty' }, { id: 'raw', label: 'Raw' }, { id: 'preview', label: 'Preview' },
     { id: 'headers', label: 'Headers', count: headerCount }, { id: 'cookies', label: 'Cookies', count: cookies.length }, { id: 'timing', label: 'Timing' },
   ];
+  const tc = res.tests?.length ? { passed: res.tests.filter(r => r.pass).length, total: res.tests.length } : null;
+  if (tc) tabs.push({ id: 'tests', label: 'Tests', count: `${tc.passed}/${tc.total}` });
+  const shownTab = tab === 'tests' && !tc ? 'pretty' : tab;
   const saveBody = () => {
     const blob = res.base64 ? new Blob([base64ToBytes(res.base64)], { type: res.contentType }) : new Blob([text], { type: res.contentType || 'text/plain' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileNameFor(res.finalUrl || '', res.contentType); a.click();
@@ -105,15 +135,19 @@ export function ResponseView({ res, sending, onNotify, onSwitchMode }) {
         <span title="Total time">{res.ms} ms</span>
         <span title="Body size">{formatBytes(res.size)}{res.truncated ? ' (cut off)' : ''}</span>
         <span className="text-xs text-tertiary">via {res.mode === 'cloud' ? 'HitAPI cloud' : res.mode === 'browser' ? 'this browser' : 'HitAPI extension'}</span>
+        {tc && <button type="button" className={`wbw-tests-badge ${tc.passed === tc.total ? 'ok' : 'bad'}`} title="See the test results" onClick={() => pick('tests')}>
+          {tc.passed === tc.total ? `✓ ${tc.total} test${tc.total === 1 ? '' : 's'} passed` : `✗ ${tc.total - tc.passed} of ${tc.total} test${tc.total === 1 ? '' : 's'} failed`}</button>}
         <span className="wbw-grow" />
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(res.base64 ? res.base64 : text, onNotify)} aria-label="Copy the body"><Copy size={12} /> Copy</button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={saveBody} aria-label="Save the body to a file"><Download size={12} /> Save</button>
       </div>
+      {banner}
       {res.warnings?.length > 0 && <Warnings list={res.warnings} />}
+      {res.notKept && <div className="wbw-note">The {res.notKept === 'image' ? 'image' : res.notKept === 'pdf' ? 'PDF' : 'binary'} body isn't kept in history. Resend to see it.</div>}
       {res.truncated && <div className="wbw-note">The body was cut off at {res.mode === 'cloud' ? '2 MB (HitAPI cloud limit)' : '10 MB'}.</div>}
-      <Tabs tabs={tabs} active={tab} onChange={pick} label="Response" />
+      <Tabs tabs={tabs} active={shownTab} onChange={pick} label="Response" />
       <div className="wbw-tabpane wbw-respane" role="tabpanel">
-        {tab === 'pretty' && (json !== undefined ? <JsonTree value={json} baseUrl={res.finalUrl} onCopy={(t, what) => copy(t, () => onNotify?.(what === 'path' ? `Copied ${t}` : 'Copied the value'))} />
+        {shownTab === 'pretty' && (json !== undefined ? <JsonTree value={json} baseUrl={res.finalUrl} onAddTest={onAddTest} onCopy={(t, what) => copy(t, () => onNotify?.(what === 'path' ? `Copied ${t}` : 'Copied the value'))} />
           : kind === 'xml' ? <pre className="wbw-pre wbw-body-text">{safe(() => formatXml(text), text)}</pre>
             : res.base64 ? <Preview r={res} kind={kind} text={text} />
               : <pre className="wbw-pre wbw-body-text">{text || <span className="text-tertiary">(empty body)</span>}</pre>)}
@@ -135,6 +169,7 @@ export function ResponseView({ res, sending, onNotify, onSwitchMode }) {
           </tbody></table>
         ) : <p className="text-sm text-tertiary">{res.mode === 'browser' ? 'Browsers never show Set-Cookie headers to web pages. Use HitAPI cloud or the extension to see cookies.' : 'The response set no cookies.'}</p>)}
         {tab === 'timing' && <Timing r={res} />}
+        {shownTab === 'tests' && <TestResults results={res.tests} />}
       </div>
     </div>
   );

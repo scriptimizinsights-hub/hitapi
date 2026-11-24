@@ -4,7 +4,8 @@
  *
  * Three kinds are synced: collections, environments (plus Globals) and scenarios.
  * Each is a list of items with an id. Before upload, secrets are removed (request
- * auth secrets and secret headers, secret variable values); after download they are
+ * auth secrets and secret headers, secret variable values; {{variable}} references
+ * such as "Bearer {{token}}" are kept); after download they are
  * filled back in from this device's own copy, so a token never leaves the browser.
  *
  * Merge (three-way, per item, against the copy both sides had at the last sync):
@@ -22,11 +23,14 @@ export const SYNC_KINDS = ['collections', 'environments', 'scenarios'];
 const GLOBALS_ID = '__globals';
 
 // ── secrets out ──
-const maskAuth = (a) => maskDraft({ headers: [], auth: a }).draft.auth;
-const maskHeaders = (rows) => maskDraft({ headers: rows || [] }).draft.headers;
+// keepVars: "Bearer {{token}}" is kept — a reference, not a secret (the value lives in an environment).
+// Without it a new device, or a cloud schedule run, would get an empty token.
+const KEEP = { keepVars: true };
+const maskAuth = (a) => maskDraft({ headers: [], auth: a }, KEEP).draft.auth;
+const maskHeaders = (rows) => maskDraft({ headers: rows || [] }, KEEP).draft.headers;
 
 function stripNode(n) {
-  if (n.type === 'request') return { ...n, draft: maskDraft(n.draft).draft };
+  if (n.type === 'request') return { ...n, draft: maskDraft(n.draft, KEEP).draft };
   const c = { ...n, children: (n.children || []).map(stripNode) };
   if (n.settings) c.settings = { ...n.settings, auth: maskAuth(n.settings.auth), headers: maskHeaders(n.settings.headers), variables: maskRows(n.settings.variables) };
   return c;
@@ -41,7 +45,7 @@ export function itemsOf(kind, data) {
   }
   if (kind === 'scenarios') {
     return (data?.items || []).map(({ lastReport, ...s }) => ({   // run reports stay on the device
-      ...s, steps: (s.steps || []).map(st => (st.kind === 'inline' && st.draft ? { ...st, draft: maskDraft(st.draft).draft } : st)),
+      ...s, steps: (s.steps || []).map(st => (st.kind === 'inline' && st.draft ? { ...st, draft: maskDraft(st.draft, KEEP).draft } : st)),
     }));
   }
   return [];

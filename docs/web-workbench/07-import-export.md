@@ -2,7 +2,7 @@
 
 **Extension feature covered:** 10 Import and export.
 **Who:** everyone.
-**Status:** 📝 Requirements.
+**Status:** ✅ Built.
 
 ## Goal
 Bring existing work into HitAPI in one step (Postman, OpenAPI, Insomnia, HAR, cURL) and take it anywhere
@@ -35,7 +35,31 @@ Bring existing work into HitAPI in one step (Postman, OpenAPI, Insomnia, HAR, cU
 ## Reuse from the extension
 `shared/convert/*` and `lib/js-yaml.mjs` (whole folder).
 
+## What was built
+- **Import dialog** (Collections → Import): drop or choose a file, paste text, or fetch a URL. URLs are
+  downloaded through HitAPI cloud (so the server's CORS doesn't matter; up to 2 MB, larger files: download and
+  drop them), localhost URLs from this browser. "Import from a HitAPI project…" is in the same dialog.
+- **Formats** (detected automatically, the extension's converters): Postman collection v2.0/v2.1 (auth, folders,
+  variables; simple test scripts → checks, `pm.environment.set` → Set vars; the rest counted), Postman
+  environment and globals, OpenAPI 3 and Swagger 2 (JSON or YAML; folder per tag, example bodies from schemas,
+  security → auth), HAR (only API calls / skip repeats / one host), Insomnia v4 (collections and environments),
+  HitAPI collection, **HitAPI scenario** (the CLI file → a scenario; its collection variables filled in), cURL
+  (into a collection you pick).
+- **Preview** before importing: the detected format, a summary (requests, folders, variables, environments, base
+  URL) and what couldn't be converted. Files it can't read are explained and Import stays off.
+- **After importing:** collections are added (and shown opened), environments added (a name already used gets
+  "(2)"), globals merged, a cURL request opened, a scenario opened.
+- **Export** a collection: HitAPI (.hitapi.json), Postman v2.1 (tests and Set vars become scripts), OpenAPI 3
+  JSON or YAML. Secrets are left out unless "Include tokens, passwords, API keys and secret variables" is ticked
+  (with a warning; not offered for OpenAPI). File names match the extension's (`Pet_Shop.postman_collection.json`).
+  Environments export as Postman environments (W4). Code snippets: W1.
+- **Speed:** a 5.1 MB OpenAPI file previews and imports in about 0.5 s on the main thread, so no Web Worker.
+- **Files:** `import-convert.js`, `ImportDialog.jsx` (new); `CollectionDialogs.jsx` (export formats),
+  `Workbench.jsx`, `CollectionsPanel.jsx`, `workbench.css`; `vite.config.js` (`@hitapi/lib` alias for js-yaml).
+  No worker change.
+
 ## Acceptance checklist
-- [ ] The sample files used by the extension tests import with the same results.
-- [ ] Exported Postman collection imports into Postman (manual check); exported OpenAPI validates.
-- [ ] No secret values in exports without "include secrets".
+- [x] The sample files used by the extension tests import with the same results (same summaries and counts).
+- [ ] Exported Postman collection imports into Postman (manual check). Exported OpenAPI has the required fields
+  and imports again; a formal validator run is still to do.
+- [x] No secret values in exports without "include secrets".

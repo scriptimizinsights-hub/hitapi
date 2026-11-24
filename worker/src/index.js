@@ -43,6 +43,7 @@ import { withRequestLog, trackPageView } from './services/requestLog.js';
 import { adminTraffic } from './routes/traffic.js';
 import { getExtensionSync, putExtensionSync, deleteExtensionSync } from './routes/extensionSync.js';
 import { listApiKeys, createApiKey, deleteApiKey } from './routes/apiKeys.js';
+import { listSchedules, createSchedule, updateSchedule, deleteSchedule, runScheduleNow, listScheduleRuns, getScheduleRun } from './routes/schedules.js';
 import { createPlaygroundMock, updatePlaygroundMock, generateMockData, importSpecRoutes } from './routes/mockPlayground.js';
 import { adminStats, adminListUsers, adminListProjects, adminActivity, isSuperAdmin, getProjectOwnerId, redactResponse } from './routes/admin.js';
 
@@ -166,6 +167,15 @@ const ROUTES = [
   router('GET', '/api/keys', listApiKeys),
   router('POST', '/api/keys', createApiKey),
   router('DELETE', '/api/keys/:id', deleteApiKey),
+
+  // Cloud schedules for Workbench collections, folders and scenarios (website W9)
+  router('GET', '/api/schedules', listSchedules),
+  router('POST', '/api/schedules', createSchedule),
+  router('PATCH', '/api/schedules/:id', updateSchedule),
+  router('DELETE', '/api/schedules/:id', deleteSchedule),
+  router('POST', '/api/schedules/:id/run', runScheduleNow),
+  router('GET', '/api/schedules/:id/runs', listScheduleRuns),
+  router('GET', '/api/schedules/:id/runs/:runId', getScheduleRun),
 ];
 
 /**
@@ -281,10 +291,24 @@ export default {
   },
 
   async queue(batch, env) {
+    // cloud schedule runs (website W9); everything else as before
+    const mine = batch.messages.filter(m => m.body?.type === 'schedule_run');
+    if (mine.length) {
+      const { handleScheduleMessages } = await import('./services/schedules/runner.js');
+      await handleScheduleMessages(mine, env);
+      if (mine.length === batch.messages.length) return;
+      return handleQueue({ ...batch, messages: batch.messages.filter(m => m.body?.type !== 'schedule_run') }, env);
+    }
     return handleQueue(batch, env);
   },
 
   async scheduled(event, env, ctx) {
+    // every minute: Workbench schedules that are due (website W9)
+    if (event.cron === '* * * * *') {
+      const { runDueSchedules } = await import('./services/schedules/runner.js');
+      await runDueSchedules(env, ctx);
+      return;
+    }
     const db = new (await import('./db/adapter.js')).DatabaseAdapter(env.DB);
     const monitors = await db.all(
       "SELECT * FROM monitors WHERE enabled = 1 AND schedule = ?",

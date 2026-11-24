@@ -31,6 +31,7 @@ import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
 import { RouteMeta } from './seo/RouteMeta.jsx';
 import { ApiKeysPage } from './components/account/ApiKeysPage.jsx';
 import { Workbench } from './components/workbench/Workbench.jsx';
+import { SchedulesPage } from './components/workbench/SchedulesPage.jsx';
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 
 function MonitorsPage() {
@@ -43,8 +44,9 @@ function MonitorsPage() {
       <div className="card">
         <div className="empty-state">
           <div style={{ fontSize: 32 }}>🔔</div>
-          <h3>Monitors coming soon</h3>
-          <p>Configure cron-based runs with Cloudflare Cron Triggers. Alerts via Slack, email, and webhooks.</p>
+          <h3>Scheduled runs live on the Schedules page</h3>
+          <p>Run API Workbench collections, folders and scenarios in the cloud every 5 minutes to every day, with email and webhook alerts when they fail.</p>
+          <a className="btn btn-primary" href="/schedules">Open Schedules</a>
         </div>
       </div>
     </div>
@@ -224,6 +226,18 @@ export default function App() {
                   <p className="page-subtitle">Send any HTTP request and inspect the response. The same Workbench as the HitAPI extension.</p>
                 </div>
                 <Workbench variant="app" />
+              </div>
+            </AppLayout>
+          } />
+
+          <Route path="/schedules" element={
+            <AppLayout onNewProject={handleNewProject}>
+              <div className="page" style={{ maxWidth: 1200 }}>
+                <div className="page-header">
+                  <h1 className="page-title">Schedules</h1>
+                  <p className="page-subtitle">Run your API Workbench collections and scenarios in the cloud, with alerts when they fail.</p>
+                </div>
+                <SchedulesPage />
               </div>
             </AppLayout>
           } />
