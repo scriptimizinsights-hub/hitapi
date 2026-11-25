@@ -4,7 +4,7 @@
  * (Node.js with @cloudflare/workers-types, Deno, Bun, etc.)
  */
 
-import { handleCORS, json } from './middleware/cors.js';
+import { handleCORS, json, corsHeaders } from './middleware/cors.js';
 import { hitapiSignup, hitapiLogin, hitapiMe, hitapiAcceptTerms, hitapiTermsHistory, requireAuth } from './services/auth.js';
 import {
   listProjects, createProject, getProject, updateProject, deleteProject,
@@ -282,7 +282,7 @@ async function handleFetch(request, env, ctx) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Internal server error',
-      }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });   // CORS: else browsers only say "Failed to fetch"
     }
 }
 

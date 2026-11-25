@@ -24,7 +24,8 @@ Each index on a table adds one written row per write, so an insert into `request
    `/api/agent/status` still answers for old callers (`connected: null, checkInBrowser: true`); nothing on the website
    used it. Extension **2.1.2**. Older extensions still poll every 2 s until updated, but those polls are no longer
    logged or heartbeated, so they cost reads only.
-2. **Traffic log:** `/api/agent/*` and `GET /api/extension/sync` are not written to `request_logs`.
+2. **Traffic log:** `/api/agent/*`, `GET /api/extension/sync` and calls to mock URLs (`/mock/...`, which apps can
+   call very often) are not written to `request_logs`. The admin Traffic page no longer counts mock hits.
 3. **Schedules:** free plan = at most hourly (`FREE_SCHEDULE_MIN_EVERY = 60`; choices 1 h, 3 h, 6 h, 12 h, daily).
    Older 5–30-minute schedules run hourly (shown as "Every hour"), no migration. A run is written once, at the end
    (no "running" row), and old runs are trimmed on about 1 run in 10: about 3 written rows a run instead of 6+.
@@ -36,7 +37,8 @@ Each index on a table adds one written row per write, so an insert into `request
    limit. Signing in, saving to your account, projects and schedules are paused until 05:30 (in about N h). The API
    Workbench in this browser still works." + **Upgrade** → `/pricing`. Admins also see "Upgrade the Cloudflare account
    to Workers Paid ($5/month)". During the limit nobody is signed out (the profile comes from the last good one / the
-   login token) and the Terms screen waits until it's over. Sending from HitAPI cloud keeps working (it uses KV, not D1).
+   login token) and the Terms screen waits until it's over. Sending from HitAPI cloud keeps working (it uses KV, not D1). Any other unexpected worker error now carries CORS
+   headers too, so pages show the message instead of the browser's bare "Failed to fetch" (seen on the Mock Playground).
 6. **`/pricing`:** Free (current: what's included, hourly schedules, the daily pause) and Pro "Coming soon" with
    **Notify me** (an email to support@hitapi.dev).
 7. **Testing it locally:** `wrangler dev --var DEV_SIMULATE_DAILY_LIMIT:1` makes every D1 query fail with Cloudflare's

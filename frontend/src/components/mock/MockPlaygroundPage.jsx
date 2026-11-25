@@ -4,7 +4,8 @@
  * Visitors build routes (method, path, status, headers, delay, body), press Save
  * and get a real temporary mock at services.hitapi.dev/mock/t/<id>/..., then
  * test it right here. Bodies can be generated from a JSON Schema or a sample,
- * and routes can be imported from an OpenAPI spec.
+ * and routes can be imported from an OpenAPI spec or from cURL commands (optionally with the real
+ * response). The cURL panel shows how to create, update and call the mock from a terminal.
  *
  * The page is prerendered for search engines (scripts/prerender.mjs) with the
  * example routes; saved state (routes, mock id, edit token) lives in this
@@ -14,8 +15,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Plus, Trash2, Copy, Check, Send, Save, Upload, Sparkles, Shuffle, Wand2, RotateCcw, X, Clock, ArrowRight, Link2, AlignLeft,
+    Plus, Trash2, Copy, Check, Send, Save, Upload, Sparkles, Shuffle, Wand2, RotateCcw, X, Clock, ArrowRight, Link2, AlignLeft, Terminal,
 } from 'lucide-react';
+import { parseCurl } from '@hitapi/shared/curl.js';
+import { isDailyLimitResponse } from '../../utils/dailyLimit.js';
 import { LogoMark } from '../ui/Logo.jsx';
 import { PublicFooter } from '../ui/PublicFooter.jsx';
 import { CodeSnippet } from '../ui/CodeSnippet.jsx';
@@ -77,11 +80,17 @@ const toApi = (r) => ({
 const samplePath = (path) => path.replace(/\{[^}]+\}/g, '1');
 
 async function post(path, body, method = 'POST') {
-    const res = await fetch(`${API_BASE}${path}`, {
-        method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-    });
+    let res;
+    try {
+        res = await fetch(`${API_BASE}${path}`, {
+            method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+    } catch {
+        throw new Error('Couldn\'t reach HitAPI. Check your connection and try again; if it keeps failing, HitAPI may be having a problem right now.');
+    }
     let data = null;
     try { data = await res.json(); } catch { /* no body */ }
+    isDailyLimitResponse(res, data);   // the site-wide "daily limit reached" banner
     if (!res.ok) {
         const err = new Error(data?.error || `Request failed (HTTP ${res.status})`);
         err.status = res.status;
@@ -123,7 +132,7 @@ export function MockPlaygroundPage() {
     const [notice, setNotice] = useState(null);
     const [copied, setCopied] = useState(false);
     const [editTab, setEditTab] = useState('body');
-    const [panel, setPanel] = useState(null); // 'import' | 'generate' | null
+    const [panel, setPanel] = useState(null); // 'import' | 'curl' | 'curlout' | null
     const loaded = useRef(false);
 
     // Restore this browser's playground (after first render, so the prerendered HTML matches)
@@ -154,6 +163,24 @@ export function MockPlaygroundPage() {
         const r = { key: newKey(), method: 'GET', path, status: 200, delay_ms: 0, headers: [], body: '{\n  "ok": true\n}' };
         setRoutes(rs => [...rs, r]);
         setSelected(r.key);
+    }
+
+    /** Routes made from cURL commands: an existing route with the same method and path is replaced. */
+    function addFromCurl(list, note) {
+        let next = [...routes];
+        let last = null;
+        for (const r of list) {
+            const i = next.findIndex(x => x.method === r.method && x.path === r.path);
+            const route = { key: i >= 0 ? next[i].key : newKey(), delay_ms: 0, ...r };
+            if (i >= 0) next[i] = route;
+            else if (next.length < MAX_ROUTES) next.push(route);
+            else { setError(`A playground mock can have up to ${MAX_ROUTES} routes.`); break; }
+            last = route.key;
+        }
+        setRoutes(next);
+        if (last) setSelected(last);
+        setPanel(null);
+        setNotice(note);
     }
 
     function removeRoute(key) {
@@ -252,8 +279,10 @@ export function MockPlaygroundPage() {
                             <>
                                 <span className="mpg-muted mpg-expiry"><Clock size={12} /> Live until {expires}</span>
                                 <button className="btn btn-ghost btn-sm" onClick={copyUrl}>{copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy URL'}</button>
+                                <CopyButton className="btn btn-ghost btn-sm mpg-copycurl" label="Copy cURL" title={`cURL for ${current.method} ${current.path}`} text={callCurl(saved.url, current)} />
                             </>
                         )}
+                        <button className="btn btn-ghost btn-sm mpg-curlout-btn" onClick={() => setPanel(p => (p === 'curlout' ? null : 'curlout'))} title="Create, update and call this mock from a terminal"><Terminal size={13} /> cURL</button>
                         <button className="btn btn-ghost btn-sm" onClick={() => setPanel(p => (p === 'import' ? null : 'import'))}><Upload size={13} /> Import OpenAPI</button>
                         <button className="btn btn-ghost btn-sm" onClick={resetExample} title="Load the example routes"><RotateCcw size={13} /> Example</button>
                         <button className="btn btn-primary btn-sm" onClick={save} disabled={saving || (!dirty && !!saved)}>
@@ -265,6 +294,8 @@ export function MockPlaygroundPage() {
                 {error && <div className="mpg-alert mpg-alert-red" role="alert"><span>{error}</span><button className="btn btn-ghost btn-icon" onClick={() => setError(null)} aria-label="Dismiss"><X size={12} /></button></div>}
                 {notice && <div className="mpg-alert mpg-alert-amber"><span>{notice}</span><button className="btn btn-ghost btn-icon" onClick={() => setNotice(null)} aria-label="Dismiss"><X size={12} /></button></div>}
 
+                {panel === 'curl' && <CurlImportPanel onClose={() => setPanel(null)} onAdd={addFromCurl} />}
+                {panel === 'curlout' && <CurlOutPanel routes={routes} saved={saved} dirty={dirty} onClose={() => setPanel(null)} />}
                 {panel === 'import' && (
                     <ImportPanel
                         onClose={() => setPanel(null)}
@@ -283,7 +314,10 @@ export function MockPlaygroundPage() {
                     <section className="card mpg-routes" aria-label="Routes">
                         <div className="mpg-section-title">
                             <span>Routes <span className="mpg-muted">({routes.length}/{MAX_ROUTES})</span></span>
-                            <button className="btn btn-ghost btn-sm" onClick={addRoute}><Plus size={13} /> Add</button>
+                            <span className="mpg-route-adds">
+                                <button className="btn btn-ghost btn-sm mpg-fromcurl" onClick={() => setPanel(p => (p === 'curl' ? null : 'curl'))} title="Make routes from cURL commands"><Terminal size={13} /> From cURL</button>
+                                <button className="btn btn-ghost btn-sm" onClick={addRoute}><Plus size={13} /> Add</button>
+                            </span>
                         </div>
                         <ul>
                             {routes.map(r => (
@@ -514,6 +548,119 @@ function ImportPanel({ onImport, onClose }) {
     );
 }
 
+// ── cURL ────────────────────────────────────────────────────────────────────
+
+/** Quote for a POSIX shell: 'it'\''s' */
+const sq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
+/** curl that calls one route of a saved mock */
+const callCurl = (url, r) => {
+    const path = samplePath(r.path || '/');
+    const hasBody = ['POST', 'PUT', 'PATCH'].includes(r.method);
+    return `curl -X ${r.method} ${sq(`${url}${path.startsWith('/') ? path : `/${path}`}`)}${hasBody ? ` -H 'Content-Type: application/json' -d ${sq('{"name": "Test"}')}` : ''}`;
+};
+/** A route as the API takes it, with a JSON body as an object so the command reads well */
+const forCurl = (r) => {
+    const a = toApi(r);
+    try { if (a.body.trim()) a.body = JSON.parse(a.body); } catch { /* keep text */ }
+    if (!Object.keys(a.headers).length) delete a.headers;
+    if (!a.delay_ms) delete a.delay_ms;
+    return a;
+};
+
+function CopyButton({ text, label = 'Copy', className = 'btn btn-ghost btn-sm', title }) {
+    const [done, setDone] = useState(false);
+    return (
+        <button className={className} title={title} onClick={async () => { try { await navigator.clipboard.writeText(text); } catch { /* blocked */ } setDone(true); setTimeout(() => setDone(false), 1500); }}>
+            {done ? <Check size={13} /> : <Copy size={13} />} {done ? 'Copied' : label}
+        </button>
+    );
+}
+
+/** Paste cURL commands → routes. With "real response", each is sent once from HitAPI cloud and its answer kept. */
+function CurlImportPanel({ onAdd, onClose }) {
+    const [text, setText] = useState('');
+    const [real, setReal] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState(null);
+
+    async function run() {
+        setBusy(true); setErr(null);
+        try {
+            const cmds = text.split(/\n\s*(?=(?:\$\s+)?curl\s)/i).map(x => x.trim()).filter(Boolean);
+            if (!cmds.length) throw new Error('Paste a cURL command (it starts with "curl").');
+            const out = [];
+            for (const cmd of cmds) {
+                let c;
+                try { c = parseCurl(cmd); } catch (e) { throw new Error(cmds.length > 1 ? `Command ${out.length + 1}: ${e.message}` : e.message); }
+                let u;
+                try { u = new URL(/^[a-z][\w+.-]*:\/\//i.test(c.url) ? c.url : `https://${c.url}`); } catch { throw new Error(`Can't read the URL "${c.url}".`); }
+                const method = METHODS.includes(String(c.method).toUpperCase()) ? String(c.method).toUpperCase() : 'GET';
+                const path = decodeURIComponent(u.pathname) || '/';
+                let route = { method, path, status: method === 'POST' ? 201 : method === 'DELETE' ? 204 : 200, headers: [], body: '' };
+                if (real) {
+                    const headers = Object.fromEntries((c.headers || []).map(h => [h.key, h.value]));
+                    const r = await post('/public/request', { method: c.method, url: u.href, headers, ...(c.body ? { body: c.body } : {}) });
+                    let body = r.body || '';
+                    if (/json/i.test(r.content_type || '')) { try { body = JSON.stringify(JSON.parse(body), null, 2); } catch { /* as is */ } }
+                    const type = (r.content_type || '').split(';')[0].trim();
+                    route = { ...route, status: r.status, body, headers: type && type !== 'application/json' ? [{ name: 'Content-Type', value: type }] : [] };
+                } else if (method !== 'DELETE') {
+                    let echo = null;
+                    try { echo = c.body ? JSON.stringify(JSON.parse(c.body), null, 2) : null; } catch { /* not JSON */ }
+                    route.body = echo && method !== 'GET' ? echo : '{\n  "ok": true\n}';
+                }
+                out.push(route);
+            }
+            const what = out.map(r => `${r.method} ${r.path}${real ? ` (${r.status})` : ''}`).join(', ');
+            onAdd(out, `Added from cURL: ${what}.${real ? ' Responses are the real ones, captured just now.' : ''} Press Save to publish.`);
+        } catch (e) { setErr(e.message); } finally { setBusy(false); }
+    }
+
+    return (
+        <div className="card mpg-panel mpg-curlin">
+            <div className="mpg-section-title">
+                <span><Terminal size={13} /> Make routes from cURL</span>
+                <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close"><X size={12} /></button>
+            </div>
+            <textarea className="input font-mono" rows={5} spellCheck={false} aria-label="cURL commands" value={text} onChange={e => setText(e.target.value)}
+                placeholder={"curl https://api.example.com/v1/users\ncurl -X POST https://api.example.com/v1/users -H 'Content-Type: application/json' -d '{\"name\": \"Asha\"}'"} />
+            <label className="mpg-check"><input type="checkbox" checked={real} onChange={e => setReal(e.target.checked)} />
+                <span>Use the real response: send each command once from HitAPI cloud and keep its status, body and Content-Type <span className="mpg-muted">(public URLs only)</span></span></label>
+            {err && <p className="mpg-warn" role="alert">{err}</p>}
+            <div className="mpg-row">
+                <button className="btn btn-primary btn-sm mpg-curlin-go" onClick={run} disabled={busy || !text.trim()}>{busy ? (real ? 'Sending…' : 'Adding…') : 'Add routes'}</button>
+                <span className="mpg-muted">One route per command (method and path; the host and query are dropped). A route with the same method and path is replaced.</span>
+            </div>
+        </div>
+    );
+}
+
+/** Create, update and call the mock from a terminal. */
+function CurlOutPanel({ routes, saved, dirty, onClose }) {
+    const payload = JSON.stringify({ routes: routes.map(forCurl) }, null, 2);
+    const create = `curl -X POST ${sq(`${API_BASE}/public/mocks`)} \\\n  -H 'Content-Type: application/json' \\\n  -d ${sq(payload)}`;
+    const update = saved && `curl -X PUT ${sq(`${API_BASE}/public/mocks/${saved.id}`)} \\\n  -H 'Content-Type: application/json' \\\n  -d ${sq(JSON.stringify({ token: saved.token, routes: routes.map(forCurl) }, null, 2))}`;
+    const calls = saved ? routes.map(r => callCurl(saved.url, r)).join('\n') : '';
+    const Block = ({ title, note, text, cls }) => (
+        <div className={`mpg-curlblock ${cls || ''}`}>
+            <div className="mpg-curlblock-head"><strong>{title}</strong><CopyButton text={text} /></div>
+            {note && <p className="mpg-muted">{note}</p>}
+            <pre className="font-mono">{text}</pre>
+        </div>
+    );
+    return (
+        <div className="card mpg-panel mpg-curlout">
+            <div className="mpg-section-title">
+                <span><Terminal size={13} /> This mock with cURL</span>
+                <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close"><X size={12} /></button>
+            </div>
+            <Block cls="mpg-curl-create" title="Create it (a new mock URL)" note="No account needed. The answer has the mock's url, and a token that lets you update it. It stays live for 7 days after the last save." text={create} />
+            {saved && <Block cls="mpg-curl-update" title="Update this mock (same URL)" note={`Keep the token private: anyone with it can change this mock.${dirty ? ' This has your unsaved changes.' : ''}`} text={update} />}
+            {saved ? <Block cls="mpg-curl-calls" title="Call it" text={calls} /> : <p className="mpg-muted">Save first to get the commands that call your mock.</p>}
+        </div>
+    );
+}
+
 function Tester({ current, saved, dirty, save, saving }) {
     const [path, setPath] = useState(samplePath(current.path));
     const [force, setForce] = useState('');
@@ -659,6 +806,12 @@ const CSS = `
 .mpg-hint code, .mpg-panel code, .mpg-content code { font-family: var(--font-mono, ui-monospace, monospace); color: var(--text-mono); font-size: 0.92em; }
 .mpg-body { width: 100%; min-height: 340px; resize: vertical; font-size: 13px; line-height: 1.55; tab-size: 2; }
 .mpg-warn { color: var(--amber); font-size: var(--fs-sm); margin: 6px 0 0; }
+.mpg-route-adds { display: inline-flex; gap: 4px; }
+.mpg-check { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-sm); color: var(--text-secondary); }
+.mpg-check input { margin-top: 3px; }
+.mpg-curlblock { display: grid; gap: 6px; min-width: 0; }
+.mpg-curlblock-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mpg-curlblock pre { margin: 0; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 260px; overflow: auto; }
 .mpg-panel { border: 1px solid var(--border-hover); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; background: var(--bg-surface); display: grid; gap: 8px; }
 .mpg-panel p { margin: 0; }
 .mpg-panel .mpg-row { margin: 0; flex-wrap: wrap; }

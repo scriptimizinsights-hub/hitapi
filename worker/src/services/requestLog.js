@@ -83,7 +83,8 @@ export async function withRequestLog(request, env, ctx, handler) {
     try {
         const url = new URL(request.url);
         const path = url.pathname.replace(/\/$/, '') || '/';
-        if (request.method !== 'OPTIONS' && !SKIP_PATHS.has(path) && !isPolling(request.method, path)) {
+        // calls to mock URLs (/mock/...) aren't logged either: apps can call them very often
+        if (request.method !== 'OPTIONS' && !SKIP_PATHS.has(path) && !isPolling(request.method, path) && !path.startsWith('/mock/')) {
             const client = clientOf(request);
             const task = (async () => writeLog(env, {
                 ts: started,
