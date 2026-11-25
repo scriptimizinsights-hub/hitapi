@@ -40,10 +40,29 @@ export function LoginPage({ onAuth }) {
     }
 
     return (
-        <div style={{
-            minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg)', padding: 20,
-        }}>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+        <style>{`
+            .login-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 12px 32px;
+                background: rgba(10,10,15,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+            .login-brand { display: flex; align-items: center; gap: 8px; flex: 1; color: var(--text-primary); text-decoration: none; min-width: 0; }
+            .login-nav a.login-link { color: var(--text-secondary); text-decoration: none; font-size: var(--fs-md); padding: 6px 10px; border-radius: 7px; }
+            .login-nav a.login-link:hover { color: var(--text-primary); background: var(--bg-card-hover); }
+            @media (max-width: 640px) { .login-nav { padding: 10px 14px; } .login-nav .login-hide-sm { display: none; } }
+        `}</style>
+        {/* the same top bar as the other public pages, so there is a way back */}
+        <nav className="login-nav" aria-label="HitAPI">
+            <a href="/" className="login-brand" aria-label="HitAPI home">
+                <LogoMark size={28} />
+                <span style={{ fontSize: 'var(--fs-lg)', fontWeight: 600 }}>HitAPI</span>
+                <span className="login-hide-sm" style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-tertiary)', marginLeft: 2 }}>· {mode === 'signup' ? 'Create account' : 'Sign in'}</span>
+            </a>
+            <a href="/" className="login-link">Home</a>
+            <a href="/playground" className="login-link login-hide-sm">API Workbench</a>
+            <a href="/mock-playground" className="login-link login-hide-sm">Mock API</a>
+            <a href="/how-it-works" className="login-link login-hide-sm">How it works</a>
+            <a href="/pricing" className="login-link">Pricing</a>
+        </nav>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
             <div style={{ width: '100%', maxWidth: 400 }}>
 
                 {/* Logo */}
@@ -131,6 +150,7 @@ export function LoginPage({ onAuth }) {
                     </button>
                 </p>
             </div>
+        </div>
         </div>
     );
 }
