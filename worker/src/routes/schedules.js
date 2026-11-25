@@ -15,7 +15,7 @@
 
 import { DatabaseAdapter } from '../db/adapter.js';
 import { json, error, success, parseBody } from '../middleware/cors.js';
-import { LIMITS, EVERY, accountData, sealSecrets, openSecrets, runSchedule } from '../services/schedules/runner.js';
+import { LIMITS, EVERY, effectiveEvery, accountData, sealSecrets, openSecrets, runSchedule } from '../services/schedules/runner.js';
 import { suiteFor, plannedRequests } from '../services/schedules/engine.js';
 
 const KINDS = ['collection', 'folder', 'scenario'];
@@ -25,7 +25,7 @@ const safeJson = (t, fb) => { try { return t ? JSON.parse(t) : fb; } catch { ret
 /** What the API shows for a schedule: never the secret values. */
 function view(s, lastRun = null) {
   return {
-    id: s.id, name: s.name, target_kind: s.target_kind, target_id: s.target_id, every_min: s.every_min, env_id: s.env_id || null,
+    id: s.id, name: s.name, target_kind: s.target_kind, target_id: s.target_id, every_min: effectiveEvery(s.every_min), env_id: s.env_id || null,
     notify: s.notify, notify_email: !!s.notify_email, webhook_url: s.webhook_url || '', secret_names: safeJson(s.secret_names, []),
     enabled: !!s.enabled, next_run_at: s.next_run_at, last_run_at: s.last_run_at || null, last_status: s.last_status || null,
     running: !!s.running_since && s.running_since > Date.now() - LIMITS.RUN_MS, created_at: s.created_at, updated_at: s.updated_at,
@@ -44,7 +44,7 @@ async function validate(body, { db, userId, partial = false }) {
   if (!partial || body.name !== undefined) { v.name = String(body.name || '').trim().slice(0, 120); if (!v.name) return { error: 'Give the schedule a name.' }; }
   if (!partial || body.every_min !== undefined) {
     v.every_min = Number(body.every_min);
-    if (!EVERY.includes(v.every_min)) return { error: `"every_min" must be one of ${EVERY.join(', ')} (minutes). The shortest is every ${LIMITS.MIN_EVERY} minutes.` };
+    if (!EVERY.includes(v.every_min)) return { error: `"every_min" must be one of ${EVERY.join(', ')} (minutes). On the free plan the shortest is every hour.` };
   }
   if (!partial || body.notify !== undefined) { v.notify = NOTIFY.includes(body.notify) ? body.notify : 'failures'; }
   if (body.notify_email !== undefined || !partial) v.notify_email = body.notify_email === false ? 0 : 1;
@@ -121,7 +121,7 @@ export async function updateSchedule(request, env, { params, user }) {
     Object.assign(values, await sealSecrets(env, merged));
   }
   if (values.every_min && values.every_min !== s.every_min) values.next_run_at = Date.now() + values.every_min * 60_000;
-  if (values.enabled === 1 && !s.enabled) values.next_run_at = Date.now() + (values.every_min || s.every_min) * 60_000;
+  if (values.enabled === 1 && !s.enabled) values.next_run_at = Date.now() + effectiveEvery(values.every_min || s.every_min) * 60_000;
   const keys = Object.keys(values);
   if (keys.length) {
     await db.run(`UPDATE schedules SET ${keys.map(k => `${k} = ?`).join(', ')}, updated_at = ? WHERE id = ?`, [...keys.map(k => values[k]), Date.now(), s.id]);

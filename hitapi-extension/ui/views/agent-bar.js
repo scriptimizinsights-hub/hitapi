@@ -10,9 +10,10 @@ export function AgentBarView(store, actions) {
 
   let status = 'Lets HitAPI run test steps against your localhost API';
   let statusClass = 'muted';
-  if (on && agent.lastPollOk === false) { status = `Can't reach HitAPI: ${agent.lastError || 'unknown error'}`; statusClass = 'text-red'; }
-  else if (on && agent.lastPollOk) { status = 'Connected: localhost steps run from this browser'; statusClass = 'text-green'; }
-  else if (on) { status = 'Connecting…'; }
+  if (on && agent.listening && agent.lastPollOk === false) { status = `Can't reach HitAPI: ${agent.lastError || 'unknown error'}`; statusClass = 'text-red'; }
+  else if (on && agent.listening && agent.lastPollOk) { status = 'Listening: localhost steps of your run go through this browser'; statusClass = 'text-green'; }
+  else if (on && agent.listening) { status = 'Connecting…'; }
+  else if (on) { status = 'Ready: starts listening when you run a flow on hitapi.dev'; statusClass = 'muted'; }
 
   const toggle = h('input', {
     type: 'checkbox', id: 'agent-toggle', checked: on, 'aria-label': 'Local Agent',

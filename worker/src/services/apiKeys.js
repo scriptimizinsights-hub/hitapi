@@ -7,6 +7,7 @@
  * marked via: 'api_key' so a few routes can refuse keys (creating keys, admin).
  */
 
+import { isDailyLimit } from './dailyLimit.js';
 export const KEY_PREFIX = 'hk_';
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const TOUCH_EVERY_S = 60;   // last_used_at is written at most once a minute per key
@@ -35,7 +36,7 @@ export async function verifyApiKey(key, env) {
            FROM api_keys k JOIN hitapi_users u ON u.id = k.user_id
           WHERE k.key_hash = ?`,
         [await hashKey(key)]
-    ).catch(() => null);
+    ).catch((e) => { if (isDailyLimit(e?.message)) throw e; return null; });   // D1's daily limit: say so, not "Unauthorized"
     if (!row) return null;
     const now = Math.floor(Date.now() / 1000);
     if (row.expires_at && row.expires_at < now) return null;

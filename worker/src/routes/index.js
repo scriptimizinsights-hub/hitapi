@@ -2520,14 +2520,8 @@ function buildFunctionalFlow(endpoints) {
 
 export async function pollAgentJobs(request, env, { user }) {
   const db = new DatabaseAdapter(env.DB);
-
-  // Heartbeat — powers the "Agent connected" indicator
-  await db.run(
-    `INSERT INTO local_agent_heartbeats (user_id, last_seen_at) VALUES (?, unixepoch())
-     ON CONFLICT(user_id) DO UPDATE SET last_seen_at = unixepoch()
-     WHERE local_agent_heartbeats.last_seen_at < unixepoch() - 5`,
-    [user.sub]
-  );
+  // No heartbeat write any more (it was a written row every few seconds per user): the website
+  // asks the extension in the same browser whether it's there. See docs/platform/usage-limits.md.
 
   // Claim up to 5 pending jobs at once for this user
   const jobs = await db.all(
@@ -2588,13 +2582,11 @@ export async function submitAgentJobResult(request, env, { params, user }) {
   return json(success({ ok: true }));
 }
 
-// ── Dashboard checks this to show "Agent connected" / "Agent offline" ─────
+// ── "Agent connected"? Kept for old callers. The heartbeat is no longer written (it cost a
+// written row every few seconds), so this only reports the last one, from before. The website
+// asks the extension directly instead.
 export async function agentStatus(request, env, { user }) {
   const db = new DatabaseAdapter(env.DB);
-  const hb = await db.first(
-    `SELECT last_seen_at FROM local_agent_heartbeats WHERE user_id = ?`,
-    [user.sub]
-  );
-  const connected = hb && (Date.now() / 1000 - hb.last_seen_at) < 15; // seen in last 15s
-  return json(success({ connected, last_seen_at: hb?.last_seen_at || null }));
+  const hb = await db.first(`SELECT last_seen_at FROM local_agent_heartbeats WHERE user_id = ?`, [user.sub]);
+  return json(success({ connected: null, checkInBrowser: true, last_seen_at: hb?.last_seen_at || null }));
 }

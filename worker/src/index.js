@@ -40,6 +40,7 @@ import {
 } from './routes/mock.js';
 import { handleMockRequest } from './services/mock/serve.js';
 import { withRequestLog, trackPageView } from './services/requestLog.js';
+import { isDailyLimit, limitResponse, checkLimit, simulateLimit } from './services/dailyLimit.js';
 import { adminTraffic } from './routes/traffic.js';
 import { getExtensionSync, putExtensionSync, deleteExtensionSync } from './routes/extensionSync.js';
 import { listApiKeys, createApiKey, deleteApiKey } from './routes/apiKeys.js';
@@ -262,6 +263,8 @@ async function handleFetch(request, env, ctx) {
       return json({ error: 'Not found', path: urlPath }, 404, env);
 
     } catch (err) {
+      // D1's daily free limit: say so clearly (logging it would fail too)
+      if (isDailyLimit(err?.message)) return limitResponse(err.message);
       // Log critical internal error — never let this break the response
       try {
         const { DatabaseAdapter } = await import('./db/adapter.js');
@@ -287,7 +290,14 @@ export default {
 
   // Every request is recorded in request_logs (Super Admin → Traffic)
   async fetch(request, env, ctx) {
-    return withRequestLog(request, env, ctx, handleFetch);
+    env = simulateLimit(env);   // local development only
+    try {
+      // a handler that reported D1's daily limit as a 5xx → 503 DAILY_LIMIT (docs/platform/usage-limits.md)
+      return await checkLimit(await withRequestLog(request, env, ctx, handleFetch));
+    } catch (err) {
+      if (isDailyLimit(err?.message)) return limitResponse(err.message);
+      throw err;
+    }
   },
 
   async queue(batch, env) {
@@ -303,10 +313,12 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    // every minute: Workbench schedules that are due (website W9)
-    if (event.cron === '* * * * *') {
-      const { runDueSchedules } = await import('./services/schedules/runner.js');
+    // hourly (free plan): Workbench schedules that are due (website W9) and old Local Agent jobs.
+    // '* * * * *' is still accepted, in case wrangler.toml wasn't updated yet.
+    if (event.cron === '0 * * * *' || event.cron === '* * * * *') {
+      const { runDueSchedules, cleanupLocalJobs } = await import('./services/schedules/runner.js');
       await runDueSchedules(env, ctx);
+      if (event.cron === '0 * * * *') ctx.waitUntil(cleanupLocalJobs(env));
       return;
     }
     const db = new (await import('./db/adapter.js')).DatabaseAdapter(env.DB);

@@ -54,6 +54,15 @@ export async function disconnectExtension() {
   await message({ type: 'HITAPI_DISCONNECT' });
 }
 
+/** A flow run started or is being watched: the extension's Local Agent listens for localhost steps (2.1.2+). */
+let lastWake = 0;
+export function wakeLocalAgent(ms) {
+  const now = Date.now();
+  if (now - lastWake < 20_000) return;
+  lastWake = now;
+  message({ type: 'HITAPI_AGENT_WAKE', ...(ms ? { ms } : {}) }, 1500);
+}
+
 export function cancelViaExtension(id) {
   return message({ type: 'HITAPI_CANCEL', id }, 2000);
 }

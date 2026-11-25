@@ -3,8 +3,14 @@
  * localhost API, because HitAPI's servers can't reach your machine.
  *
  * How it works: when a suite run reaches a localhost step, HitAPI queues a
- * job and waits up to 25 s. While the switch is on, this module asks for jobs
- * every 2 s, runs each one from your browser and posts the result back.
+ * job and waits up to 25 s. While the switch is on AND the agent is listening,
+ * this module asks for jobs every 2 s, runs each one from your browser and
+ * posts the result back.
+ *
+ * 2.1.2: it listens only when asked. The website (hitapi.dev) tells it when you
+ * start a flow run, and while it watches the run (HITAPI_AGENT_WAKE, web-bridge.js);
+ * turning the switch on listens for 2 minutes too. No asking every 2 s all day:
+ * each ask was a database write on HitAPI's side (docs/platform/usage-limits.md).
  *
  * Old version: asked only every 30 s (Chrome's minimum alarm), so most steps
  * timed out before the job was picked up. The alarm is now only a back-up that
@@ -23,6 +29,9 @@ import { publish } from '../live.js';
 
 let loopTimer = null;
 let polling = false;
+let listenUntil = 0;                       // ask for jobs until then (kept in chrome.storage.session)
+const LISTEN_KEY = 'agent:listenUntil';
+const listening = () => Date.now() < listenUntil;
 const inFlight = new Set();
 const status = { lastPollAt: null, lastPollOk: null, lastError: null, jobsRun: 0 };
 
@@ -31,19 +40,30 @@ export async function isEnabled() {
 }
 
 export async function getState() {
-  return { enabled: await isEnabled(), ...status };
+  return { enabled: await isEnabled(), listening: listening(), listenUntil: listening() ? listenUntil : null, ...status };
 }
 
-export async function setEnabled(enabled) {
-  await setLocal({ [LOCAL.AGENT_ENABLED]: !!enabled });
-  if (enabled) start(); else stop();
+/** Listen for jobs for a while (a run was started on the website). Returns the state. */
+export async function wake(ms = AGENT.LISTEN_MS) {
+  const until = Date.now() + Math.max(10_000, Math.min(AGENT.MAX_LISTEN_MS, Number(ms) || AGENT.LISTEN_MS));
+  if (until > listenUntil) { listenUntil = until; try { await chrome.storage.session?.set({ [LISTEN_KEY]: until }); } catch { /* ignore */ } }
+  if (await isEnabled()) start();
   const state = await getState();
   publish(EVENT.AGENT, state);
   return state;
 }
 
-/** Start (or keep) the fast loop. Safe to call any number of times. */
+export async function setEnabled(enabled) {
+  await setLocal({ [LOCAL.AGENT_ENABLED]: !!enabled });
+  if (enabled) return wake(); else stop();
+  const state = await getState();
+  publish(EVENT.AGENT, state);
+  return state;
+}
+
+/** Start (or keep) the fast loop while listening. Safe to call any number of times. */
 export function start() {
+  if (!listening()) { stop(); return; }
   chrome.alarms.create(AGENT.ALARM, { periodInMinutes: AGENT.ALARM_PERIOD_MIN });
   if (!loopTimer && !polling) tick();
 }
@@ -59,6 +79,7 @@ async function tick() {
   // This storage read is also what keeps Chrome from stopping the worker
   // while the agent is on (extension API calls reset its idle timer).
   if (!(await isEnabled())) return;
+  if (!listening()) { stop(); getState().then(s => publish(EVENT.AGENT, s)); return; }   // done listening: no more asks
   const token = await getLocal(LOCAL.TOKEN);
   if (!token) return; // signed out: the alarm / next login restarts the loop
 
@@ -144,5 +165,7 @@ export function registerLocalAgent() {
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === AGENT.ALARM) start();
   });
-  isEnabled().then(on => { if (on) start(); });
+  // after a worker restart: carry on listening if a run asked for it
+  Promise.resolve(chrome.storage.session?.get(LISTEN_KEY)).then((v) => { listenUntil = Number(v?.[LISTEN_KEY]) || 0; })
+    .catch(() => {}).finally(() => isEnabled().then(on => { if (on) start(); }));
 }

@@ -4,16 +4,17 @@
  * the account copy, so the schedule stores them, encrypted).
  */
 
+import { isDailyLimitResponse } from '../../utils/dailyLimit.js';
 import { API_BASE, getToken } from '../../store/index.js';
 import { find, requestsIn, effectiveDraft } from '@hitapi/shared/collections.js';
 import { normalizeRows, VAR_RE } from '@hitapi/shared/vars.js';
 import { maskDraft } from '@hitapi/shared/history.js';
 
+// Free plan: at most hourly (docs/platform/usage-limits.md); the server checks once an hour
 export const EVERY = [
-  [5, 'Every 5 minutes'], [15, 'Every 15 minutes'], [30, 'Every 30 minutes'], [60, 'Every hour'],
-  [180, 'Every 3 hours'], [360, 'Every 6 hours'], [720, 'Every 12 hours'], [1440, 'Every day'],
+  [60, 'Every hour'], [180, 'Every 3 hours'], [360, 'Every 6 hours'], [720, 'Every 12 hours'], [1440, 'Every day'],
 ];
-export const everyLabel = (m) => EVERY.find(x => x[0] === m)?.[1] || `Every ${m} minutes`;
+export const everyLabel = (m) => EVERY.find(x => x[0] === Math.max(60, m))?.[1] || `Every ${m} minutes`;
 export const KIND_LABEL = { collection: 'Collection', folder: 'Folder', scenario: 'Scenario' };
 
 async function call(method, path = '', body) {
@@ -23,6 +24,7 @@ async function call(method, path = '', body) {
   try { res = await fetch(`${API_BASE}/schedules${path}`, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: body ? JSON.stringify(body) : undefined }); }
   catch { throw new Error('Couldn\'t reach HitAPI. Check your connection.'); }
   const data = await res.json().catch(() => null);
+  if (isDailyLimitResponse(res, data)) { const e = new Error(data.error); e.code = 'DAILY_LIMIT'; throw e; }
   if (res.status === 401) throw new Error('Signed out: sign in again.');
   if (!res.ok || data?.success === false) throw new Error(data?.error || `HitAPI error ${res.status}`);
   return data?.data ?? data;

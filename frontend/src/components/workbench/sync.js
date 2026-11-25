@@ -14,6 +14,7 @@
  * Secrets are removed before upload and filled back in from this browser's copy.
  */
 
+import { isDailyLimitResponse } from '../../utils/dailyLimit.js';
 import { SYNC_KINDS, itemsOf, hashes, sameItems, merge3, applyItems } from '@hitapi/shared/sync.js';
 import { API_BASE, getToken } from '../../store/index.js';
 
@@ -55,6 +56,7 @@ async function call(method, path = '', body) {
     res = await fetch(`${API_BASE}/extension/sync${path}`, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: body ? JSON.stringify(body) : undefined });
   } catch { const e = new Error('Offline: changes are kept here and saved when you are back online.'); e.offline = true; throw e; }
   const data = await res.json().catch(() => null);
+  if (isDailyLimitResponse(res, data)) { const e = new Error(data.error); e.code = 'DAILY_LIMIT'; throw e; }
   if (res.status === 401) { const e = new Error('Signed out: sign in to keep your Workbench in your account.'); e.signedOut = true; throw e; }
   if (!res.ok || data?.success === false) throw new Error(data?.error || `HitAPI error ${res.status}`);
   return data?.data ?? data;

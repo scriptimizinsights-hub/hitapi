@@ -31,6 +31,8 @@ import { SuperAdminPage } from './components/admin/SuperAdminPage.jsx';
 import { RouteMeta } from './seo/RouteMeta.jsx';
 import { ApiKeysPage } from './components/account/ApiKeysPage.jsx';
 import { Workbench } from './components/workbench/Workbench.jsx';
+import { DailyLimitBanner } from './components/ui/DailyLimitBanner.jsx';
+import { PricingPage } from './components/ui/PricingPage.jsx';
 
 /** A Workbench flow on its own page (web roadmap W10): /playground/flows/:id, /workbench/flows/:id */
 function FlowPage({ variant }) {
@@ -144,7 +146,7 @@ export default function App() {
   useEffect(() => {
     if (user) {
       api.admin.checkAdmin()
-        .then(data => { setIsAdmin(!!data?.isAdmin); useStore.setState({ isAdmin: !!data?.isAdmin }); })
+        .then(data => { setIsAdmin(!!data?.isAdmin); useStore.setState({ isAdmin: !!data?.isAdmin }); try { localStorage.setItem('hitapi:wasAdmin', data?.isAdmin ? '1' : '0'); } catch { /* ignore */ } })
         .catch(() => { setIsAdmin(false); useStore.setState({ isAdmin: false }); });
     } else {
       setIsAdmin(false);
@@ -171,6 +173,7 @@ export default function App() {
     return (
       <BrowserRouter>
         <RouteMeta />
+        <DailyLimitBanner />
         <Routes>
           {/* Always public */}
           <Route path="/how-it-works" element={<HowItWorks />} />
@@ -180,6 +183,7 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           {/* API Playground — public, no login required */}
           <Route path="/playground" element={<PlaygroundPage />} />
           <Route path="/playground/flows/:id" element={<FlowPage variant="public" />} />
@@ -207,6 +211,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <RouteMeta />
+      <DailyLimitBanner />
       <TermsGate>
         <Routes>
           {/* Public pages — no sidebar */}
@@ -217,6 +222,7 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/support" element={<SupportPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/playground" element={<PlaygroundPage />} />
           <Route path="/playground/flows/:id" element={<FlowPage variant="public" />} />
 

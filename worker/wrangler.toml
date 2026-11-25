@@ -46,6 +46,6 @@ ENVIRONMENT = "development"
 CORS_ORIGIN = "http://localhost:5173"
 
 
-# ─── Cron: Workbench cloud schedules, due ones picked every minute (website W9) ───
+# ─── Cron: Workbench cloud schedules (hourly on the free plan) + Local Agent job cleanup ───
 [triggers]
-crons = ["* * * * *"]
+crons = ["0 * * * *"]

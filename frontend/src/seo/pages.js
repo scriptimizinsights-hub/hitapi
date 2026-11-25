@@ -55,6 +55,12 @@ export const PAGES = {
         priority: '0.8',
         changefreq: 'monthly',
     },
+    '/pricing': {
+        title: 'Plans and pricing | HitAPI',
+        description: 'HitAPI is free: the API Workbench, collections, tests, flows, the CLI and cloud schedules. A Pro plan is coming for teams that need more.',
+        priority: '0.5',
+        changefreq: 'monthly',
+    },
     '/support': {
         title: 'Help & Support | HitAPI',
         description: 'Answers to common questions about HitAPI: getting started, the Chrome extension, AI test generation and the API Playground. Plus how to contact support.',

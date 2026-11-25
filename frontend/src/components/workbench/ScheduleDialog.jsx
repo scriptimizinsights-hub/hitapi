@@ -22,7 +22,7 @@ export function ScheduleDialog({ target, schedule = null, signedIn = true, syncO
   const data = useMemo(() => ({ tree: loadTree(), envs: loadEnvs(), scenarios: loadScenarios() }), []);
   const tgt = schedule ? { kind: schedule.target_kind, id: schedule.target_id, name: target?.name || schedule.name } : target;
   const [name, setName] = useState(schedule?.name || tgt.name || 'Schedule');
-  const [every, setEvery] = useState(schedule?.every_min || 60);
+  const [every, setEvery] = useState(Math.max(60, schedule?.every_min || 60));
   const [envId, setEnvId] = useState(schedule ? schedule.env_id || '' : data.envs.active || '');
   const [notify, setNotify] = useState(schedule?.notify || 'failures');
   const [email, setEmail] = useState(schedule ? schedule.notify_email : true);
@@ -53,7 +53,7 @@ export function ScheduleDialog({ target, schedule = null, signedIn = true, syncO
 
   return (
     <Dialog wide title={schedule ? `Schedule: ${schedule.name}` : `Schedule "${tgt.name}" in the cloud`} onClose={onClose} footer={<>
-      <span className="text-xs text-tertiary">Runs on HitAPI's servers, even with your browser closed. At most 10 schedules, every 5 minutes, 100 requests a run.</span>
+      <span className="text-xs text-tertiary">Runs on HitAPI's servers, even with your browser closed. Free plan: at most 10 schedules, hourly at most (they run on the hour), 100 requests a run.</span>
       <span className="wbw-grow" />
       <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
       <button type="button" className="btn btn-primary btn-sm wbw-sch-save" disabled={busy || !syncOn || !signedIn} onClick={save}>{busy ? 'Saving…' : schedule ? 'Save' : 'Create schedule'}</button>

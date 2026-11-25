@@ -17,6 +17,9 @@
  *   { type: 'HITAPI_SEND', draft, files? }  → { ok, response } | { ok: false, code, error }
  *   { type: 'HITAPI_CANCEL', id }  → { ok }
  *   { type: 'HITAPI_DISCONNECT' }  → { ok }
+ *   { type: 'HITAPI_AGENT_WAKE', ms? } → { ok, enabled, listening }  (2.1.2: a flow run started on the website;
+ *                                    the Local Agent asks for jobs for ms, default 2 min. No approval needed:
+ *                                    it only makes the agent check this user's own jobs.)
  *   files: { binary?: { name, type, base64 }, form?: { [rowId]: { name, type, base64 } } }
  */
 
@@ -24,6 +27,7 @@ import './scheduler.js';   // sets up send()'s direct background calls (setRpc)
 import { send } from '../../workbench/send.js';
 import { normalizeBodies } from '../../shared/body.js';
 import { normalizeAuth } from '../../shared/auth.js';
+import { wake as wakeAgent } from '../agent/local-agent.js';
 
 export const ORIGINS_KEY = 'wb:webOrigins';
 const PENDING_KEY = 'wb:webPending';     // origin waiting for an answer on the approval page
@@ -118,6 +122,10 @@ async function handle(msg, sender) {
     case 'HITAPI_CANCEL':
       running.get(String(msg.id || ''))?.abort('cancel');
       return { ok: true };
+    case 'HITAPI_AGENT_WAKE': {
+      const st = await wakeAgent(msg.ms);
+      return { ok: true, enabled: st.enabled, listening: st.listening };
+    }
     case 'HITAPI_SEND':
       if (!allowed) return { ok: false, code: 'not_allowed', error: `Allow ${origin} in the HitAPI extension first.` };
       return runSend(msg);

@@ -16,8 +16,14 @@ import { encryptField, decryptField } from '../encryption.js';
 import { executePublicRequest, setDevAllowHosts } from '../proxy.js';
 import { suiteFor, runVars, runSuite, plannedRequests } from './engine.js';
 
-export const LIMITS = Object.freeze({ MAX_SCHEDULES: 10, MIN_EVERY: 5, MAX_EVERY: 1440, MAX_REQUESTS: 100, RUN_MS: 5 * 60 * 1000, KEEP_RUNS: 50, BATCH: 25 });
-export const EVERY = [5, 15, 30, 60, 180, 360, 720, 1440];
+// Free plan (everyone today): at most hourly, so schedules stay well inside D1's daily write limit
+// (docs/platform/usage-limits.md). A paid plan can lower FREE_SCHEDULE_MIN_EVERY's role later.
+export const FREE_SCHEDULE_MIN_EVERY = 60;
+export const LIMITS = Object.freeze({ MAX_SCHEDULES: 10, MIN_EVERY: FREE_SCHEDULE_MIN_EVERY, MAX_EVERY: 1440, MAX_REQUESTS: 100, RUN_MS: 5 * 60 * 1000, KEEP_RUNS: 50, BATCH: 25 });
+export const EVERY = [60, 180, 360, 720, 1440];
+/** How often a schedule really runs: schedules made when 5–30 minutes was allowed now run hourly. */
+export const effectiveEvery = (m) => Math.max(LIMITS.MIN_EVERY, Number(m) || LIMITS.MIN_EVERY);
+const TRIM_EVERY = 10;   // trim old runs on about 1 run in 10 (each deleted row is a write too)
 
 const safeJson = (t, fb) => { try { return t ? JSON.parse(t) : fb; } catch { return fb; } };
 const newId = (p) => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -59,8 +65,9 @@ export async function runSchedule(env, scheduleId, reason = 'cron') {
   if (!s) return null;
   const startedAt = Date.now();
   const runId = newId('run');
-  await db.run('INSERT INTO schedule_runs (id, schedule_id, user_id, started_at, reason, status) VALUES (?, ?, ?, ?, ?, ?)', [runId, s.id, s.user_id, startedAt, reason, 'running']);
-  await db.run('UPDATE schedules SET running_since = ? WHERE id = ?', [startedAt, s.id]);
+  // fewer writes: the run is written once, when it ends; "running" shows from schedules.running_since,
+  // which the cron's claim already set (a manual run sets it here)
+  if (reason !== 'cron') await db.run('UPDATE schedules SET running_since = ? WHERE id = ?', [startedAt, s.id]);
   let out = { status: 'error', passed: 0, failed: 0, total: 0, ms: 0, error: null, failures: [], results: [] };
   try {
     const data = await accountData(db, s.user_id);
@@ -89,11 +96,12 @@ export async function runSchedule(env, scheduleId, reason = 'cron') {
   }
   const finishedAt = Date.now();
   const alert = await sendAlerts(env, db, s, out).catch((e) => `alert failed: ${e.message}`);
-  await db.run(`UPDATE schedule_runs SET finished_at = ?, status = ?, passed = ?, failed = ?, total = ?, ms = ?, error = ?, failures = ?, results = ?, alert = ? WHERE id = ?`,
-    [finishedAt, out.status, out.passed, out.failed, out.total, out.ms, out.error, JSON.stringify(out.failures), JSON.stringify(out.results).slice(0, 900_000), alert || null, runId]);
+  await db.run(`INSERT INTO schedule_runs (id, schedule_id, user_id, started_at, reason, finished_at, status, passed, failed, total, ms, error, failures, results, alert)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [runId, s.id, s.user_id, startedAt, reason, finishedAt, out.status, out.passed, out.failed, out.total, out.ms, out.error, JSON.stringify(out.failures), JSON.stringify(out.results).slice(0, 900_000), alert || null]);
   await db.run('UPDATE schedules SET last_run_at = ?, last_status = ?, running_since = NULL, updated_at = ? WHERE id = ?', [startedAt, out.status, finishedAt, s.id]);
-  // keep the last 50 runs
-  await db.run(`DELETE FROM schedule_runs WHERE schedule_id = ? AND id NOT IN (SELECT id FROM schedule_runs WHERE schedule_id = ? ORDER BY started_at DESC LIMIT ${LIMITS.KEEP_RUNS})`, [s.id, s.id]);
+  // keep the last 50 runs (checked now and then, not on every run)
+  if (Math.random() < 1 / TRIM_EVERY) await db.run(`DELETE FROM schedule_runs WHERE schedule_id = ? AND id NOT IN (SELECT id FROM schedule_runs WHERE schedule_id = ? ORDER BY started_at DESC LIMIT ${LIMITS.KEEP_RUNS})`, [s.id, s.id]);
   return { id: runId, schedule_id: s.id, started_at: startedAt, finished_at: finishedAt, reason, status: out.status, passed: out.passed, failed: out.failed, total: out.total, ms: out.ms, error: out.error, failures: out.failures, alert: alert || null };
 }
 
@@ -143,13 +151,22 @@ export async function runDueSchedules(env, ctx) {
   for (const s of due) {
     // claim it: only one worker moves next_run_at on
     const r = await db.run('UPDATE schedules SET next_run_at = ?, running_since = ? WHERE id = ? AND next_run_at <= ? AND (running_since IS NULL OR running_since < ?)',
-      [now + s.every_min * 60_000, now, s.id, now, now - LIMITS.RUN_MS]);
+      [now + effectiveEvery(s.every_min) * 60_000, now, s.id, now, now - LIMITS.RUN_MS]);
     if (!(r?.meta?.changes ?? r?.changes ?? 1)) continue;
     n++;
     if (env.QUEUE) await env.QUEUE.send({ type: 'schedule_run', scheduleId: s.id });
     else ctx?.waitUntil?.(runSchedule(env, s.id, 'cron'));
   }
   return n;
+}
+
+/** Local Agent jobs live 30 s; delete the ones older than a day (in small batches). Returns the number deleted. */
+export async function cleanupLocalJobs(env) {
+  const db = new DatabaseAdapter(env.DB);
+  try {
+    const r = await db.run('DELETE FROM local_agent_jobs WHERE id IN (SELECT id FROM local_agent_jobs WHERE created_at < unixepoch() - 86400 LIMIT 500)');
+    return r?.meta?.changes ?? r?.changes ?? 0;
+  } catch { return 0; }
 }
 
 /** Queue consumer part: { type: 'schedule_run', scheduleId } messages. */

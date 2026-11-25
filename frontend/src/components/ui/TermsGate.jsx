@@ -20,7 +20,8 @@ export function TermsGate({ children }) {
 
     useEffect(() => {
         if (!user) { setNeedsAcceptance(false); return; }
-        setNeedsAcceptance(user.terms_version_accepted !== CURRENT_TERMS_VERSION);
+        // during HitAPI's daily usage limit accepting can't be saved: ask again once it's over
+        setNeedsAcceptance(!user.limited && user.terms_version_accepted !== CURRENT_TERMS_VERSION);
     }, [user]);
 
     async function handleAccept() {

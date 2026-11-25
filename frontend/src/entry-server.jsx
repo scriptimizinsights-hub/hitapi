@@ -11,6 +11,7 @@ import { DemoPage } from './components/ui/DemoPage.jsx';
 import { MockApiServerPage } from './components/ui/MockApiServerPage.jsx';
 import { MockPlaygroundPage } from './components/mock/MockPlaygroundPage.jsx';
 import { SupportPage } from './components/ui/SupportPage.jsx';
+import { PricingPage } from './components/ui/PricingPage.jsx';
 import { PrivacyPage } from './components/ui/PrivacyPage.jsx';
 import { TermsPage } from './components/ui/TermsPage.jsx';
 
@@ -23,6 +24,7 @@ const COMPONENTS = {
     '/demo': () => <DemoPage />,
     '/mock-api-server': () => <MockApiServerPage />,
     '/mock-playground': () => <MockPlaygroundPage />,
+    '/pricing': () => <PricingPage />,
     '/support': () => <SupportPage />,
     '/privacy': () => <PrivacyPage />,
     '/terms': () => <TermsPage />,

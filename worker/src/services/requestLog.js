@@ -19,6 +19,10 @@ const CLEANUP_EVERY = 200; // on average, one write in 200 also deletes expired 
 // Not logged as 'api': the page-view beacon writes its own 'page' row, and the
 // admin Traffic view would otherwise fill the log with its own refreshes.
 const SKIP_PATHS = new Set(['/api/public/track', '/api/admin/traffic', '/health', '/api/health']);
+// Polling isn't logged: each logged call costs 4 written rows (the row + 3 indexes), and the
+// extension's Local Agent and account sync ask often. See docs/platform/usage-limits.md.
+const isPolling = (method, path) => path === '/api/agent/jobs' || path === '/api/agent/status' || path.startsWith('/api/agent/jobs/')
+    || (method === 'GET' && path === '/api/extension/sync');
 const SECRET_PARAM = /token|key|secret|pass|auth|code|sig|session|jwt/i;
 
 const clip = (s, n) => (s === null || s === undefined ? null : String(s).slice(0, n));
@@ -79,7 +83,7 @@ export async function withRequestLog(request, env, ctx, handler) {
     try {
         const url = new URL(request.url);
         const path = url.pathname.replace(/\/$/, '') || '/';
-        if (request.method !== 'OPTIONS' && !SKIP_PATHS.has(path)) {
+        if (request.method !== 'OPTIONS' && !SKIP_PATHS.has(path) && !isPolling(request.method, path)) {
             const client = clientOf(request);
             const task = (async () => writeLog(env, {
                 ts: started,

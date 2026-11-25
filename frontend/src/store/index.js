@@ -2,6 +2,9 @@
  * API Client — talks to Cloudflare Worker backend
  */
 
+import { isDailyLimitResponse, userFromToken } from '../utils/dailyLimit.js';
+import { wakeLocalAgent } from '../components/workbench/bridge.js';
+
 const BASE = import.meta.env.VITE_API_URL ?? 'https://services.hitapi.dev/api';
 export const API_BASE = BASE;
 
@@ -28,6 +31,8 @@ async function request(path, options = {}) {
   }
 
   const data = await response.json().catch(() => ({ error: 'Invalid response' }));
+  // HitAPI reached today's free database limit: the banner explains it (utils/dailyLimit.js)
+  if (isDailyLimitResponse(response, data)) { const e = new Error(data.error); e.code = 'DAILY_LIMIT'; throw e; }
   if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
   return data.data !== undefined ? data.data : data;
 }
@@ -98,9 +103,10 @@ export const api = {
     create: (id, body) => request(`/projects/${id}/flows`, { method: 'POST', body: JSON.stringify(body) }),
     update: (id, flowId, body) => request(`/projects/${id}/flows/${flowId}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id, flowId) => request(`/projects/${id}/flows/${flowId}`, { method: 'DELETE' }),
-    run: (id, flowId, body) => request(`/projects/${id}/flows/${flowId}/run`, { method: 'POST', body: JSON.stringify(body || {}) }),
+    // starting or watching a run: the extension's Local Agent listens for localhost steps (2.1.2+)
+    run: (id, flowId, body) => { wakeLocalAgent(); return request(`/projects/${id}/flows/${flowId}/run`, { method: 'POST', body: JSON.stringify(body || {}) }); },
     listRuns: (id, flowId) => request(`/projects/${id}/flows/${flowId}/runs`),
-    getRun: (id, flowId, runId) => request(`/projects/${id}/flows/${flowId}/runs/${runId}`),
+    getRun: (id, flowId, runId) => { wakeLocalAgent(); return request(`/projects/${id}/flows/${flowId}/runs/${runId}`); },
     updateStep: (id, flowId, stepId, body) => request(`/projects/${id}/flows/${flowId}/steps/${stepId}`, { method: 'PATCH', body: JSON.stringify(body) }),
     deleteStep: (id, flowId, stepId) => request(`/projects/${id}/flows/${flowId}/steps/${stepId}`, { method: 'DELETE' }),
     reorderSteps: (id, flowId, order) => request(`/projects/${id}/flows/${flowId}/steps/reorder`, { method: 'PUT', body: JSON.stringify({ order }) }),
@@ -188,7 +194,14 @@ export const useStore = create((set, get) => ({
     try {
       const data = await api.auth.me();
       set({ user: data.user, authLoading: false });
-    } catch {
+      try { localStorage.setItem('hitapi:lastUser', JSON.stringify(data.user)); } catch { /* ignore */ }
+    } catch (e) {
+      // the daily limit isn't a sign-out: stay signed in, with the last profile seen (or what the token says)
+      if (e?.code === 'DAILY_LIMIT') {
+        const t = userFromToken(token);
+        let last = null; try { last = JSON.parse(localStorage.getItem('hitapi:lastUser') || 'null'); } catch { /* ignore */ }
+        if (t) { set({ user: { ...(last?.id === t.id ? last : t), limited: true }, authLoading: false }); return; }
+      }
       setToken(null);
       set({ user: null, authLoading: false });
     }

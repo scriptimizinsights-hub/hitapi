@@ -16,6 +16,8 @@ export const AGENT = {
   ALARM: 'hitapi-local-agent-poll',  // wakes the worker if Chrome stopped it
   ALARM_PERIOD_MIN: 0.5,             // Chrome's minimum
   FAST_POLL_MS: 2_000,               // HitAPI waits up to 25 s per local step
+  LISTEN_MS: 2 * 60 * 1000,          // after the website starts a run: ask for jobs this long (2.1.2)
+  MAX_LISTEN_MS: 10 * 60 * 1000,
   REQUEST_TIMEOUT_MS: 20_000,        // must stay below the worker's 25 s wait
   MAX_RESPONSE_CHARS: 200_000,
 };
